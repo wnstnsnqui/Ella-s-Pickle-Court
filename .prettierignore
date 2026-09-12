@@ -1,0 +1,27 @@
+# Build output and generated files.
+.next/
+out/
+build/
+next-env.d.ts
+*.tsbuildinfo
+
+# Dependencies and lockfiles: npm owns the formatting of these.
+node_modules/
+package-lock.json
+
+# Supabase CLI scratch state.
+supabase/.temp/
+
+# SQL migrations are applied forward only and Prettier has no SQL parser.
+supabase/migrations/
+
+# Prose the workflow skills own and edit line by line (scope, specs, agent
+# context files). Reflowing their tables and lists would break those surgical
+# edits, so Prettier stays out.
+docs/
+.agents/
+.claude/
+AGENTS.md
+CLAUDE.md
+**/AGENTS.md
+**/CLAUDE.md

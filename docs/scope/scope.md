@@ -1,0 +1,154 @@
+# Scope: Ella's Picklecourt Court Monitor
+
+A court booking schedule for Ella's Picklecourt. Pick a day and see time down the side and a column per court, with every cell reading Booked, Available or Unavailable. Staff keep it, players read it before they come, and Ella can look back at how the courts were used.
+
+**Build approach:** Tracer Bullet (prove the whole path works end to end, narrow but real, before thickening any part of it).
+**Workflow:** Beta (after `/develop`, run `/check verify`, then `/test`). The project default level of rigor. `/architect` is the recommended first stop for a feature with a real decision, but skippable when you already know the build. Any feature can carry its own tag (e.g. `· GA`) to do more or less.
+
+_These are recommendations to keep your build orderly, not requirements. Skip anything that does not fit: if you already know how to build a feature, use `/develop` and skip `/architect`. You decide when a feature is `done`._
+
+## At a glance
+
+| # | Feature | Phase | Status |
+|---|---------|-------|--------|
+| 1 | Stack & architecture | Foundation | done |
+| 2 | Coding standards & tooling | Foundation | done |
+| 3 | Data model | Foundation | in-progress |
+| 4 | Design system & UI foundation | Foundation | in-progress |
+| 5 | Staff sign in | Slice 1 | planned |
+| 6 | Staff booking schedule | Slice 1 | planned |
+| 7 | Public schedule board | Slice 1 | planned |
+| 8 | Courts & opening hours | Slice 2 | planned |
+| 9 | Session history | Slice 3 | dropped |
+| 10 | Usage reporting | Slice 4 | planned |
+| 11 | Analytics & error alerts | Slice 5 | planned |
+| 12 | Privacy, terms & cookie notice | Slice 5 | planned |
+
+## Foundations
+
+### 1. Stack & architecture · done
+The repo is an untouched Next.js starter, so the load bearing choices are all still open: where data lives, how staff sign in, how a change reaches every open screen by itself, and where it is hosted.
+**Done when:** the stack is recorded in a spec and the scaffold boots locally, builds clean, and can push a live update to a second open browser.
+spec [0001](../specs/0001-stack-architecture/index.md) · code in `app/`, `lib/`, `proxy.ts`, `supabase/`, `Dockerfile`
+- [x] Decide the stack (spec): `/architect stack & architecture`
+- [x] Scaffold from the decision: `/develop stack & architecture`
+  - [x] Dependencies, container build, and the health endpoint
+  - [x] The two Supabase clients, the Clerk join, and the Server Action guard
+  - [x] Smoke migration written: table, trigger, broadcast, and the policies
+  - [x] Migration applied to a real Supabase project and the live update seen in a second browser
+  - [x] The staff write path proven end to end (watched live: a signed in bump moved two other browsers from version 5 to 6 with no reload, and `changed_by` holds the Clerk user id)
+- [x] Verify it: `/check verify stack & architecture`
+- [x] Test it: `/test stack & architecture`
+
+_Closed on 2026-09-03 with three checks deliberately deferred, none of them failures: a Clerk token refresh across a long lived tab and the two tab version conflict as seen by a person (the conflict itself is pinned by an automated test), and `docker build`, which needs Docker installed. The first two belong with feature 5, the third with picking a host._
+
+### 2. Coding standards & tooling · done
+Capture the conventions from the real scaffolded project, then install the lint, format, and type checks every later slice has to pass.
+**Done when:** root `AGENTS.md` reflects the real stack, and lint, format, and type check all run clean.
+code in `.prettierrc.mjs`, `.prettierignore`, `eslint.config.mjs`, `package.json`
+- [x] Capture conventions + tooling choices: `/audit`
+- [x] Install the tooling: `/develop tooling`
+
+### 3. Data model · in-progress
+The entities every screen reads: courts, the bookings and closures that occupy them, staff accounts, and the venue's opening hours. A booking is a court plus a start and an end, and the database itself refuses two that overlap. Getting this wrong is the most expensive thing to redo.
+**Done when:** a day's schedule for every court can be read and written cleanly, two staff cannot double book the same hour, nothing personal reaches the public page, and the shape carries the history reporting will need without a breaking change.
+spec [0002](../specs/0002-data-model/index.md) · code in `supabase/migrations/`, `lib/schedule/`, `lib/supabase/`, `lib/time.ts`
+- [x] Design it (spec): `/architect data model`
+- [ ] Build it: `/develop data model`
+  - [x] The shared value lists and their Zod schemas, defined once (AC-12)
+  - [x] One migration: the four tables, the overlap constraint, the grants and policies, the narrowed broadcast trigger, the audit trigger, and the seed, applied and checked with `db advisors` (AC-1, AC-2, AC-3, AC-4, AC-6, AC-8, AC-9, AC-10)
+  - [x] Generated database types, and the grid derivation module that turns a day plus the settings into labelled cells in `Asia/Manila` (AC-5, AC-11, AC-12)
+  - [x] The public and staff read paths, and the Server Actions for booking, editing, cancelling, courts and settings (AC-2, AC-4, AC-6, AC-7, AC-8)
+  - [ ] The thread proven live: a booking made by signed in staff turns the cell Booked in a second browser, and a concurrent duplicate is refused (AC-2, AC-9) · waits on feature 5, there is no way to sign in or create a `staff` row yet
+- [ ] Verify it: `/check verify data model`
+- [ ] Test it: `/test data model`
+
+### 4. Design system & UI foundation · in-progress
+The visual language for a schedule grid read on a phone, often outdoors. Booked, Available and Unavailable have to be tellable apart at a glance, and a grid is a hard thing to read on a small screen.
+**Done when:** `design.md` covers type, color, spacing, and the schedule cell and grid components, the three cell states are distinguishable without relying on color alone, the grid is usable on a phone, and base components meet WCAG AA for contrast, focus, and keyboard use.
+spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `app/globals.css`, `app/design/`, `components/`, `docs/design.md`, `eslint.config.mjs`
+- [x] Design it (spec): `/architect design system & UI foundation`
+- [x] Build it: `/develop design system & UI foundation`
+  - [x] Tokens and the surface that proves them: Inter, shadcn initialised, the token layer with its lint rule, and the `/design` page (AC-1, AC-3, AC-15)
+  - [x] The state vocabulary, verified: the base components, `ScheduleCell` in all seven views, contrast and grayscale checked at AA (AC-4, AC-5, AC-14)
+  - [x] The grid itself: the compact 12 hour formatter, the pinned time column inside a sideways scroller, the ARIA grid with a roving tabindex, and the legend (AC-6, AC-7, AC-8, AC-9)
+  - [x] An honest board: the shell, day navigation, the live indicator with its delay, the changed cell highlight, and the loading, empty and error states (AC-10, AC-11, AC-12, AC-13)
+  - [x] Finish it: the type only assets and `docs/design.md` (AC-2, AC-16)
+- [ ] Verify it: `/check verify design system & UI foundation`
+- [ ] Test it: `/test design system & UI foundation`
+
+## Slice 1: The schedule loop
+
+This slice is the walking skeleton. One real thread: a staff member signs in, books a court for an hour, and a player watching the public schedule sees that cell turn Booked. Real accounts, real storage, real live updates, narrow on purpose.
+
+### 5. Staff sign in · needs a decision · GA
+Only staff can change the schedule. Accounts also mean you can tell who booked or changed what, which is what makes the schedule trustworthy.
+**Done when:** a staff member can sign in and out, sessions survive a refresh, signing in creates their `staff` row carrying a role of staff or owner and an active flag (every policy in spec 0002 depends on it), and no signed out visitor can change anything.
+- [ ] Design it (spec): `/architect staff sign in`
+
+### 6. Staff booking schedule · needs a decision
+The screen staff use all day, most likely on a phone or a tablet at the desk. Taking a booking has to be a few taps, because a schedule that is slow to update is a schedule that stops being updated.
+**Done when:** a signed in staff member picks a day, sees the grid for every court, can book a cell with a customer name and optional phone, note and payment record, can edit or cancel a booking, can close a court for a stretch of hours, and every change is saved and visible immediately. A double booking is refused with a clear message rather than an error.
+- [ ] Design it (spec): `/architect staff booking schedule`
+
+### 7. Public schedule board · needs a decision
+The page players open before they drive over. Read only, no sign in, and it updates by itself within a second or two so nobody is looking at a stale grid.
+**Done when:** anyone can pick a day and see each court's hours as Booked, Available or Unavailable, a change made by staff appears without a reload, no customer name, phone, note or amount is reachable from the page or its live updates, the read is rate limited, and the page carries a proper title, description, and social card when shared as a link.
+- [ ] Design it (spec): `/architect public schedule board`
+
+## Slice 2: Manage the courts
+
+### 8. Courts & opening hours
+Add a court, rename it, reorder it, retire it, and change the hours the venue is open, without touching the database by hand. Owner only, because these change what everyone else sees.
+**Done when:** an owner can add, rename, reorder, and retire a court, and can change the weekday and weekend opening hours, the slot length, and how far ahead staff may book. Retiring a court that still has future bookings is refused and says how many are in the way. Both boards reflect every change straight away.
+- [ ] Build it: `/develop courts & opening hours`
+
+## Slice 3: Look back at the day
+
+### 9. Session history · dropped
+_Dropped on 2026-09-05, folded into feature 10. Spec 0002 makes the reservation table the history itself: every booking, closure and cancellation is stored with its start and end from the first migration, so there is no separate history to build. Kept here so the plan shows why it went._
+
+## Slice 4: Understand the usage
+
+### 10. Usage reporting · needs a decision
+The view Ella opens to see busy and quiet times, so staffing and opening hours can follow the real pattern. Reads straight off the bookings, with no separate history to build. Money is out of scope here and waits in the Deferred list.
+**Done when:** court usage can be seen by hour and by day across a chosen date range, per court and across all courts, counting only booked time and ignoring closures, and a day's bookings including the cancelled ones can be read back.
+- [ ] Design it (spec): `/architect usage reporting`
+
+## Slice 5: Ready for the public
+
+### 11. Analytics & error alerts · needs a decision
+Know whether staff really keep the schedule current, whether players use the public page, and get told when something breaks in the wild.
+**Done when:** page views and booking events are recorded, and an error in production reaches you without a customer reporting it.
+- [ ] Design it (spec): `/architect analytics & error alerts`
+
+### 12. Privacy, terms & cookie notice · needs a decision
+The public page is open to anyone, you now hold customer names and phone numbers, and once analytics is in, visitors deserve to be told and asked.
+**Done when:** privacy and terms pages exist and are linked, the privacy page states how long a customer phone number is kept and something actually enforces it, and if tracking is used, a consent notice gates it and remembers the answer.
+- [ ] Design it (spec): `/architect privacy, terms & cookie notice`
+
+## Deferred
+Out of scope for the current build pass, kept so the plan stays honest.
+- **Takings & unpaid report**: what came in over a date range and which bookings are still unpaid. The data is already recorded from spec 0002, only the view is missing · needs a decision · from spec 0002
+- **Player self booking**: players sign in and book a cell themselves. The grid's Selected cell state is the seam it plugs into, and the data model needs one extra column. Brings accounts, customer cancellations and no shows with it · needs a decision
+- **Payments for court time**: taking payment in the app, as opposed to recording that it was paid, which the schedule already does · needs a decision · GA
+- **Automatic occupancy**: sensors or cameras that mark a court in use with no human input · needs a decision
+- **Lobby display mode**: an always on screen at the venue · needs a decision
+- **Free court alerts**: tell a player when a court opens up · needs a decision
+- **Maintenance log**: net, surface, and lighting issues per court · needs a decision
+- **More than one venue**: several locations under one system · needs a decision
+- **Renaming the venue without a deploy**: the venue name is a constant, because `venue_settings` has no name column. Adding one is a small change to spec 0002 plus an owner only field · from spec 0003
+- **Staff editing payments on a past booking**: today only an owner may touch a booking that has ended, so a payment settled the next day needs Ella · from spec 0002
+
+## Legend
+
+**The decision box.** Every feature carries exactly one, the sub task whose label ends with `(spec)`. Its wording varies (`Design it (spec)` normally, `Decide the stack (spec)` on Stack & architecture), so skills locate it by that `(spec)` suffix, never by an exact label. Every other box is an execution box and `/architect` never ticks one.
+
+- **Next step** = the first unticked box (always a command or a tracked milestone).
+- **needs a decision** = run `/architect` first; otherwise straight to `/develop` (or `/audit` for standards & tooling). The tag drops once the spec is captured.
+- **Atomic build tasks live in the spec's `## Build plan`, not here**: the scope carries only the milestone rollup.
+- **Status** `planned` → `in-progress` → `done`, plus `existing` (before this workflow) and `dropped` (removed from scope, kept for history).
+- **Approach tag** beside a heading (e.g. `· Facade`) overrides the project default for that feature; no tag inherits it.
+- **Workflow tier tag** beside a heading (e.g. `· GA`) sets that one feature's rigor above or below the project default; no tag inherits the default.
+- **Workflow** (header line) is the project default, what runs after `/develop`: **Prototype** = nothing (trust the build step's own self check); **Alpha** = `/check verify`; **Beta** = `/check verify` then `/test`; **GA** = adds a fresh model `/check review` then `/document`. A feature built on a decision that was assumed rather than settled stays flagged, but that never blocks `done`.
+- **Pointer line** (`spec <n> · code in <path>`): the spec link added by `/architect`, the code path by `/develop`.

@@ -1,26 +1,377 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*
+ * The one token layer. Spec 0003, AC-1 and invariant 1.
+ *
+ * Every colour, radius, duration and piece of grid geometry in this project is
+ * declared exactly once, here. A component names a token; it never carries a raw
+ * colour value. Colours are written in OKLCH, a space where two colours with the
+ * same lightness number actually look equally light, which is what makes a
+ * contrast pair predictable instead of a guess.
+ *
+ * Dark follows the device setting only: no toggle, no class, no script, so there
+ * is nothing to run before the first paint and nothing to flash. That is also why
+ * invariant 2 forbids `dark:` colour overrides in components. Both themes live in
+ * the token, so a component never names a theme. The lint rule in
+ * `eslint.config.mjs` enforces both halves of that.
+ */
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /*
+   * The palette. Every colour value in this project is written here, once per
+   * theme, and nowhere else. Nothing reads a `--light-*` or `--dark-*` name
+   * directly: the semantic layer below decides which half is in force, and that
+   * indirection is what lets the design page show both themes at once without a
+   * second copy of the palette to keep in step.
+   */
+
+  /* Surface. */
+  --light-background: oklch(0.99 0 0);
+  --dark-background: oklch(0.17 0.008 260);
+  --light-foreground: oklch(0.2 0.01 260);
+  --dark-foreground: oklch(0.96 0.003 260);
+  --light-card: oklch(1 0 0);
+  --dark-card: oklch(0.2 0.008 260);
+  --light-card-foreground: oklch(0.2 0.01 260);
+  --dark-card-foreground: oklch(0.96 0.003 260);
+  --light-popover: oklch(1 0 0);
+  --dark-popover: oklch(0.2 0.008 260);
+  --light-popover-foreground: oklch(0.2 0.01 260);
+  --dark-popover-foreground: oklch(0.96 0.003 260);
+  --light-muted: oklch(0.96 0.002 260);
+  --dark-muted: oklch(0.23 0.006 260);
+  --light-muted-foreground: oklch(0.44 0.01 260);
+  --dark-muted-foreground: oklch(0.72 0.01 260);
+  --light-accent: oklch(0.955 0.004 260);
+  --dark-accent: oklch(0.26 0.008 260);
+  --light-accent-foreground: oklch(0.2 0.01 260);
+  --dark-accent-foreground: oklch(0.96 0.003 260);
+  --light-secondary: oklch(0.96 0.002 260);
+  --dark-secondary: oklch(0.25 0.006 260);
+  --light-secondary-foreground: oklch(0.22 0.01 260);
+  --dark-secondary-foreground: oklch(0.96 0.003 260);
+  --light-border: oklch(0.88 0.004 260);
+  --dark-border: oklch(0.33 0.008 260);
+  --light-input: oklch(0.64 0.008 260);
+  --dark-input: oklch(0.52 0.01 260);
+  --light-ring: oklch(0.45 0.02 260);
+  --dark-ring: oklch(0.78 0.02 260);
+  --light-overlay: oklch(0 0 0 / 0.5);
+  --dark-overlay: oklch(0 0 0 / 0.68);
+
+  /* Accent. Primary is ink, so the state colours are the only real colour on screen. */
+  --light-primary: oklch(0.22 0.01 260);
+  --dark-primary: oklch(0.95 0.003 260);
+  --light-primary-foreground: oklch(0.99 0 0);
+  --dark-primary-foreground: oklch(0.17 0.008 260);
+  --light-destructive: oklch(0.51 0.19 27);
+  --dark-destructive: oklch(0.66 0.17 27);
+  --light-destructive-foreground: oklch(0.99 0 0);
+  --dark-destructive-foreground: oklch(0.16 0.01 27);
+
+  /* State: the five roles the grid owns. Saving reuses muted, Failed reuses destructive. */
+  --light-state-available: oklch(0.94 0.055 150);
+  --dark-state-available: oklch(0.28 0.055 150);
+  --light-state-available-fg: oklch(0.38 0.1 150);
+  --dark-state-available-fg: oklch(0.86 0.11 150);
+  --light-state-available-border: oklch(0.64 0.1 150);
+  --dark-state-available-border: oklch(0.5 0.09 150);
+  --light-state-booked: oklch(0.93 0.05 250);
+  --dark-state-booked: oklch(0.28 0.055 255);
+  --light-state-booked-fg: oklch(0.4 0.125 250);
+  --dark-state-booked-fg: oklch(0.85 0.1 255);
+  --light-state-booked-border: oklch(0.64 0.13 250);
+  --dark-state-booked-border: oklch(0.5 0.09 255);
+  --light-state-unavailable: oklch(0.95 0.003 260);
+  --dark-state-unavailable: oklch(0.22 0.005 260);
+  --light-state-unavailable-fg: oklch(0.44 0.01 260);
+  --dark-state-unavailable-fg: oklch(0.7 0.01 260);
+  --light-state-unavailable-border: oklch(0.64 0.008 260);
+  --dark-state-unavailable-border: oklch(0.5 0.008 260);
+  --light-state-outofhours: oklch(0.96 0.012 285);
+  --dark-state-outofhours: oklch(0.21 0.02 285);
+  --light-state-outofhours-fg: oklch(0.44 0.04 285);
+  --dark-state-outofhours-fg: oklch(0.72 0.045 285);
+  --light-state-outofhours-border: oklch(0.65 0.04 285);
+  --dark-state-outofhours-border: oklch(0.5 0.04 285);
+  --light-state-selected: oklch(0.9 0.03 260);
+  --dark-state-selected: oklch(0.32 0.03 260);
+  --light-state-selected-fg: oklch(0.25 0.02 260);
+  --dark-state-selected-fg: oklch(0.96 0.005 260);
+  --light-state-selected-border: oklch(0.5 0.06 260);
+  --dark-state-selected-border: oklch(0.72 0.06 260);
+  /* Type */
+  --font-inter-fallback:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Space and geometry: the grid's fixed measurements. */
+  --radius: 0.5rem;
+  --radius-cell: 0.25rem;
+  --row-h: 2.75rem;
+  --col-time: 3.5rem;
+  --col-court-min: 5.5rem;
+
+  /* Motion. Slow is the changed cell highlight; fast is everything else. */
+  --dur-fast: 120ms;
+  --dur-slow: 1.2s;
 }
+
+/*
+ * The semantic layer. A component only ever names one of these, never a
+ * `--light-*` or `--dark-*` value and never a theme.
+ */
+:root,
+[data-theme="light"] {
+  --background: var(--light-background);
+  --foreground: var(--light-foreground);
+  --card: var(--light-card);
+  --card-foreground: var(--light-card-foreground);
+  --popover: var(--light-popover);
+  --popover-foreground: var(--light-popover-foreground);
+  --muted: var(--light-muted);
+  --muted-foreground: var(--light-muted-foreground);
+  --accent: var(--light-accent);
+  --accent-foreground: var(--light-accent-foreground);
+  --secondary: var(--light-secondary);
+  --secondary-foreground: var(--light-secondary-foreground);
+  --border: var(--light-border);
+  --input: var(--light-input);
+  --ring: var(--light-ring);
+  --overlay: var(--light-overlay);
+  --primary: var(--light-primary);
+  --primary-foreground: var(--light-primary-foreground);
+  --destructive: var(--light-destructive);
+  --destructive-foreground: var(--light-destructive-foreground);
+  --state-available: var(--light-state-available);
+  --state-available-fg: var(--light-state-available-fg);
+  --state-available-border: var(--light-state-available-border);
+  --state-booked: var(--light-state-booked);
+  --state-booked-fg: var(--light-state-booked-fg);
+  --state-booked-border: var(--light-state-booked-border);
+  --state-unavailable: var(--light-state-unavailable);
+  --state-unavailable-fg: var(--light-state-unavailable-fg);
+  --state-unavailable-border: var(--light-state-unavailable-border);
+  --state-outofhours: var(--light-state-outofhours);
+  --state-outofhours-fg: var(--light-state-outofhours-fg);
+  --state-outofhours-border: var(--light-state-outofhours-border);
+  --state-selected: var(--light-state-selected);
+  --state-selected-fg: var(--light-state-selected-fg);
+  --state-selected-border: var(--light-state-selected-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --background: var(--dark-background);
+    --foreground: var(--dark-foreground);
+    --card: var(--dark-card);
+    --card-foreground: var(--dark-card-foreground);
+    --popover: var(--dark-popover);
+    --popover-foreground: var(--dark-popover-foreground);
+    --muted: var(--dark-muted);
+    --muted-foreground: var(--dark-muted-foreground);
+    --accent: var(--dark-accent);
+    --accent-foreground: var(--dark-accent-foreground);
+    --secondary: var(--dark-secondary);
+    --secondary-foreground: var(--dark-secondary-foreground);
+    --border: var(--dark-border);
+    --input: var(--dark-input);
+    --ring: var(--dark-ring);
+    --overlay: var(--dark-overlay);
+    --primary: var(--dark-primary);
+    --primary-foreground: var(--dark-primary-foreground);
+    --destructive: var(--dark-destructive);
+    --destructive-foreground: var(--dark-destructive-foreground);
+    --state-available: var(--dark-state-available);
+    --state-available-fg: var(--dark-state-available-fg);
+    --state-available-border: var(--dark-state-available-border);
+    --state-booked: var(--dark-state-booked);
+    --state-booked-fg: var(--dark-state-booked-fg);
+    --state-booked-border: var(--dark-state-booked-border);
+    --state-unavailable: var(--dark-state-unavailable);
+    --state-unavailable-fg: var(--dark-state-unavailable-fg);
+    --state-unavailable-border: var(--dark-state-unavailable-border);
+    --state-outofhours: var(--dark-state-outofhours);
+    --state-outofhours-fg: var(--dark-state-outofhours-fg);
+    --state-outofhours-border: var(--dark-state-outofhours-border);
+    --state-selected: var(--dark-state-selected);
+    --state-selected-fg: var(--dark-state-selected-fg);
+    --state-selected-border: var(--dark-state-selected-border);
+  }
+}
+
+/*
+ * The one place a theme is named on purpose: `/design` puts the two side by side
+ * so a contrast failure is something you can look at rather than hope about.
+ * Nothing else in the app sets this attribute, and no component may.
+ */
+[data-theme="dark"] {
+  --background: var(--dark-background);
+  --foreground: var(--dark-foreground);
+  --card: var(--dark-card);
+  --card-foreground: var(--dark-card-foreground);
+  --popover: var(--dark-popover);
+  --popover-foreground: var(--dark-popover-foreground);
+  --muted: var(--dark-muted);
+  --muted-foreground: var(--dark-muted-foreground);
+  --accent: var(--dark-accent);
+  --accent-foreground: var(--dark-accent-foreground);
+  --secondary: var(--dark-secondary);
+  --secondary-foreground: var(--dark-secondary-foreground);
+  --border: var(--dark-border);
+  --input: var(--dark-input);
+  --ring: var(--dark-ring);
+  --overlay: var(--dark-overlay);
+  --primary: var(--dark-primary);
+  --primary-foreground: var(--dark-primary-foreground);
+  --destructive: var(--dark-destructive);
+  --destructive-foreground: var(--dark-destructive-foreground);
+  --state-available: var(--dark-state-available);
+  --state-available-fg: var(--dark-state-available-fg);
+  --state-available-border: var(--dark-state-available-border);
+  --state-booked: var(--dark-state-booked);
+  --state-booked-fg: var(--dark-state-booked-fg);
+  --state-booked-border: var(--dark-state-booked-border);
+  --state-unavailable: var(--dark-state-unavailable);
+  --state-unavailable-fg: var(--dark-state-unavailable-fg);
+  --state-unavailable-border: var(--dark-state-unavailable-border);
+  --state-outofhours: var(--dark-state-outofhours);
+  --state-outofhours-fg: var(--dark-state-outofhours-fg);
+  --state-outofhours-border: var(--dark-state-outofhours-border);
+  --state-selected: var(--dark-state-selected);
+  --state-selected-fg: var(--dark-state-selected-fg);
+  --state-selected-border: var(--dark-state-selected-border);
+}
+
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-overlay: var(--overlay);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-state-available: var(--state-available);
+  --color-state-available-fg: var(--state-available-fg);
+  --color-state-available-border: var(--state-available-border);
+  --color-state-booked: var(--state-booked);
+  --color-state-booked-fg: var(--state-booked-fg);
+  --color-state-booked-border: var(--state-booked-border);
+  --color-state-unavailable: var(--state-unavailable);
+  --color-state-unavailable-fg: var(--state-unavailable-fg);
+  --color-state-unavailable-border: var(--state-unavailable-border);
+  --color-state-outofhours: var(--state-outofhours);
+  --color-state-outofhours-fg: var(--state-outofhours-fg);
+  --color-state-outofhours-border: var(--state-outofhours-border);
+  --color-state-selected: var(--state-selected);
+  --color-state-selected-fg: var(--state-selected-fg);
+  --color-state-selected-border: var(--state-selected-border);
+
+  --font-sans: var(--font-inter), var(--font-inter-fallback);
+
+  /* The six step type scale. Nothing else sets a font size. */
+  --text-display: 1.75rem;
+  --text-display--line-height: 2rem;
+  --text-display--font-weight: 600;
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-title--font-weight: 600;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.375rem;
+  --text-body--font-weight: 400;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.125rem;
+  --text-label--font-weight: 500;
+  --text-cell: 0.8125rem;
+  --text-cell--line-height: 1;
+  --text-cell--font-weight: 600;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1rem;
+  --text-caption--font-weight: 400;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-cell: var(--radius-cell);
+
+  /* Grid geometry, as spacing tokens so `h-row` and `w-time-col` are real utilities. */
+  --spacing-row: var(--row-h);
+  --spacing-time-col: var(--col-time);
+  --spacing-court-col: var(--col-court-min);
+
+  --animate-cell-changed: cell-changed var(--dur-slow) ease-out 1;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground text-body font-sans;
+    /* Inter's own optical sizing plus the figure sets the grid depends on. */
+    font-feature-settings: "cv11", "ss01";
+    font-variation-settings: normal;
+  }
+
+  /*
+   * Invariant 5: focus is never removed. Anything focusable that has not set its
+   * own ring gets this one, at a weight and contrast that clears AA on any of our
+   * surfaces.
+   */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/*
+ * The changed cell highlight (AC-11). Invariant 7: every animation sits inside a
+ * reduced motion guard, and the reduced motion path still marks the cell, it just
+ * marks it with a steady ring instead of a fading one.
+ */
+@keyframes cell-changed {
+  0% {
+    box-shadow: inset 0 0 0 2px var(--ring);
+  }
+  100% {
+    box-shadow: inset 0 0 0 2px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /*
+   * AC-11: with motion off the highlight is still owed, it just has to stop
+   * moving. A cell that changed keeps a steady ring instead of a fading one, so
+   * the information survives even though the animation does not.
+   */
+  [data-changed] {
+    box-shadow: inset 0 0 0 2px var(--ring);
+  }
 }

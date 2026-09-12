@@ -1,0 +1,136 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { z } from "zod";
+
+/**
+ * Architecture rules 3 and 11: every Server Action checks Clerk first, then puts
+ * its payload through a schema, before anything reaches the database. These
+ * helpers are the shared front door, so every court write inherits whatever they
+ * guarantee.
+ */
+
+const auth = vi.hoisted(() => vi.fn());
+const staffSupabase = vi.hoisted(() => vi.fn(() => ({ marker: "staff client" })));
+
+vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
+
+const { fail, ok, parseInput, requireStaff } = await import("./actions");
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  staffSupabase.mockReturnValue({ marker: "staff client" });
+});
+
+describe("ok / fail", () => {
+  it("wraps a value as a success result", () => {
+    expect(ok({ id: "court-1" })).toEqual({ ok: true, data: { id: "court-1" } });
+  });
+
+  it("wraps an error as a failure result", () => {
+    const error = { kind: "conflict" as const, message: "someone got there first" };
+    expect(fail(error)).toEqual({ ok: false, error });
+  });
+});
+
+describe("requireStaff", () => {
+  it("hands back the staff id and a per request Supabase client when signed in", async () => {
+    auth.mockResolvedValue({ isAuthenticated: true, userId: "user_abc" });
+
+    const result = await requireStaff();
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected a signed in result");
+    expect(result.staffId).toBe("user_abc");
+    expect(result.supabase).toEqual({ marker: "staff client" });
+  });
+
+  it("refuses when there is no Clerk session", async () => {
+    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+
+    const result = await requireStaff();
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected a refusal");
+    expect(result.error.kind).toBe("unauthenticated");
+    expect(result.error.message).toBe("Sign in to change a court.");
+  });
+
+  it("refuses when Clerk reports authenticated but gives no user id", async () => {
+    auth.mockResolvedValue({ isAuthenticated: true, userId: null });
+
+    const result = await requireStaff();
+
+    expect(result.ok).toBe(false);
+  });
+
+  it("never builds a Supabase client for a signed out caller", async () => {
+    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+
+    await requireStaff();
+
+    // Rule 11: check Clerk BEFORE touching Supabase, so an expired session reads
+    // as a typed error instead of an opaque policy denial.
+    expect(staffSupabase).not.toHaveBeenCalled();
+  });
+
+  it("builds a fresh client on each call, never a shared singleton (rule 10)", async () => {
+    auth.mockResolvedValue({ isAuthenticated: true, userId: "user_abc" });
+
+    await requireStaff();
+    await requireStaff();
+
+    expect(staffSupabase).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("parseInput", () => {
+  const schema = z.object({ id: z.uuid(), version: z.int().positive() });
+
+  it("returns the parsed data for a valid payload", () => {
+    const input = { id: "1a78471a-a748-489b-ba8d-ea1b5b357a4e", version: 3 };
+    const result = parseInput(schema, input);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected a parse success");
+    expect(result.data).toEqual(input);
+  });
+
+  it("rejects a payload with a bad field and names that field", () => {
+    const result = parseInput(schema, { id: "not-a-uuid", version: 3 });
+
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected a parse failure");
+    expect(result.error.kind).toBe("invalid");
+    expect(result.error).toHaveProperty("issues.id");
+  });
+
+  it("rejects a version of zero, because a row's version starts at one", () => {
+    const result = parseInput(schema, {
+      id: "1a78471a-a748-489b-ba8d-ea1b5b357a4e",
+      version: 0,
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it.each([
+    ["undefined", undefined],
+    ["null", null],
+    ["a string", "id=1"],
+    ["an array", []],
+    ["an empty object", {}],
+  ])("rejects %s, because a Server Action accepts whatever the network sends", (_label, input) => {
+    expect(parseInput(schema, input).ok).toBe(false);
+  });
+
+  it("strips unknown keys rather than passing them through to the database", () => {
+    const result = parseInput(schema, {
+      id: "1a78471a-a748-489b-ba8d-ea1b5b357a4e",
+      version: 3,
+      is_admin: true,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error("expected a parse success");
+    expect(result.data).not.toHaveProperty("is_admin");
+  });
+});
