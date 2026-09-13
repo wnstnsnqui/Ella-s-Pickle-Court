@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* Clerk's sign in card on our tokens (spec 0004, AC-10). The theme itself is set on the provider. */
+@import "@clerk/ui/themes/shadcn.css";
 
 /*
  * The one token layer. Spec 0003, AC-1 and invariant 1.
@@ -27,80 +29,88 @@
    */
 
   /* Surface. */
-  --light-background: oklch(0.99 0 0);
-  --dark-background: oklch(0.17 0.008 260);
-  --light-foreground: oklch(0.2 0.01 260);
-  --dark-foreground: oklch(0.96 0.003 260);
-  --light-card: oklch(1 0 0);
-  --dark-card: oklch(0.2 0.008 260);
-  --light-card-foreground: oklch(0.2 0.01 260);
-  --dark-card-foreground: oklch(0.96 0.003 260);
-  --light-popover: oklch(1 0 0);
-  --dark-popover: oklch(0.2 0.008 260);
-  --light-popover-foreground: oklch(0.2 0.01 260);
-  --dark-popover-foreground: oklch(0.96 0.003 260);
-  --light-muted: oklch(0.96 0.002 260);
-  --dark-muted: oklch(0.23 0.006 260);
-  --light-muted-foreground: oklch(0.44 0.01 260);
-  --dark-muted-foreground: oklch(0.72 0.01 260);
-  --light-accent: oklch(0.955 0.004 260);
-  --dark-accent: oklch(0.26 0.008 260);
-  --light-accent-foreground: oklch(0.2 0.01 260);
-  --dark-accent-foreground: oklch(0.96 0.003 260);
-  --light-secondary: oklch(0.96 0.002 260);
-  --dark-secondary: oklch(0.25 0.006 260);
-  --light-secondary-foreground: oklch(0.22 0.01 260);
-  --dark-secondary-foreground: oklch(0.96 0.003 260);
-  --light-border: oklch(0.88 0.004 260);
-  --dark-border: oklch(0.33 0.008 260);
-  --light-input: oklch(0.64 0.008 260);
-  --dark-input: oklch(0.52 0.01 260);
-  --light-ring: oklch(0.45 0.02 260);
-  --dark-ring: oklch(0.78 0.02 260);
+  --light-background: oklch(0.987 0.023 96);
+  --dark-background: oklch(0.208 0.011 73);
+  --light-foreground: oklch(0.216 0.006 56);
+  --dark-foreground: oklch(0.958 0.018 89);
+  --light-card: oklch(0.995 0.012 101);
+  --dark-card: oklch(0.234 0.014 72);
+  --light-card-foreground: oklch(0.216 0.006 56);
+  --dark-card-foreground: oklch(0.958 0.018 89);
+  --light-popover: oklch(0.995 0.012 101);
+  --dark-popover: oklch(0.234 0.014 72);
+  --light-popover-foreground: oklch(0.216 0.006 56);
+  --dark-popover-foreground: oklch(0.958 0.018 89);
+  --light-muted: oklch(0.951 0.024 94);
+  --dark-muted: oklch(0.265 0.014 67);
+  --light-muted-foreground: oklch(0.468 0.023 91);
+  --dark-muted-foreground: oklch(0.764 0.028 90);
+  --light-accent: oklch(0.96 0.032 95);
+  --dark-accent: oklch(0.285 0.015 71);
+  --light-accent-foreground: oklch(0.216 0.006 56);
+  --dark-accent-foreground: oklch(0.958 0.018 89);
+  --light-secondary: oklch(0.951 0.024 94);
+  --dark-secondary: oklch(0.265 0.014 67);
+  --light-secondary-foreground: oklch(0.216 0.006 56);
+  --dark-secondary-foreground: oklch(0.958 0.018 89);
+  --light-border: oklch(0.909 0.037 93);
+  --dark-border: oklch(0.325 0.02 77);
+  --light-input: oklch(0.657 0.032 92);
+  --dark-input: oklch(0.525 0.021 78);
+  --light-ring: oklch(0.511 0.086 186);
+  --dark-ring: oklch(0.785 0.133 182);
   --light-overlay: oklch(0 0 0 / 0.5);
   --dark-overlay: oklch(0 0 0 / 0.68);
 
-  /* Accent. Primary is ink, so the state colours are the only real colour on screen. */
-  --light-primary: oklch(0.22 0.01 260);
-  --dark-primary: oklch(0.95 0.003 260);
-  --light-primary-foreground: oklch(0.99 0 0);
-  --dark-primary-foreground: oklch(0.17 0.008 260);
-  --light-destructive: oklch(0.51 0.19 27);
-  --dark-destructive: oklch(0.66 0.17 27);
-  --light-destructive-foreground: oklch(0.99 0 0);
-  --dark-destructive-foreground: oklch(0.16 0.01 27);
+  /* Accent. Primary is deep teal; brand is the golden header band; mark is the letter badge. */
+  --light-primary: oklch(0.511 0.086 186);
+  --dark-primary: oklch(0.785 0.133 182);
+  --light-primary-foreground: oklch(1 0 0);
+  --dark-primary-foreground: oklch(0.278 0.041 185);
+  --light-destructive: oklch(0.553 0.174 38);
+  --dark-destructive: oklch(0.758 0.159 56);
+  --light-destructive-foreground: oklch(1 0 0);
+  --light-mark-foreground: oklch(0.854 0.171 87);
+  --light-mark: oklch(0.216 0.006 56);
+  --light-brand-foreground: oklch(0.216 0.006 56);
+  --light-brand: oklch(0.854 0.171 87);
+  --dark-destructive-foreground: oklch(0.214 0.051 58);
+  --dark-mark-foreground: oklch(0.208 0.011 73);
+  --dark-mark: oklch(0.854 0.171 87);
+  --dark-brand-foreground: oklch(0.958 0.018 89);
+  --dark-brand: oklch(0.208 0.011 73);
 
   /* State: the five roles the grid owns. Saving reuses muted, Failed reuses destructive. */
-  --light-state-available: oklch(0.94 0.055 150);
-  --dark-state-available: oklch(0.28 0.055 150);
-  --light-state-available-fg: oklch(0.38 0.1 150);
-  --dark-state-available-fg: oklch(0.86 0.11 150);
-  --light-state-available-border: oklch(0.64 0.1 150);
-  --dark-state-available-border: oklch(0.5 0.09 150);
-  --light-state-booked: oklch(0.93 0.05 250);
-  --dark-state-booked: oklch(0.28 0.055 255);
-  --light-state-booked-fg: oklch(0.4 0.125 250);
-  --dark-state-booked-fg: oklch(0.85 0.1 255);
-  --light-state-booked-border: oklch(0.64 0.13 250);
-  --dark-state-booked-border: oklch(0.5 0.09 255);
-  --light-state-unavailable: oklch(0.95 0.003 260);
-  --dark-state-unavailable: oklch(0.22 0.005 260);
-  --light-state-unavailable-fg: oklch(0.44 0.01 260);
-  --dark-state-unavailable-fg: oklch(0.7 0.01 260);
-  --light-state-unavailable-border: oklch(0.64 0.008 260);
-  --dark-state-unavailable-border: oklch(0.5 0.008 260);
-  --light-state-outofhours: oklch(0.96 0.012 285);
-  --dark-state-outofhours: oklch(0.21 0.02 285);
-  --light-state-outofhours-fg: oklch(0.44 0.04 285);
-  --dark-state-outofhours-fg: oklch(0.72 0.045 285);
-  --light-state-outofhours-border: oklch(0.65 0.04 285);
-  --dark-state-outofhours-border: oklch(0.5 0.04 285);
-  --light-state-selected: oklch(0.9 0.03 260);
-  --dark-state-selected: oklch(0.32 0.03 260);
-  --light-state-selected-fg: oklch(0.25 0.02 260);
-  --dark-state-selected-fg: oklch(0.96 0.005 260);
-  --light-state-selected-border: oklch(0.5 0.06 260);
-  --dark-state-selected-border: oklch(0.72 0.06 260);
+  --light-state-available: oklch(0.937 0.042 182);
+  --dark-state-available: oklch(0.322 0.046 184);
+  --light-state-available-fg: oklch(0.434 0.075 183);
+  --dark-state-available-fg: oklch(0.877 0.093 184);
+  --light-state-available-border: oklch(0.639 0.123 183);
+  --dark-state-available-border: oklch(0.654 0.111 182);
+  --light-state-booked: oklch(0.923 0.062 74);
+  --dark-state-booked: oklch(0.32 0.064 60);
+  --light-state-booked-fg: oklch(0.445 0.121 48);
+  --dark-state-booked-fg: oklch(0.861 0.1 65);
+  --light-state-booked-border: oklch(0.67 0.159 56);
+  --dark-state-booked-border: oklch(0.669 0.149 54);
+  --light-state-unavailable: oklch(0.949 0.014 93);
+  --dark-state-unavailable: oklch(0.258 0.012 78);
+  --light-state-unavailable-fg: oklch(0.468 0.023 91);
+  --dark-state-unavailable-fg: oklch(0.764 0.028 90);
+  --light-state-unavailable-border: oklch(0.657 0.032 92);
+  --dark-state-unavailable-border: oklch(0.504 0.028 94);
+  --light-state-outofhours: oklch(0.935 0.036 298);
+  --dark-state-outofhours: oklch(0.276 0.075 288);
+  --light-state-outofhours-fg: oklch(0.436 0.147 291);
+  --dark-state-outofhours-fg: oklch(0.827 0.095 294);
+  --light-state-outofhours-border: oklch(0.668 0.126 295);
+  --dark-state-outofhours-border: oklch(0.544 0.156 288);
+  --light-state-selected: oklch(0.953 0.079 96);
+  --dark-state-selected: oklch(0.356 0.067 90);
+  --light-state-selected-fg: oklch(0.346 0.071 86);
+  --dark-state-selected-fg: oklch(0.918 0.112 92);
+  --light-state-selected-border: oklch(0.635 0.132 82);
+  --dark-state-selected-border: oklch(0.854 0.171 87);
   /* Type */
   --font-inter-fallback:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -143,6 +153,10 @@
   --primary-foreground: var(--light-primary-foreground);
   --destructive: var(--light-destructive);
   --destructive-foreground: var(--light-destructive-foreground);
+  --brand: var(--light-brand);
+  --brand-foreground: var(--light-brand-foreground);
+  --mark: var(--light-mark);
+  --mark-foreground: var(--light-mark-foreground);
   --state-available: var(--light-state-available);
   --state-available-fg: var(--light-state-available-fg);
   --state-available-border: var(--light-state-available-border);
@@ -182,6 +196,10 @@
     --primary-foreground: var(--dark-primary-foreground);
     --destructive: var(--dark-destructive);
     --destructive-foreground: var(--dark-destructive-foreground);
+    --brand: var(--dark-brand);
+    --brand-foreground: var(--dark-brand-foreground);
+    --mark: var(--dark-mark);
+    --mark-foreground: var(--dark-mark-foreground);
     --state-available: var(--dark-state-available);
     --state-available-fg: var(--dark-state-available-fg);
     --state-available-border: var(--dark-state-available-border);
@@ -201,11 +219,18 @@
 }
 
 /*
- * The one place a theme is named on purpose: `/design` puts the two side by side
- * so a contrast failure is something you can look at rather than hope about.
- * Nothing else in the app sets this attribute, and no component may.
+ * The two places a theme is named on purpose: the root layout stamps the
+ * reader's pinned choice here from a cookie (the theme toggle), and `/design`
+ * puts the two side by side so a contrast failure is something you can look at.
+ * No component may set this attribute.
  */
+[data-theme="light"] {
+  color-scheme: light;
+}
+
 [data-theme="dark"] {
+  color-scheme: dark;
+
   --background: var(--dark-background);
   --foreground: var(--dark-foreground);
   --card: var(--dark-card);
@@ -226,6 +251,10 @@
   --primary-foreground: var(--dark-primary-foreground);
   --destructive: var(--dark-destructive);
   --destructive-foreground: var(--dark-destructive-foreground);
+  --brand: var(--dark-brand);
+  --brand-foreground: var(--dark-brand-foreground);
+  --mark: var(--dark-mark);
+  --mark-foreground: var(--dark-mark-foreground);
   --state-available: var(--dark-state-available);
   --state-available-fg: var(--dark-state-available-fg);
   --state-available-border: var(--dark-state-available-border);
@@ -266,6 +295,10 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-mark: var(--mark);
+  --color-mark-foreground: var(--mark-foreground);
 
   --color-state-available: var(--state-available);
   --color-state-available-fg: var(--state-available-fg);

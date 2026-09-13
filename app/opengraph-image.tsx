@@ -20,8 +20,8 @@ export default function OpengraphImage() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        background: "#fcfcfc",
-        color: "#26282e",
+        background: "#fffbea",
+        color: "#1c1917",
         padding: 72,
       }}
     >
@@ -33,8 +33,8 @@ export default function OpengraphImage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "#26282e",
-            color: "#fcfcfc",
+            background: "#1c1917",
+            color: "#ffc61a",
             fontSize: 44,
             fontWeight: 600,
             borderRadius: 16,
@@ -47,7 +47,7 @@ export default function OpengraphImage() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ fontSize: 64, fontWeight: 600, lineHeight: 1.1 }}>{VENUE_TAGLINE}</div>
-        <div style={{ fontSize: 30, color: "#6b6e76" }}>
+        <div style={{ fontSize: 30, color: "#0f766e" }}>
           Booked · Available · Unavailable, hour by hour, live.
         </div>
       </div>

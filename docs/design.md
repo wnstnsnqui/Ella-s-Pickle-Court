@@ -15,19 +15,23 @@ you change a token, look there first.
 
 ## Character
 
-A clean utility board. A near neutral canvas, one typeface, and almost no colour anywhere except the
-cells, so the one thing a reader came for is the one thing that is coloured. It is meant to be read
-in a hurry: by a player squinting at a phone in daylight, and by a staff member glancing at a tablet
-between rallies.
+Sunset Club. Retro sport with real warmth: a soft cream canvas, a golden yellow header band with dark
+type, deep teal as the brand ink, teal for a free hour and tangerine for a taken one. The energy sits
+in the header and the cells; everything between them stays quiet so the grid still reads in a hurry,
+by a player squinting at a phone in daylight and by a staff member glancing between rallies. At
+night the band steps back to the page colour and the mark alone carries the yellow.
+
+_Chosen on 2026-09-12 from three directions on the [colour canvas](https://claude.ai/code/artifact/5fd14971-b09d-4fc9-a8cd-089221746d23); it replaces the near neutral first palette from spec 0003._
 
 ## Build mandate
 
 - **Name a token, never a value.** Every colour, radius, row height and duration is in
   `app/globals.css`. A raw colour in a component is a defect, and `npm run lint` fails on it.
-- **Never name a theme.** Dark follows the device setting through a media query, and the semantic
-  token carries both halves, so a component has nothing to say about which one is on. `dark:` colour
-  overrides are a lint error too. `/design` is the single exception, and only because showing both at
-  once is its whole job.
+- **Never name a theme.** Dark follows the device setting through a media query by default, and the
+  header's theme button can pin light or dark: the choice lives in a cookie, the root layout reads it
+  on the server and stamps `data-theme` on `<html>`, so the first paint is already right with no
+  script. The semantic token carries both halves, so a component has nothing to say about which one is
+  on. `dark:` colour overrides are a lint error. Only the root layout and `/design` may set `data-theme`.
 - **Colour is never the only signal.** Every state carries an icon and a name a screen reader reads.
 - **Focus is never removed.** `:focus-visible` only, always visible, never `outline: none` without a
   replacement.
@@ -67,8 +71,9 @@ picks which half is in force, and only the semantic names are ever used:
 
 - **Surface**: `--background`, `--foreground`, `--card`, `--muted`, `--muted-foreground`,
   `--accent`, `--secondary`, `--border`, `--input`, `--ring`, `--overlay`.
-- **Accent**: `--primary` (ink, a near black, deliberately not a colour), `--destructive`, and each
-  one's `-foreground`.
+- **Accent**: `--primary` (deep teal, the one colour buttons and links wear), `--brand` (the golden
+  header band, which becomes the page colour at night), `--mark` (the letter badge in the wordmark),
+  `--destructive`, and each one's `-foreground`.
 - **State**: five roles the grid owns, each with a fill, a `-fg` and a `-border`:
   `--state-available`, `--state-booked`, `--state-unavailable`, `--state-outofhours`,
   `--state-selected`.
@@ -116,7 +121,8 @@ Precedence, most urgent outward: failed, saving, selected, out of hours, then th
 
 | Component        | Kind   | What it is for                                                          |
 | ---------------- | ------ | ------------------------------------------------------------------------ |
-| `AppShell`       | server | The wordmark, the toolbar slot, and a staff slot gated by Clerk           |
+| `AppShell`       | server | The brand band with the wordmark, the theme toggle, the toolbar slot, and a staff slot gated by Clerk |
+| `ThemeToggle`    | client | Device, light, dark. Sets `data-theme` and a cookie                              |
 | `Wordmark`       | server | The venue mark, set in type. There are no image assets in this project    |
 | `DayNav`         | client | Pushes `?date=YYYY-MM-DD`. Holds no state of its own                      |
 | `LiveIndicator`  | client | Live, reconnecting, or not live with the age of the data                  |

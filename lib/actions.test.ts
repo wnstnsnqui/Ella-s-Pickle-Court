@@ -14,7 +14,7 @@ const staffSupabase = vi.hoisted(() => vi.fn(() => ({ marker: "staff client" }))
 vi.mock("@clerk/nextjs/server", () => ({ auth }));
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
 
-const { fail, ok, parseInput, requireStaff } = await import("./actions");
+const { describeDatabaseError, fail, ok, parseInput, requireStaff } = await import("./actions");
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -132,5 +132,36 @@ describe("parseInput", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error("expected a parse success");
     expect(result.data).not.toHaveProperty("is_admin");
+  });
+});
+
+describe("describeDatabaseError", () => {
+  it("maps a row level security refusal (42501) to forbidden, never a raw failure (spec 0004, AC-5)", () => {
+    expect(
+      describeDatabaseError({ code: "42501", message: "permission denied for table reservation" }),
+    ).toEqual({ kind: "forbidden", message: "Your account is not allowed to make that change." });
+  });
+
+  it("maps the overlap exclusion constraint to a slot_taken conflict", () => {
+    const error = describeDatabaseError({
+      code: "23P01",
+      message: 'conflicting key value violates exclusion constraint "reservation_no_overlap"',
+    });
+    expect(error).toMatchObject({ kind: "conflict", reason: "slot_taken" });
+  });
+
+  it("maps the live sort order index to a sort_order_taken conflict", () => {
+    const error = describeDatabaseError({
+      code: "23505",
+      message: 'duplicate key value violates unique constraint "court_live_sort_order_idx"',
+    });
+    expect(error).toMatchObject({ kind: "conflict", reason: "sort_order_taken" });
+  });
+
+  it("passes anything else through as failed with the database message", () => {
+    expect(describeDatabaseError({ code: "XX000", message: "disk on fire" })).toEqual({
+      kind: "failed",
+      message: "disk on fire",
+    });
   });
 });

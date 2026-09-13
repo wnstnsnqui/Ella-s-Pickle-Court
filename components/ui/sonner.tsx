@@ -13,9 +13,9 @@ import { Toaster as Sonner, type ToasterProps } from "sonner";
  * Sonner, wired to our tokens.
  *
  * shadcn ships this reading the theme from `next-themes`. We have no theme
- * provider on purpose (AC-1: dark follows the device setting, no toggle), so the
- * theme is fixed to `system` and the colours come from the token layer, which
- * already answers to the same media query.
+ * provider on purpose: the theme is `data-theme` on `<html>` or the device
+ * setting, and the colours here come from the token layer, which answers to
+ * both. `theme="system"` only tells sonner not to add its own class.
  */
 function Toaster({ ...props }: ToasterProps) {
   return (

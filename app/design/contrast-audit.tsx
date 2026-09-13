@@ -26,6 +26,9 @@ const PAIRS: Array<{ fg: string; bg: string; need: ContrastNeed; what: string }>
   { fg: "--card-foreground", bg: "--card", need: "body", what: "Text on a card" },
   { fg: "--popover-foreground", bg: "--popover", need: "body", what: "Text in a popover" },
   { fg: "--primary-foreground", bg: "--primary", need: "body", what: "Text on a primary button" },
+  { fg: "--brand-foreground", bg: "--brand", need: "body", what: "Wordmark on the header band" },
+  { fg: "--mark-foreground", bg: "--mark", need: "body", what: "Letter on the mark" },
+  { fg: "--ring", bg: "--brand", need: "boundary", what: "Focus ring on the header band" },
   {
     fg: "--secondary-foreground",
     bg: "--secondary",
@@ -103,6 +106,11 @@ const PAIRS: Array<{ fg: string; bg: string; need: ContrastNeed; what: string }>
     what: "Selected cell boundary",
   },
   { fg: "--destructive", bg: "--background", need: "boundary", what: "Error text and icon" },
+  // The Clerk sign in card (spec 0004, AC-10) puts these on `--card`.
+  { fg: "--muted-foreground", bg: "--card", need: "body", what: "Quiet text on a card" },
+  { fg: "--primary", bg: "--card", need: "body", what: "Link on a card" },
+  { fg: "--input", bg: "--card", need: "boundary", what: "Input boundary on a card" },
+  { fg: "--destructive", bg: "--card", need: "boundary", what: "Error text and icon on a card" },
 ];
 
 type Measured = { theme: "light" | "dark"; what: string; need: ContrastNeed; ratio: number };

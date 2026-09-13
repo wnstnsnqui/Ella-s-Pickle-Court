@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { cookies } from "next/headers";
 
+import { Toaster } from "@/components/ui/sonner";
+import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
 
 import "./globals.css";
@@ -29,24 +32,37 @@ export const metadata: Metadata = {
 };
 
 /**
- * AC-1: dark follows the device setting with no toggle. Telling the browser both
- * schemes are supported is what stops the flash of a white page before the
- * stylesheet lands on a device set to dark.
+ * Both schemes are supported and the default follows the device. Telling the
+ * browser so is what stops the flash of a white page before the stylesheet lands
+ * on a device set to dark.
  */
 export const viewport: Viewport = {
   colorScheme: "light dark",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fcfcfc" },
-    { media: "(prefers-color-scheme: dark)", color: "#1b1c20" },
+    { media: "(prefers-color-scheme: light)", color: "#fffbea" },
+    { media: "(prefers-color-scheme: dark)", color: "#1b1712" },
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  // The reader's theme choice, read on the server so the very first paint is
+  // already the right one. `system` stamps nothing and the media query decides,
+  // which keeps the no toggle behaviour of spec 0003 as the default.
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+
   return (
-    <Providers>
-      <html lang="en" className={`${inter.variable} h-full antialiased`}>
-        <body className="bg-background text-foreground flex min-h-full flex-col">{children}</body>
-      </html>
-    </Providers>
+    <html
+      lang="en"
+      data-theme={theme === "system" ? undefined : theme}
+      className={`${inter.variable} h-full antialiased`}
+    >
+      <body className="bg-background text-foreground flex min-h-full flex-col">
+        {/* Clerk 7 wants its provider inside body, so its modals mount there. */}
+        <Providers>
+          {children}
+          <Toaster />
+        </Providers>
+      </body>
+    </html>
   );
 }

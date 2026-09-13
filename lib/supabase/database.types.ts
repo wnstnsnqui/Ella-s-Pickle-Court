@@ -4,7 +4,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5";
+    PostgrestVersion: "14.17";
   };
   public: {
     Tables: {
@@ -169,21 +169,27 @@ export type Database = {
           clerk_user_id: string;
           created_at: string;
           display_name: string;
+          email: string | null;
           is_active: boolean;
+          last_signed_in_at: string | null;
           role: string;
         };
         Insert: {
           clerk_user_id: string;
           created_at?: string;
           display_name: string;
+          email?: string | null;
           is_active?: boolean;
+          last_signed_in_at?: string | null;
           role?: string;
         };
         Update: {
           clerk_user_id?: string;
           created_at?: string;
           display_name?: string;
+          email?: string | null;
           is_active?: boolean;
+          last_signed_in_at?: string | null;
           role?: string;
         };
         Relationships: [];
@@ -243,7 +249,14 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      ensure_staff: {
+        Args: never;
+        Returns: {
+          display_name: string;
+          is_active: boolean;
+          role: string;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;

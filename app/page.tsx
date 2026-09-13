@@ -1,8 +1,10 @@
 import { ArrowRight, Palette } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { StateLegend } from "@/components/schedule/state-legend";
+import { StaffMenu } from "@/components/staff-menu";
 import { Button } from "@/components/ui/button";
 import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
 
@@ -13,7 +15,14 @@ import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
  */
 export default function Home() {
   return (
-    <AppShell>
+    <AppShell
+      // Streams: the board never waits on the staff row (spec 0004, invariant 3a).
+      staff={
+        <Suspense fallback={null}>
+          <StaffMenu />
+        </Suspense>
+      }
+    >
       <div className="flex flex-col gap-8 py-8">
         <div className="flex max-w-prose flex-col gap-3">
           <h1 className="text-display">{VENUE_NAME}</h1>

@@ -14,8 +14,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 1 | Stack & architecture | Foundation | done |
 | 2 | Coding standards & tooling | Foundation | done |
 | 3 | Data model | Foundation | in-progress |
-| 4 | Design system & UI foundation | Foundation | in-progress |
-| 5 | Staff sign in | Slice 1 | planned |
+| 4 | Design system & UI foundation | Foundation | done |
+| 5 | Staff sign in | Slice 1 | in-progress |
 | 6 | Staff booking schedule | Slice 1 | planned |
 | 7 | Public schedule board | Slice 1 | planned |
 | 8 | Courts & opening hours | Slice 2 | planned |
@@ -63,7 +63,7 @@ spec [0002](../specs/0002-data-model/index.md) · code in `supabase/migrations/`
 - [ ] Verify it: `/check verify data model`
 - [ ] Test it: `/test data model`
 
-### 4. Design system & UI foundation · in-progress
+### 4. Design system & UI foundation · done
 The visual language for a schedule grid read on a phone, often outdoors. Booked, Available and Unavailable have to be tellable apart at a glance, and a grid is a hard thing to read on a small screen.
 **Done when:** `design.md` covers type, color, spacing, and the schedule cell and grid components, the three cell states are distinguishable without relying on color alone, the grid is usable on a phone, and base components meet WCAG AA for contrast, focus, and keyboard use.
 spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `app/globals.css`, `app/design/`, `components/`, `docs/design.md`, `eslint.config.mjs`
@@ -75,16 +75,27 @@ spec [0003](../specs/0003-design-system-ui-foundation/index.md) · code in `app/
   - [x] An honest board: the shell, day navigation, the live indicator with its delay, the changed cell highlight, and the loading, empty and error states (AC-10, AC-11, AC-12, AC-13)
   - [x] Finish it: the type only assets and `docs/design.md` (AC-2, AC-16)
 - [ ] Verify it: `/check verify design system & UI foundation`
-- [ ] Test it: `/test design system & UI foundation`
+- [x] Test it: `/test design system & UI foundation`
 
 ## Slice 1: The schedule loop
 
 This slice is the walking skeleton. One real thread: a staff member signs in, books a court for an hour, and a player watching the public schedule sees that cell turn Booked. Real accounts, real storage, real live updates, narrow on purpose.
 
-### 5. Staff sign in · needs a decision · GA
+### 5. Staff sign in · in-progress · GA
 Only staff can change the schedule. Accounts also mean you can tell who booked or changed what, which is what makes the schedule trustworthy.
 **Done when:** a staff member can sign in and out, sessions survive a refresh, signing in creates their `staff` row carrying a role of staff or owner and an active flag (every policy in spec 0002 depends on it), and no signed out visitor can change anything.
-- [ ] Design it (spec): `/architect staff sign in`
+spec [0004](../specs/0004-staff-sign-in/index.md) · code in `app/sign-in/`, `app/sign-up/`, `lib/staff.ts`, `components/staff-menu.tsx`, `components/staff-controls.tsx`, `components/auth-surface.tsx`, `supabase/migrations/20260913013822_staff_sign_in.sql`, `supabase/tests/ensure_staff.test.ts`
+- [x] Design it (spec): `/architect staff sign in`
+- [ ] Build it: `/develop staff sign in`
+  - [ ] Dashboard setup and the migration: the Clerk and Supabase settings, the env values, the two new `staff` columns and `ensure_staff()` applied and checked with `db advisors` (AC-1, AC-2, AC-3, AC-6)
+  - [x] The thin thread proven live: `/sign-in`, `currentStaff()`, the staff menu with sign out, and the first person to sign in reads back as `owner` (AC-3, AC-4, AC-8)
+  - [ ] Invitations and every state: `/sign-up` from an invitation, the switched off and could not load notices, the footer link, the signed in redirect, and the staff only line (AC-1, AC-4, AC-5, AC-8)
+  - [x] Presentation: the Clerk cards themed to the tokens inside the shell, `noindex`, contrast and keyboard checked (AC-10)
+  - [ ] The proof the other features wait on, and the tests: a first booking with `changed_by` set, a long idle tab still writing, and the unit and database tests (AC-3, AC-5, AC-6, AC-7, AC-9) · tests done and green (`npm run check`, `npm run test:db`); the two live proofs wait on feature 6, the first booking UI
+- [ ] Verify it: `/check verify staff sign in`
+- [ ] Test it: `/test staff sign in`
+- [ ] Review it (fresh model): `/check review staff sign in`
+- [ ] Document it: `/document staff sign in`
 
 ### 6. Staff booking schedule · needs a decision
 The screen staff use all day, most likely on a phone or a tablet at the desk. Taking a booking has to be a few taps, because a schedule that is slow to update is a schedule that stops being updated.
@@ -139,6 +150,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **More than one venue**: several locations under one system · needs a decision
 - **Renaming the venue without a deploy**: the venue name is a constant, because `venue_settings` has no name column. Adding one is a small change to spec 0002 plus an owner only field · from spec 0003
 - **Staff editing payments on a past booking**: today only an owner may touch a booking that has ended, so a payment settled the next day needs Ella · from spec 0002
+- **Staff management screen**: an owner changes a role, switches a leaver off, or clears a leaver's email in the app instead of the Supabase SQL editor. Likely wanted within the first weeks of real use · needs a decision · from spec 0004
 
 ## Legend
 

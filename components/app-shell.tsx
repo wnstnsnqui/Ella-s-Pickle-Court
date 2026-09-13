@@ -1,7 +1,11 @@
 import { Show } from "@clerk/nextjs";
+import { cookies } from "next/headers";
+import Link from "next/link";
 
+import { ThemeToggle } from "@/components/theme-toggle";
 import { Wordmark } from "@/components/wordmark";
 import { clerkConfigured } from "@/lib/env";
+import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
@@ -16,7 +20,7 @@ import { cn } from "@/lib/utils";
  * write; the row level security policies from spec 0002 do, and they would refuse
  * a write from a signed out visitor whatever this markup said.
  */
-export function AppShell({
+export async function AppShell({
   children,
   toolbar,
   staff,
@@ -29,20 +33,28 @@ export function AppShell({
   staff?: React.ReactNode;
   className?: string;
 }) {
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+
   return (
     <div className="flex min-h-full flex-col">
-      <header className="border-border bg-background sticky top-0 z-30 border-b">
-        <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <Wordmark />
-          {staff && clerkConfigured ? (
-            <Show when="signed-in">
-              <div className="flex items-center gap-2">{staff}</div>
-            </Show>
-          ) : null}
+      <header className="border-border sticky top-0 z-30 border-b">
+        {/* The brand band: golden in daylight, and the plain page colour at night. */}
+        <div className="bg-brand text-brand-foreground">
+          <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3">
+            <Wordmark />
+            <div className="flex items-center gap-2">
+              {staff && clerkConfigured ? (
+                <Show when="signed-in">
+                  <div className="flex items-center gap-2">{staff}</div>
+                </Show>
+              ) : null}
+              <ThemeToggle initial={theme} />
+            </div>
+          </div>
         </div>
         {toolbar ? (
-          <div className="border-border/70 mx-auto w-full max-w-5xl border-t px-4 py-2">
-            {toolbar}
+          <div className="bg-background">
+            <div className="mx-auto w-full max-w-5xl px-4 py-2">{toolbar}</div>
           </div>
         ) : null}
       </header>
@@ -50,8 +62,19 @@ export function AppShell({
       <main className={cn("mx-auto w-full max-w-5xl flex-1 px-4 py-4", className)}>{children}</main>
 
       <footer className="border-border text-caption text-muted-foreground mt-8 border-t">
-        <div className="mx-auto w-full max-w-5xl px-4 py-4">
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4">
           <p>All times are venue time, Asia/Manila.</p>
+          {/* The one quiet door for staff. A signed in person already has the menu above. */}
+          {clerkConfigured ? (
+            <Show when="signed-out">
+              <Link
+                href="/sign-in"
+                className="text-foreground rounded-sm underline-offset-4 hover:underline"
+              >
+                Staff sign in
+              </Link>
+            </Show>
+          ) : null}
         </div>
       </footer>
     </div>

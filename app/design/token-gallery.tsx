@@ -22,6 +22,10 @@ const SURFACE = [
 const ACCENT = [
   ["--primary", "bg-primary"],
   ["--primary-foreground", "bg-primary-foreground"],
+  ["--brand", "bg-brand"],
+  ["--brand-foreground", "bg-brand-foreground"],
+  ["--mark", "bg-mark"],
+  ["--mark-foreground", "bg-mark-foreground"],
   ["--destructive", "bg-destructive"],
   ["--destructive-foreground", "bg-destructive-foreground"],
 ] as const;
