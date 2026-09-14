@@ -35,6 +35,35 @@ export function CellStateGallery() {
                 </span>
               </li>
             ))}
+            {/* The two layers spec 0005 adds over a view: a name, and the lock. */}
+            <li className="flex items-center gap-3">
+              <ScheduleCell
+                view="booked"
+                caption="Maria Santos"
+                label="Court 1 at 9am"
+                className="w-court-col shrink-0"
+              />
+              <span className="min-w-0">
+                <span className="text-label block">Booked, with the name</span>
+                <span className="text-caption text-muted-foreground block">
+                  What staff see on a taken hour
+                </span>
+              </span>
+            </li>
+            <li className="flex items-center gap-3">
+              <ScheduleCell
+                view="available"
+                locked
+                label="Court 1 at 9am"
+                className="w-court-col shrink-0"
+              />
+              <span className="min-w-0">
+                <span className="text-label block">Locked</span>
+                <span className="text-caption text-muted-foreground block">
+                  The hour has ended; only Ella may change it
+                </span>
+              </span>
+            </li>
           </ul>
         </ThemePane>
       ))}
@@ -45,7 +74,7 @@ export function CellStateGallery() {
 /** The grid itself, switchable through every state it can be handed. */
 export function GridPreview({ date }: { date: string }) {
   const [kind, setKind] = useState<"ready" | "loading" | "no-courts" | "closed" | "error">("ready");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
 
   const view: GridView =
     kind === "ready"
@@ -79,10 +108,15 @@ export function GridPreview({ date }: { date: string }) {
 
       <ScheduleGrid
         view={view}
-        selectedCell={selected}
+        selectedCells={selected}
         onSelectCell={(courtId, startsAt) => {
           const key = cellKey(courtId, startsAt);
-          setSelected((at) => (at === key ? null : key));
+          setSelected((held) => {
+            const next = new Set(held);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+          });
         }}
         onRetry={() => setKind("ready")}
       />

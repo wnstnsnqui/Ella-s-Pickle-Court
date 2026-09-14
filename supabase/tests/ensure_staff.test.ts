@@ -1,64 +1,20 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { describe, expect, it } from "vitest";
+
+import { asAuthenticated, query, rollback } from "./db";
 
 /**
  * Spec 0004, AC-3, AC-5 and AC-6: `public.ensure_staff()` as the linked
  * database actually runs it.
  *
  * Opt in, because it needs the Supabase CLI logged in and linked, and a network
- * round trip per case: `npm run test:db`. Every case is one
- * `begin … rollback` batch sent through `supabase db query`, so nothing it does
- * survives, including the one case that empties the table to reach the owner
- * bootstrap rule. The CLI's login role owns the tables, and `set local role`
- * inside the batch is how a case speaks as `anon` or `authenticated`.
+ * round trip per case: `npm run test:db`. The harness is in `db.ts`; every case
+ * rolls back, including the one that empties the table to reach the owner
+ * bootstrap rule.
  *
  * What this cannot prove: two first sign ins committing at the same moment. Both
  * batches here roll back, so neither would see the other's row. The case that
  * checks the advisory lock is held after a first sign in is the stand in.
  */
-
-const exec = promisify(execFile);
-
-type QueryResult =
-  { ok: true; rows: Record<string, unknown>[] } | { ok: false; sqlstate: string; message: string };
-
-/** Runs one batch on the linked project and reads back the last statement's answer. */
-async function query(sql: string): Promise<QueryResult> {
-  const args = ["supabase", "db", "query", "--linked", "--output-format", "json", sql];
-  const cwd = new URL("../..", import.meta.url).pathname;
-  // A SQL error makes the CLI exit non zero, with the JSON still on stdout.
-  const { stdout } = await exec("npx", args, { cwd }).catch((error: { stdout?: string }) => {
-    if (typeof error.stdout !== "string" || !error.stdout.includes("{")) throw error;
-    return { stdout: error.stdout };
-  });
-  // The CLI prints a status line or two around the JSON; keep only the object.
-  const json = stdout.slice(stdout.indexOf("{"), stdout.lastIndexOf("}") + 1);
-  const parsed = JSON.parse(json) as
-    { rows: Record<string, unknown>[] } | { _tag: "Error"; error: { message: string } };
-  if ("rows" in parsed) return { ok: true, rows: parsed.rows };
-
-  const match = /ERROR:\s+([0-9A-Z]{5}): ([^\n\\]*)/.exec(parsed.error.message);
-  return {
-    ok: false,
-    sqlstate: match?.[1] ?? "?????",
-    message: match?.[2] ?? parsed.error.message,
-  };
-}
-
-/** A batch that runs as a signed in caller with these claims on the token. */
-function asAuthenticated(claims: Record<string, string>, sql: string) {
-  const token = JSON.stringify({ role: "authenticated", ...claims }).replaceAll("'", "''");
-  return [
-    "set local role authenticated;",
-    `select set_config('request.jwt.claims', '${token}', true);`,
-    sql,
-  ].join("\n");
-}
-
-function rollback(sql: string) {
-  return `begin;\n${sql}\nrollback;`;
-}
 
 const HELD_ADVISORY_LOCKS =
   "select count(*)::int as locks from pg_locks where locktype = 'advisory' and pid = pg_backend_pid();";

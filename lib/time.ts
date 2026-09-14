@@ -98,6 +98,16 @@ export function calendarDateInZone(instant: Date, timeZone: string): string {
   return `${read("year")}-${read("month")}-${read("day")}`;
 }
 
+/** The venue local `HH:mm` an instant falls at, the shape the schemas accept. */
+export function localTimeInZone(instant: Date | string, timeZone: string): string {
+  const parts = partFormatter(timeZone).formatToParts(
+    typeof instant === "string" ? new Date(instant) : instant,
+  );
+  const read = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((part) => part.type === type)?.value ?? "";
+  return `${read("hour")}:${read("minute")}`;
+}
+
 /** Today at the venue, which is what an empty date parameter means. */
 export function todayInZone(timeZone: string, now: Date = new Date()): string {
   return calendarDateInZone(now, timeZone);

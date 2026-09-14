@@ -122,3 +122,17 @@ describe("formatSlotLabel", () => {
     expect(() => formatSlotLabel("teatime")).toThrow(RangeError);
   });
 });
+
+describe("localTimeInZone", () => {
+  /** Spec 0005: a run's end and a closure's end options travel as venue local `HH:mm`. */
+  it("reads an instant as the venue's HH:mm, on both sides of midnight", async () => {
+    const { localTimeInZone } = await loadTime();
+    expect(localTimeInZone("2026-09-15T08:00:00.000Z", "Asia/Manila")).toBe("16:00");
+    expect(localTimeInZone(new Date("2026-09-15T23:30:00.000Z"), "Asia/Manila")).toBe("07:30");
+  });
+
+  it("uses a 24 hour clock with a leading zero", async () => {
+    const { localTimeInZone } = await loadTime();
+    expect(localTimeInZone("2026-09-15T16:00:00.000Z", "Asia/Manila")).toBe("00:00");
+  });
+});

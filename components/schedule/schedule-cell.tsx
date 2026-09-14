@@ -1,6 +1,7 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
+import { Lock } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -17,6 +18,12 @@ import { CELL_VIEW_ICON, CELL_VIEW_NAME, type CellView } from "./cell-view";
  * The focus ring is inset on purpose. The time column is sticky and paints over
  * its neighbours, so a ring drawn outside the cell would be clipped in half the
  * moment the grid is scrolled sideways.
+ *
+ * Two additions from spec 0005: a `caption` under the icon, which the staff
+ * board fills with the customer's name (AC-2), and a `locked` variant that dims
+ * a slot that has already ended for a staff member and adds a lock beside the
+ * icon while keeping the view's own label (AC-11). Locked is a layer over the
+ * view, not an eighth view, because the cell still *is* Booked or Available.
  */
 const cell = cva(
   [
@@ -42,8 +49,12 @@ const cell = cva(
         true: "cursor-pointer hover:brightness-[0.97] active:brightness-95",
         false: "cursor-default",
       },
+      locked: {
+        true: "opacity-60",
+        false: "",
+      },
     },
-    defaultVariants: { interactive: false },
+    defaultVariants: { interactive: false, locked: false },
   },
 );
 
@@ -55,6 +66,10 @@ export type ScheduleCellProps = {
   focused?: boolean;
   /** True while this cell's state has just changed under the reader (AC-11). */
   changed?: boolean;
+  /** One short line under the icon, truncated: the customer's name on a Booked cell. */
+  caption?: string;
+  /** The slot has ended and this person may not change it (spec 0005, AC-11). */
+  locked?: boolean;
   onSelect?: () => void;
   className?: string;
 } & Omit<React.ComponentProps<"div">, "onSelect" | "children">;
@@ -64,6 +79,8 @@ export function ScheduleCell({
   label,
   focused = false,
   changed = false,
+  caption,
+  locked = false,
   onSelect,
   className,
   ...props
@@ -87,13 +104,24 @@ export function ScheduleCell({
           onSelect();
         }
       }}
-      className={cn(cell({ view, interactive }), className)}
+      data-locked={locked || undefined}
+      className={cn(cell({ view, interactive, locked }), className)}
       {...props}
     >
-      <Icon aria-hidden="true" className={cn("size-4", view === "saving" && "animate-spin")} />
+      <span className="flex items-center gap-1">
+        <Icon aria-hidden="true" className={cn("size-4", view === "saving" && "animate-spin")} />
+        {locked ? <Lock aria-hidden="true" className="size-3" /> : null}
+      </span>
+      {caption ? (
+        <span aria-hidden="true" className="text-caption w-full truncate px-1 text-center">
+          {caption}
+        </span>
+      ) : null}
       {/* The cell's accessible name, built from its contents: what it is, then how it reads. */}
       <span className="sr-only">
         {label}. {CELL_VIEW_NAME[view]}
+        {caption ? `, ${caption}` : ""}
+        {locked ? ", ended" : ""}
       </span>
     </div>
   );

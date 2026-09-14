@@ -1,6 +1,7 @@
 import {
   addDays,
   isWeekend,
+  localTimeInZone,
   minutesToTime,
   timeToMinutes,
   trimSeconds,
@@ -177,7 +178,7 @@ export function buildGrid(input: {
     slotRanges.push({
       start,
       end,
-      label: formatLocalTime(new Date(start), timezone),
+      label: localTimeInZone(new Date(start), timezone),
       outOfHours: true,
     });
   }
@@ -203,16 +204,6 @@ export function buildGrid(input: {
     courts,
     rows,
   };
-}
-
-/** `HH:mm` at the venue, used for the label on an out of hours row. */
-function formatLocalTime(instant: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    timeZone,
-    hourCycle: "h23",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(instant);
 }
 
 /**

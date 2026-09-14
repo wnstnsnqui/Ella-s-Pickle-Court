@@ -9,14 +9,17 @@ import {
   type ActionResult,
 } from "@/lib/actions";
 import type { Database } from "@/lib/supabase/database.types";
-import { daysBetween, todayInZone, zonedTimeToUtc } from "@/lib/time";
+import { calendarDateInZone, daysBetween, todayInZone, zonedTimeToUtc } from "@/lib/time";
 
+import { getStaffSchedule, type StaffSchedule } from "./queries";
 import {
   cancelReservationSchema,
   createReservationSchema,
+  createReservationsSchema,
   retireCourtSchema,
   saveCourtSchema,
   saveVenueSettingsSchema,
+  scheduleDateSchema,
   updateReservationSchema,
 } from "./schemas";
 
@@ -105,17 +108,10 @@ function toInstants(
   };
 }
 
-/** AC-6 in friendlier words, and the booking window from the settings row. */
-function checkBookingWindow(date: string, timezone: string, horizonDays: number) {
+/** The far edge of the booking window, from the settings row. */
+function checkHorizon(date: string, timezone: string, horizonDays: number) {
   const today = todayInZone(timezone);
-  const offset = daysBetween(today, date);
-  if (offset < 0) {
-    return {
-      kind: "forbidden" as const,
-      message: "Only an owner may change a booking in the past.",
-    };
-  }
-  if (offset > horizonDays) {
+  if (daysBetween(today, date) > horizonDays) {
     return {
       kind: "invalid" as const,
       message: `Bookings only open ${horizonDays} days ahead.`,
@@ -123,6 +119,32 @@ function checkBookingWindow(date: string, timezone: string, horizonDays: number)
     };
   }
   return null;
+}
+
+/** AC-6 in friendlier words, and the booking window from the settings row. */
+function checkBookingWindow(date: string, timezone: string, horizonDays: number) {
+  const today = todayInZone(timezone);
+  if (daysBetween(today, date) < 0) {
+    return {
+      kind: "forbidden" as const,
+      message: "Only an owner may change a booking in the past.",
+    };
+  }
+  return checkHorizon(date, timezone, horizonDays);
+}
+
+/**
+ * The day as the desk sees it, callable from the browser. Spec 0005, AC-10.
+ *
+ * The staff board refetches the whole day after every write and on every
+ * broadcast rather than patching cells from a payload. `getStaffSchedule`
+ * already runs `requireStaff()` and checks the date, so this wrapper only
+ * exists to put it behind the Server Action boundary.
+ */
+export async function refreshStaffSchedule(input: unknown): Promise<ActionResult<StaffSchedule>> {
+  const parsed = parseInput(scheduleDateSchema, input);
+  if (!parsed.ok) return fail(parsed.error);
+  return getStaffSchedule(parsed.data.date);
 }
 
 export async function createReservation(input: unknown): Promise<ActionResult<ReservationRow>> {
@@ -172,6 +194,62 @@ export async function createReservation(input: unknown): Promise<ActionResult<Re
   return ok(data);
 }
 
+/**
+ * A whole selection in one statement. Spec 0005, AC-4, AC-5 and AC-6.
+ *
+ * supabase-js sends an array insert as one statement, and Postgres applies the
+ * exclusion constraint to the statement as a whole, so a clash on any run rolls
+ * back every run: the set lands or it does not, never half of it. Whether a run
+ * that has already ended may be written is left to the insert policy, which
+ * lets an owner through and refuses staff with a `forbidden` result (AC-11).
+ */
+export async function createReservations(input: unknown): Promise<ActionResult<ReservationRow[]>> {
+  const staff = await requireStaff();
+  if (!staff.ok) return fail(staff.error);
+
+  const parsed = parseInput(createReservationsSchema, input);
+  if (!parsed.ok) return fail(parsed.error);
+
+  const loaded = await loadSettings(staff.supabase);
+  if (!loaded.ok) return fail(loaded.error);
+
+  for (const run of parsed.data.runs) {
+    const horizonError = checkHorizon(
+      run.date,
+      loaded.settings.timezone,
+      loaded.settings.booking_horizon_days,
+    );
+    if (horizonError) return fail(horizonError);
+  }
+
+  const shared = {
+    kind: parsed.data.kind,
+    customer_name: parsed.data.customerName ?? null,
+    customer_phone: parsed.data.customerPhone ?? null,
+    note: parsed.data.note ?? null,
+    payment_status: parsed.data.paymentStatus ?? "unpaid",
+    amount: parsed.data.amount ?? null,
+    created_by: staff.staffId,
+    changed_by: staff.staffId,
+  };
+
+  const rows = parsed.data.runs.map((run) => {
+    const { startsAt, endsAt } = toInstants(
+      run.date,
+      run.startTime,
+      run.endTime,
+      loaded.settings.timezone,
+    );
+    return { ...shared, court_id: run.courtId, starts_at: startsAt, ends_at: endsAt };
+  });
+
+  const { data, error } = await staff.supabase.from("reservation").insert(rows).select();
+
+  // One statement, so `23P01` here means the whole set was refused.
+  if (error) return fail(describeDatabaseError(error));
+  return ok(data);
+}
+
 export async function updateReservation(input: unknown): Promise<ActionResult<ReservationRow>> {
   const staff = await requireStaff();
   if (!staff.ok) return fail(staff.error);
@@ -217,6 +295,25 @@ export async function updateReservation(input: unknown): Promise<ActionResult<Re
     );
     patch.starts_at = startsAt;
     patch.ends_at = endsAt;
+  } else if (parsed.data.endTime) {
+    // Spec 0005, AC-8: a closure edit moves only its end. The date comes from
+    // the stored start, read back to a venue local day, so the client never
+    // gets to say which day the row is on.
+    const { data: stored, error: storedError } = await staff.supabase
+      .from("reservation")
+      .select("starts_at")
+      .eq("id", parsed.data.id)
+      .maybeSingle();
+    if (storedError) return fail(describeDatabaseError(storedError));
+    if (!stored) return fail({ kind: "not_found", message: "That row is gone." });
+
+    const date = calendarDateInZone(new Date(stored.starts_at), loaded.settings.timezone);
+    const endsAt = zonedTimeToUtc(date, parsed.data.endTime, loaded.settings.timezone);
+    if (endsAt.getTime() <= Date.parse(stored.starts_at)) {
+      const message = "The end time has to be after the start time.";
+      return fail({ kind: "invalid", message, issues: { endTime: [message] } });
+    }
+    patch.ends_at = endsAt.toISOString();
   }
 
   const { data, error } = await staff.supabase

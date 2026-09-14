@@ -25,10 +25,10 @@ describe("the auth pages", () => {
     ["/sign-in", () => import("./page")],
     ["/sign-up", () => import("../../sign-up/[[...sign-up]]/page")],
   ] as const) {
-    it(`${name} sends a signed in visitor to / (AC-4)`, async () => {
+    it(`${name} sends a signed in visitor to /staff (AC-4, spec 0005 AC-1)`, async () => {
       auth.mockResolvedValue({ isAuthenticated: true });
       const page = (await load()).default;
-      await expect(page()).rejects.toThrow("NEXT_REDIRECT /");
+      await expect(page()).rejects.toThrow("NEXT_REDIRECT /staff");
     });
 
     it(`${name} renders for a signed out visitor`, async () => {

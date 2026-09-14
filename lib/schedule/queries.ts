@@ -26,6 +26,8 @@ type CourtRow = Database["public"]["Tables"]["court"]["Row"];
 export type Schedule = {
   grid: Grid;
   settingsVersion: number;
+  /** How far ahead the day navigation may go, from `venue_settings`. */
+  horizonDays: number;
 };
 
 /** Every column of a reservation, which only the staff path ever sees. */
@@ -44,10 +46,19 @@ export type StaffReservation = {
   version: number;
   createdBy: string | null;
   changedBy: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/** A name for every Clerk id that ever wrote a row, active or not. Spec 0005, AC-7. */
+export type StaffName = {
+  clerkUserId: string;
+  displayName: string;
 };
 
 export type StaffSchedule = Schedule & {
   reservations: StaffReservation[];
+  staff: StaffName[];
 };
 
 function toSettings(row: VenueSettingsRow) {
@@ -163,7 +174,7 @@ export async function getSchedule(date?: string): Promise<ActionResult<Schedule>
     })),
   });
 
-  return ok({ grid, settingsVersion: settings.version });
+  return ok({ grid, settingsVersion: settings.version, horizonDays: settings.bookingHorizonDays });
 }
 
 /**
@@ -185,7 +196,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
 
   const bounds = dayBoundsUtc(resolved.date, settings.timezone);
 
-  const [courts, reservations] = await Promise.all([
+  const [courts, reservations, staffRows] = await Promise.all([
     supabase
       .from("court")
       .select("id, name, note, sort_order")
@@ -197,10 +208,14 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
       .lt("starts_at", bounds.end.toISOString())
       .gt("ends_at", bounds.start.toISOString())
       .order("starts_at"),
+    // The whole table, no `is_active` filter, so a leaver's name still resolves
+    // on the bookings they made (spec 0005, AC-7).
+    supabase.from("staff").select("clerk_user_id, display_name"),
   ]);
 
   if (courts.error) return fail({ kind: "failed", message: courts.error.message });
   if (reservations.error) return fail({ kind: "failed", message: reservations.error.message });
+  if (staffRows.error) return fail({ kind: "failed", message: staffRows.error.message });
 
   const rows = reservations.data ?? [];
 
@@ -222,6 +237,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
   return ok({
     grid,
     settingsVersion: settings.version,
+    horizonDays: settings.bookingHorizonDays,
     reservations: rows.map((row): StaffReservation => ({
       id: row.id,
       courtId: row.court_id,
@@ -237,6 +253,12 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
       version: row.version,
       createdBy: row.created_by,
       changedBy: row.changed_by,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    })),
+    staff: (staffRows.data ?? []).map((row) => ({
+      clerkUserId: row.clerk_user_id,
+      displayName: row.display_name,
     })),
   });
 }

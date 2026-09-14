@@ -1,6 +1,8 @@
-import { CircleAlert, UserRoundX } from "lucide-react";
+import { CalendarDays, CircleAlert, UserRoundX } from "lucide-react";
+import Link from "next/link";
 
 import { AccountButton, SignOutButton } from "@/components/staff-controls";
+import { Button } from "@/components/ui/button";
 import { currentStaff } from "@/lib/staff";
 
 /**
@@ -41,6 +43,14 @@ export async function StaffMenu() {
 
   return (
     <>
+      {/* The way to the staff board from anywhere else (spec 0005, AC-1). Icon
+          only on a phone, where the band has no room for four labels. */}
+      <Button asChild variant="ghost" size="sm" title="Schedule">
+        <Link href="/staff">
+          <CalendarDays aria-hidden="true" />
+          <span className="sr-only sm:not-sr-only">Schedule</span>
+        </Link>
+      </Button>
       <AccountButton name={current.staff.displayName} />
       <SignOutButton />
     </>

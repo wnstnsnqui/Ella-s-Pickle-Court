@@ -35,10 +35,19 @@ export type ScheduleGridProps = {
   legendViews?: readonly CellView[];
   /** Absent means a read only board: the cells still take focus, nothing acts. */
   onSelectCell?: (courtId: number, rowStartsAt: string) => void;
-  selectedCell?: string | null;
+  /** Any number of cells, on any court (spec 0005, AC-3). */
+  selectedCells?: ReadonlySet<string>;
   pendingCells?: ReadonlySet<string>;
   failedCells?: ReadonlySet<string>;
   changedCells?: ReadonlySet<string>;
+  /**
+   * Slots that have ended for this viewer (spec 0005, AC-11). They keep their
+   * label and are skipped for selection by tap and by keyboard alike; one that
+   * holds a booking or a closure still opens, because there is a row to show.
+   */
+  lockedCells?: ReadonlySet<string>;
+  /** The one line under a cell's icon, by key: the customer's name on a Booked cell. */
+  cellCaptions?: ReadonlyMap<string, string>;
   onRetry?: () => void;
   className?: string;
 };
@@ -50,10 +59,12 @@ export function ScheduleGrid({
   view,
   legendViews,
   onSelectCell,
-  selectedCell = null,
+  selectedCells,
   pendingCells,
   failedCells,
   changedCells,
+  lockedCells,
+  cellCaptions,
   onRetry,
   className,
 }: ScheduleGridProps) {
@@ -223,13 +234,17 @@ export function ScheduleGrid({
               {row.cells.map((cell, colIndex) => {
                 const key = cellKey(cell.courtId, row.startsAt);
                 const court = grid.courts[colIndex];
+                const locked = lockedCells?.has(key) ?? false;
                 const cellView = cellViewFor({
                   state: cell.state,
                   outOfHours: row.outOfHours,
-                  selected: selectedCell === key,
+                  selected: selectedCells?.has(key),
                   saving: pendingCells?.has(key),
                   failed: failedCells?.has(key),
                 });
+                // A locked cell with nothing on it has nothing to open and may
+                // not join the selection, so it gets no handler at all.
+                const canAct = Boolean(onSelectCell) && (!locked || cell.blocks.length > 0);
                 return (
                   <ScheduleCell
                     key={key}
@@ -237,8 +252,12 @@ export function ScheduleGrid({
                     label={`${court?.name ?? "Court"} at ${formatSlotLabel(row.label)}`}
                     focused={cursor.row === rowIndex && cursor.col === colIndex}
                     changed={changedCells?.has(key)}
+                    caption={cellCaptions?.get(key)}
+                    locked={locked}
                     onSelect={
-                      onSelectCell ? () => onSelectCell(cell.courtId, row.startsAt) : undefined
+                      canAct && onSelectCell
+                        ? () => onSelectCell(cell.courtId, row.startsAt)
+                        : undefined
                     }
                     onFocus={() => {
                       setCursorIsLive(true);

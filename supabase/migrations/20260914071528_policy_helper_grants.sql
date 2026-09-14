@@ -1,0 +1,2 @@
+-- Pushed empty by mistake on 2026-09-14 (`migration new` reads its SQL from stdin, and none was given).
+-- Kept because it is recorded on the remote; the real change is the next file.

@@ -16,7 +16,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 3 | Data model | Foundation | in-progress |
 | 4 | Design system & UI foundation | Foundation | done |
 | 5 | Staff sign in | Slice 1 | in-progress |
-| 6 | Staff booking schedule | Slice 1 | planned |
+| 6 | Staff booking schedule | Slice 1 | done |
 | 7 | Public schedule board | Slice 1 | planned |
 | 8 | Courts & opening hours | Slice 2 | planned |
 | 9 | Session history | Slice 3 | dropped |
@@ -97,10 +97,19 @@ spec [0004](../specs/0004-staff-sign-in/index.md) · code in `app/sign-in/`, `ap
 - [ ] Review it (fresh model): `/check review staff sign in`
 - [ ] Document it: `/document staff sign in`
 
-### 6. Staff booking schedule · needs a decision
+### 6. Staff booking schedule · done
 The screen staff use all day, most likely on a phone or a tablet at the desk. Taking a booking has to be a few taps, because a schedule that is slow to update is a schedule that stops being updated.
 **Done when:** a signed in staff member picks a day, sees the grid for every court, can book a cell with a customer name and optional phone, note and payment record, can edit or cancel a booking, can close a court for a stretch of hours, and every change is saved and visible immediately. A double booking is refused with a clear message rather than an error.
-- [ ] Design it (spec): `/architect staff booking schedule`
+spec [0005](../specs/0005-staff-booking-schedule/index.md) · code in `app/staff/`, `components/staff/`, `components/schedule/`, `lib/schedule/`, `lib/supabase/staff-browser.ts`, `proxy.ts`
+- [x] Design it (spec): `/architect staff booking schedule`
+- [x] Build it: `/develop staff booking schedule`
+  - [x] The protected page and the thin thread: `/staff` behind `proxy.ts`, the redirects and menu link, the staff list on the read, `createReservations`, the selection module, the board with its bar and a name only Book sheet, one booking proven in a second browser (AC-1, AC-3, AC-4, AC-12, AC-16)
+  - [x] Live: the staff listener carrying the Clerk token, the refetch on every broadcast, and the selection pruned with a toast (AC-10)
+  - [x] The forms and the refused path: react-hook-form, the full Book and Close court sheets, sheet side by viewport, and the slot taken handling (AC-4, AC-5, AC-6, AC-15)
+  - [x] Details, edit, cancel, past and role: the details sheet with names, the edit forms and the stale version reload, the confirm dialog, the customer name on cells, and the lock for ended slots (AC-2, AC-7, AC-8, AC-9, AC-11)
+  - [x] Finish: retries and bounds, the seven view legend, keyboard and contrast, and the concurrent double booking proof with two staff (AC-13, AC-14, AC-15, AC-16) · the race ran with one account in two browsers, a second staff account would make it exact
+- [x] Verify it: `/check verify staff booking schedule`
+- [x] Test it: `/test staff booking schedule`
 
 ### 7. Public schedule board · needs a decision
 The page players open before they drive over. Read only, no sign in, and it updates by itself within a second or two so nobody is looking at a stale grid.
@@ -151,6 +160,9 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Renaming the venue without a deploy**: the venue name is a constant, because `venue_settings` has no name column. Adding one is a small change to spec 0002 plus an owner only field · from spec 0003
 - **Staff editing payments on a past booking**: today only an owner may touch a booking that has ended, so a payment settled the next day needs Ella · from spec 0002
 - **Staff management screen**: an owner changes a role, switches a leaver off, or clears a leaver's email in the app instead of the Supabase SQL editor. Likely wanted within the first weeks of real use · needs a decision · from spec 0004
+- **Grouping the rows of one multi court booking**: a class booked across two courts is two unrelated rows today, so cancelling it is two cancels. A `booking_group` column on `reservation` is a small forward only migration under spec 0002 · from spec 0005
+- **Changing a booking's end time in the edit form**: today a booking edit changes details only, while a closure edit may also move its end. The same free run select would let a booking grow or shrink without cancel and rebook · from spec 0005
+- **Closing at midnight**: `localTimeSchema` stops at `23:59`, so a closing time of midnight would make the last slot unbookable. Accept `24:00` for an end time only, in spec 0002 · from spec 0005
 
 ## Legend
 

@@ -1,0 +1,293 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+/**
+ * Spec 0005 Server Actions: the batch insert (AC-4, AC-5, AC-6), the closure
+ * end edit (AC-8), and the refetch the board calls (AC-10). Clerk and Supabase
+ * are the boundaries and are faked here; what is under test is the order every
+ * action keeps (`requireStaff()`, then Zod, then the write), the shape of the
+ * write it sends, and the typed answer it hands back.
+ */
+
+const auth = vi.hoisted(() => vi.fn());
+vi.mock("@clerk/nextjs/server", () => ({ auth }));
+
+/**
+ * A chainable stand in for a supabase-js query. Every builder method returns
+ * the builder; awaiting it yields the next queued answer for that table.
+ */
+type Call = { table: string; method: string; args: unknown[] };
+const calls: Call[] = [];
+const answers = new Map<string, unknown[]>();
+
+function queue(table: string, ...values: unknown[]) {
+  answers.set(table, [...(answers.get(table) ?? []), ...values]);
+}
+
+function builder(table: string) {
+  const chain: Record<string, unknown> = {};
+  const methods = [
+    "select",
+    "insert",
+    "update",
+    "eq",
+    "lt",
+    "gt",
+    "is",
+    "order",
+    "match",
+    "maybeSingle",
+    "single",
+    "abortSignal",
+    "neq",
+  ];
+  for (const method of methods) {
+    chain[method] = (...args: unknown[]) => {
+      calls.push({ table, method, args });
+      return chain;
+    };
+  }
+  chain.then = (resolve: (value: unknown) => void) => {
+    const list = answers.get(table) ?? [];
+    resolve(list.shift() ?? { data: null, error: null });
+  };
+  return chain;
+}
+
+const staffSupabase = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
+
+const getStaffSchedule = vi.hoisted(() => vi.fn());
+vi.mock("./queries", () => ({ getStaffSchedule }));
+
+const { createReservations, refreshStaffSchedule, updateReservation } = await import("./actions");
+
+const SETTINGS = {
+  data: { timezone: "Asia/Manila", booking_horizon_days: 14, version: 1 },
+  error: null,
+};
+
+/** Today at the venue, so a run "tomorrow" is always inside the window. */
+function tomorrow() {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Manila" }).formatToParts(
+    new Date(Date.now() + 86_400_000),
+  );
+  const read = (type: string) => parts.find((part) => part.type === type)?.value;
+  return `${read("year")}-${read("month")}-${read("day")}`;
+}
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  calls.length = 0;
+  answers.clear();
+  auth.mockResolvedValue({ isAuthenticated: true, userId: "user_staff" });
+  staffSupabase.mockReturnValue({ from: (table: string) => builder(table) });
+});
+
+describe("createReservations", () => {
+  it("refuses a signed out caller before touching the database", async () => {
+    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+    const result = await createReservations({ runs: [], kind: "closed" });
+    expect(result).toMatchObject({ ok: false, error: { kind: "unauthenticated" } });
+    expect(staffSupabase).not.toHaveBeenCalled();
+  });
+
+  it("refuses a payload the schema rejects, naming the field (AC-4)", async () => {
+    const result = await createReservations({
+      runs: [{ courtId: 1, date: tomorrow(), startTime: "16:00", endTime: "17:00" }],
+      kind: "booking",
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.kind).toBe("invalid");
+    if (result.error.kind !== "invalid") return;
+    expect(result.error.issues.customerName).toBeDefined();
+    expect(calls).toHaveLength(0);
+  });
+
+  it("writes every run in one insert with the same customer fields and the caller as writer (AC-4)", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", { data: [{ id: 1 }, { id: 2 }], error: null });
+    const date = tomorrow();
+
+    const result = await createReservations({
+      runs: [
+        { courtId: 1, date, startTime: "16:00", endTime: "18:00" },
+        { courtId: 2, date, startTime: "16:00", endTime: "17:00" },
+      ],
+      kind: "booking",
+      customerName: "Maria",
+      customerPhone: "+63 917 123 4567",
+      paymentStatus: "paid",
+      amount: 250.5,
+    });
+
+    expect(result).toEqual({ ok: true, data: [{ id: 1 }, { id: 2 }] });
+    const inserts = calls.filter((call) => call.method === "insert");
+    expect(inserts).toHaveLength(1);
+    const rows = inserts[0].args[0] as Record<string, unknown>[];
+    expect(rows).toHaveLength(2);
+    // 4pm Manila is 08:00Z, the venue's timezone from the settings row.
+    expect(rows[0]).toMatchObject({
+      court_id: 1,
+      kind: "booking",
+      starts_at: `${date}T08:00:00.000Z`,
+      ends_at: `${date}T10:00:00.000Z`,
+      customer_name: "Maria",
+      customer_phone: "+63 917 123 4567",
+      payment_status: "paid",
+      amount: 250.5,
+      created_by: "user_staff",
+      changed_by: "user_staff",
+    });
+    expect(rows[1]).toMatchObject({ court_id: 2, customer_name: "Maria", amount: 250.5 });
+  });
+
+  it("defaults a closure to unpaid with no customer, and never loops single inserts (AC-5)", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", { data: [{ id: 3 }], error: null });
+    const date = tomorrow();
+
+    await createReservations({
+      runs: [
+        { courtId: 1, date, startTime: "09:00", endTime: "10:00" },
+        { courtId: 1, date, startTime: "11:00", endTime: "12:00" },
+      ],
+      kind: "closed",
+      note: "Net repair",
+    });
+
+    const inserts = calls.filter((call) => call.method === "insert");
+    expect(inserts).toHaveLength(1);
+    const rows = inserts[0].args[0] as Record<string, unknown>[];
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      kind: "closed",
+      customer_name: null,
+      payment_status: "unpaid",
+      note: "Net repair",
+    });
+  });
+
+  it("turns the exclusion constraint refusing the set into a slot_taken conflict (AC-6)", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", {
+      data: null,
+      error: {
+        code: "23P01",
+        message: 'conflicting key value violates exclusion constraint "reservation_no_overlap"',
+      },
+    });
+
+    const result = await createReservations({
+      runs: [{ courtId: 1, date: tomorrow(), startTime: "16:00", endTime: "17:00" }],
+      kind: "booking",
+      customerName: "Maria",
+    });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: "conflict", reason: "slot_taken" },
+    });
+    if (result.ok) return;
+    expect(result.error.message).not.toMatch(/exclusion|23P01/);
+  });
+
+  it("surfaces a policy refusal as forbidden, the answer a staff member gets on an ended slot (AC-11)", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", {
+      data: null,
+      error: { code: "42501", message: "new row violates row-level security policy" },
+    });
+
+    const result = await createReservations({
+      runs: [{ courtId: 1, date: tomorrow(), startTime: "16:00", endTime: "17:00" }],
+      kind: "closed",
+    });
+
+    expect(result).toMatchObject({ ok: false, error: { kind: "forbidden" } });
+  });
+
+  it("refuses a run past the booking horizon before writing (AC-14)", async () => {
+    queue("venue_settings", SETTINGS);
+    const farAway = "2030-01-01";
+
+    const result = await createReservations({
+      runs: [{ courtId: 1, date: farAway, startTime: "16:00", endTime: "17:00" }],
+      kind: "closed",
+    });
+
+    expect(result).toMatchObject({ ok: false, error: { kind: "invalid" } });
+    expect(calls.filter((call) => call.method === "insert")).toHaveLength(0);
+  });
+});
+
+describe("updateReservation with endTime alone (closure edit, AC-8)", () => {
+  it("rebuilds ends_at from the stored row's own venue day", async () => {
+    queue("venue_settings", SETTINGS);
+    // The stored start: 6pm Manila on 2026-09-15 is 10:00Z.
+    queue("reservation", { data: { starts_at: "2026-09-15T10:00:00.000Z" }, error: null });
+    queue("reservation", { data: { id: 7, version: 3 }, error: null });
+
+    const result = await updateReservation({ id: 7, version: 2, endTime: "21:00", note: "Longer" });
+
+    expect(result).toEqual({ ok: true, data: { id: 7, version: 3 } });
+    const update = calls.find((call) => call.method === "update");
+    expect(update?.args[0]).toMatchObject({
+      ends_at: "2026-09-15T13:00:00.000Z",
+      note: "Longer",
+      version: 3,
+      changed_by: "user_staff",
+    });
+    expect(update?.args[0]).not.toHaveProperty("starts_at");
+    // Conditional on the version the caller last read.
+    expect(
+      calls.some(
+        (call) => call.method === "eq" && call.args[0] === "version" && call.args[1] === 2,
+      ),
+    ).toBe(true);
+  });
+
+  it("refuses an end that is not after the stored start", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", { data: { starts_at: "2026-09-15T10:00:00.000Z" }, error: null });
+
+    const result = await updateReservation({ id: 7, version: 2, endTime: "17:00" });
+
+    expect(result).toMatchObject({ ok: false, error: { kind: "invalid" } });
+    if (result.ok || result.error.kind !== "invalid") return;
+    expect(result.error.issues.endTime).toBeDefined();
+    expect(calls.filter((call) => call.method === "update")).toHaveLength(0);
+  });
+
+  it("answers version_stale when the row moved under the editor", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", { data: { starts_at: "2026-09-15T10:00:00.000Z" }, error: null });
+    queue("reservation", { data: null, error: null }); // zero rows updated
+    queue("reservation", { data: { version: 4 }, error: null }); // the explain refetch
+
+    const result = await updateReservation({ id: 7, version: 2, endTime: "21:00" });
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: "conflict", reason: "version_stale" },
+    });
+  });
+});
+
+describe("refreshStaffSchedule", () => {
+  it("validates the date, then hands the read to getStaffSchedule (AC-10)", async () => {
+    getStaffSchedule.mockResolvedValue({ ok: true, data: { marker: "day" } });
+
+    const result = await refreshStaffSchedule({ date: "2026-09-15" });
+
+    expect(getStaffSchedule).toHaveBeenCalledWith("2026-09-15");
+    expect(result).toEqual({ ok: true, data: { marker: "day" } });
+  });
+
+  it("refuses a malformed date without reading anything", async () => {
+    const result = await refreshStaffSchedule({ date: "next tuesday" });
+
+    expect(result).toMatchObject({ ok: false, error: { kind: "invalid" } });
+    expect(getStaffSchedule).not.toHaveBeenCalled();
+  });
+});

@@ -5,10 +5,12 @@ import { NextResponse, type NextRequest } from "next/server";
  * Next.js 16 renamed Middleware to Proxy. Same job, different filename.
  *
  * This is public first on purpose: the public board must stay open to anyone with
- * no sign in, so nothing is protected here. Real protection lives in two places
- * spec 0001 names, not in this file: every Server Action calls `requireStaff()`
- * first, and row level security in Postgres is the enforcement point. Proxy only
- * makes the Clerk session readable by `auth()` further down the request.
+ * no sign in, so only the staff board is protected here (spec 0005, AC-1). Real
+ * protection lives in two places spec 0001 names, not in this file: every Server
+ * Action calls `requireStaff()` first, and row level security in Postgres is the
+ * enforcement point. Proxy makes the Clerk session readable by `auth()` further
+ * down the request, and sends a signed out visitor to `/sign-in` before any
+ * response with customer data is built, with `/staff` carried as the return path.
  */
 
 const hasClerkKey = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
@@ -18,7 +20,20 @@ if (!hasClerkKey && process.env.NODE_ENV === "production") {
   throw new Error("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY is missing. Refusing to run without Clerk.");
 }
 
-const withClerk = clerkMiddleware();
+/**
+ * The one signed in surface. The sign in pages and the public board stay open.
+ * A plain path test rather than Clerk's `createRouteMatcher`, which Clerk 7
+ * has deprecated; the page itself still checks `currentStaff()`, so this is
+ * the early door, not the lock.
+ */
+function isStaffRoute(request: NextRequest): boolean {
+  const { pathname } = request.nextUrl;
+  return pathname === "/staff" || pathname.startsWith("/staff/");
+}
+
+const withClerk = clerkMiddleware(async (auth, request) => {
+  if (isStaffRoute(request)) await auth.protect();
+});
 
 /**
  * In development with no keys yet, pass the request through untouched so the

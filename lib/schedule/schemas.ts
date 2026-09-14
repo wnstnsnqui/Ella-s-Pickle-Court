@@ -53,15 +53,35 @@ export const scheduleDateSchema = z.object({
   date: calendarDateSchema.optional(),
 });
 
+/** What a customer is called on a booking. Spec 0005 AC-4: required on a booking. */
+export const customerNameSchema = z
+  .string()
+  .trim()
+  .min(1, "A booking needs a customer name.")
+  .max(80, "Keep the name to 80 characters.");
+
+/**
+ * A phone number, loosely. Spec 0005 AC-4: digits, spaces, plus and dashes,
+ * 7 to 30 characters. It is stored as typed; the details sheet strips it down
+ * for the tap to call link.
+ */
+export const customerPhoneSchema = z
+  .string()
+  .trim()
+  .regex(/^[\d\s+-]{7,30}$/, "Use digits, spaces, plus and dashes, 7 to 30 characters.");
+
+/** The free text on a booking or a closure. */
+export const noteSchema = z.string().trim().max(200, "Keep the note to 200 characters.");
+
 const reservationFields = {
   courtId: idSchema,
   date: calendarDateSchema,
   startTime: localTimeSchema,
   endTime: localTimeSchema,
   kind: reservationKindSchema,
-  customerName: z.string().trim().min(1).max(80).optional(),
-  customerPhone: z.string().trim().min(1).max(30).optional(),
-  note: z.string().trim().max(200).optional(),
+  customerName: customerNameSchema.optional(),
+  customerPhone: customerPhoneSchema.optional(),
+  note: noteSchema.optional(),
   paymentStatus: paymentStatusSchema.optional(),
   amount: amountSchema.optional(),
 };
@@ -101,6 +121,70 @@ export const createReservationSchema = z.object(reservationFields).superRefine((
 
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 
+/** One contiguous stretch on one court, the unit a selection is written in. */
+export const reservationRunSchema = z
+  .object({
+    courtId: idSchema,
+    date: calendarDateSchema,
+    startTime: localTimeSchema,
+    endTime: localTimeSchema,
+  })
+  .superRefine(requireEndAfterStart);
+
+export type ReservationRun = z.infer<typeof reservationRunSchema>;
+
+/** The most runs one Book or Close court press may write. Spec 0005. */
+export const MAX_RUNS_PER_SET = 20;
+
+/**
+ * A whole selection at once. Spec 0005, AC-4 and AC-5.
+ *
+ * The rows share one set of customer fields and land in one insert, so the
+ * exclusion constraint refuses all of them or none. The runs are checked
+ * against each other here because the network sends whatever it likes, and two
+ * runs that overlap on one court would only ever be caught by the database.
+ */
+export const createReservationsSchema = z
+  .object({
+    runs: z.array(reservationRunSchema).min(1, "Pick at least one hour.").max(MAX_RUNS_PER_SET),
+    kind: reservationKindSchema,
+    customerName: customerNameSchema.optional(),
+    customerPhone: customerPhoneSchema.optional(),
+    note: noteSchema.optional(),
+    paymentStatus: paymentStatusSchema.optional(),
+    amount: amountSchema.optional(),
+  })
+  .superRefine((value, ctx) => {
+    requireCustomerName(value, ctx);
+    const byCourt = new Map<number, ReservationRun[]>();
+    for (const run of value.runs) {
+      const list = byCourt.get(run.courtId) ?? [];
+      list.push(run);
+      byCourt.set(run.courtId, list);
+    }
+    for (const runs of byCourt.values()) {
+      const sorted = [...runs].sort((a, b) =>
+        `${a.date}T${a.startTime}`.localeCompare(`${b.date}T${b.startTime}`),
+      );
+      for (let index = 1; index < sorted.length; index += 1) {
+        const previous = sorted[index - 1];
+        const current = sorted[index];
+        const previousEnd = `${previous.date}T${previous.endTime}`;
+        const currentStart = `${current.date}T${current.startTime}`;
+        if (currentStart < previousEnd) {
+          ctx.addIssue({
+            code: "custom",
+            path: ["runs"],
+            message: "Two of the runs overlap on the same court.",
+          });
+          return;
+        }
+      }
+    }
+  });
+
+export type CreateReservationsInput = z.infer<typeof createReservationsSchema>;
+
 export const updateReservationSchema = z
   .object({
     id: idSchema,
@@ -111,17 +195,20 @@ export const updateReservationSchema = z
     endTime: reservationFields.endTime.optional(),
     kind: reservationFields.kind.optional(),
     customerName: reservationFields.customerName,
-    customerPhone: z.string().trim().max(30).nullish(),
-    note: z.string().trim().max(200).nullish(),
+    customerPhone: customerPhoneSchema.nullish(),
+    note: noteSchema.nullish(),
     paymentStatus: reservationFields.paymentStatus,
     amount: amountSchema.nullish(),
   })
   .superRefine((value, ctx) => {
     requireEndAfterStart(value, ctx);
     // Moving one edge of a booking means the action needs the other one too,
-    // because a half given range cannot be converted to UTC on its own.
+    // because a half given range cannot be converted to UTC on its own. The one
+    // exception is spec 0005 AC-8: a closure edit sends `endTime` on its own and
+    // the action rebuilds `ends_at` from the stored row's date.
     const edges = [value.date, value.startTime, value.endTime].filter(Boolean).length;
-    if (edges > 0 && edges < 3) {
+    const endTimeAlone = edges === 1 && value.endTime !== undefined;
+    if (edges > 0 && edges < 3 && !endTimeAlone) {
       ctx.addIssue({
         code: "custom",
         path: ["startTime"],

@@ -6,3 +6,9 @@
 export function cellKey(courtId: number, rowStartsAt: string): string {
   return `${courtId}@${rowStartsAt}`;
 }
+
+/** The two halves of a key, back out. The instant is an ISO string, so it holds no `@`. */
+export function parseCellKey(key: string): { courtId: number; rowStartsAt: string } {
+  const at = key.indexOf("@");
+  return { courtId: Number(key.slice(0, at)), rowStartsAt: key.slice(at + 1) };
+}

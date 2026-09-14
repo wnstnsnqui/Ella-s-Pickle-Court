@@ -22,7 +22,7 @@ export const metadata: Metadata = {
 export default async function SignUpPage() {
   if (clerkConfigured) {
     const { isAuthenticated } = await auth();
-    if (isAuthenticated) redirect("/");
+    if (isAuthenticated) redirect("/staff");
   }
 
   return (

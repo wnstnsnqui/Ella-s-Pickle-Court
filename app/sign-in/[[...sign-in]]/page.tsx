@@ -20,10 +20,10 @@ export const metadata: Metadata = {
 };
 
 export default async function SignInPage() {
-  // A signed in person has no business here: straight back to the board.
+  // A signed in person has no business here: straight to the staff board.
   if (clerkConfigured) {
     const { isAuthenticated } = await auth();
-    if (isAuthenticated) redirect("/");
+    if (isAuthenticated) redirect("/staff");
   }
 
   return (
