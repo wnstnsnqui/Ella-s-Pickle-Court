@@ -1,7 +1,7 @@
 # 0007. Courts and opening hours
 
 **Date**: 2026-09-15
-**Status**: In Progress
+**Status**: Accepted
 
 ## Summary
 
@@ -157,10 +157,10 @@ None. No new environment variable, credential or dashboard setting. The migratio
 Tracer Bullet: the first slice runs the whole path once, migration to page to a second browser updating by itself, on the simplest write there is, adding a court. Everything after thickens that path.
 
 1. [x] One migration: `court_live_name_idx`, the widened `court_sort_order_check`, `venue_settings_open_before_midnight_check`, `reorder_courts` with its row count checks and grants, `schedule_meta_broadcast()` and its two triggers. Regenerate `lib/supabase/database.types.ts`, apply with `db push`, check with `db advisors`, and add `name_taken` and `bookings_outside_hours` to `ConflictReason` and `describeDatabaseError`, satisfies **AC-4**, **AC-5**, **AC-8**, **AC-11**.
-2. [ ] The thin thread: `useScheduleChannel` subscribes to `court_changed` and `settings_changed`; `getOwnerSettings()`; the `/staff/settings` page with the owner redirect, `noindex`, and `loading.tsx`; the Settings link in `StaffMenu`; the Courts section with `CourtSheet` for add, `saveCourt` computing the end position; then proven live: a court added on a phone appears as a column in a second browser on `/` with no reload, satisfies **AC-1**, **AC-2**, **AC-3**, **AC-11**.
+2. [x] The thin thread: `useScheduleChannel` subscribes to `court_changed` and `settings_changed`; `getOwnerSettings()`; the `/staff/settings` page with the owner redirect, `noindex`, and `loading.tsx`; the Settings link in `StaffMenu`; the Courts section with `CourtSheet` for add, `saveCourt` computing the end position; then proven live: a court added on a phone appears as a column in a second browser on `/` with no reload, satisfies **AC-1**, **AC-2**, **AC-3**, **AC-11**.
 3. [x] The rest of the court list: Edit through the same sheet with the name clash on the field and the stale version reload; `reorderCourts` and the optimistic, locked list with its live region; Retire through `ConfirmDialog` with the count kept in the dialog; the Retired courts disclosure with the date and Restore, satisfies **AC-4**, **AC-5**, **AC-6**, **AC-7**, **AC-13**.
 4. [x] Opening hours: `closeTimeSchema`, the `24:00` path through `timeToMinutes`, `openingHours`, `buildGrid`, the widened `zonedTimeToUtc` and the Midnight case in `formatSlotLabel`, with unit tests; the form with its selects, dirty tracking and version; the outside hours count in `saveVenueSettings` as a pure, tested function over rows and the two step save with `ConfirmDialog`, satisfies **AC-8**, **AC-9**, **AC-10**, **AC-13**.
-5. [ ] Finish: the `reason` field on `TransportResult`, `out_of_range` set by both boards' transports, and the go to today rule in the hook; the viewport rule for sheets and dialogs; keyboard, names and contrast checked in both themes; then the full live proof of AC-15 on the real project, satisfies **AC-12**, **AC-14**, **AC-15**.
+5. [x] Finish: the `reason` field on `TransportResult`, `out_of_range` set by both boards' transports, and the go to today rule in the hook; the viewport rule for sheets and dialogs; keyboard, names and contrast checked in both themes; then the full live proof of AC-15 on the real project, satisfies **AC-12**, **AC-14**, **AC-15**.
 
 ## Consequences
 

@@ -18,7 +18,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 5 | Staff sign in | Slice 1 | in-progress |
 | 6 | Staff booking schedule | Slice 1 | done |
 | 7 | Public schedule board | Slice 1 | in-progress |
-| 8 | Courts & opening hours | Slice 2 | in-progress |
+| 8 | Courts & opening hours | Slice 2 | done |
 | 9 | Session history | Slice 3 | dropped |
 | 10 | Usage reporting | Slice 4 | planned |
 | 11 | Analytics & error alerts | Slice 5 | planned |
@@ -59,7 +59,7 @@ spec [0002](../specs/0002-data-model/index.md) · code in `supabase/migrations/`
   - [x] One migration: the four tables, the overlap constraint, the grants and policies, the narrowed broadcast trigger, the audit trigger, and the seed, applied and checked with `db advisors` (AC-1, AC-2, AC-3, AC-4, AC-6, AC-8, AC-9, AC-10)
   - [x] Generated database types, and the grid derivation module that turns a day plus the settings into labelled cells in `Asia/Manila` (AC-5, AC-11, AC-12)
   - [x] The public and staff read paths, and the Server Actions for booking, editing, cancelling, courts and settings (AC-2, AC-4, AC-6, AC-7, AC-8)
-  - [ ] The thread proven live: a booking made by signed in staff turns the cell Booked in a second browser, and a concurrent duplicate is refused (AC-2, AC-9) · waits on feature 5, there is no way to sign in or create a `staff` row yet
+  - [x] The thread proven live: a booking made by signed in staff turns the cell Booked in a second browser, and a concurrent duplicate is refused (AC-2, AC-9) · proven under feature 6 on the real project, the duplicate with one account in two browsers
 - [ ] Verify it: `/check verify data model`
 - [ ] Test it: `/test data model`
 
@@ -91,7 +91,7 @@ spec [0004](../specs/0004-staff-sign-in/index.md) · code in `app/sign-in/`, `ap
   - [x] The thin thread proven live: `/sign-in`, `currentStaff()`, the staff menu with sign out, and the first person to sign in reads back as `owner` (AC-3, AC-4, AC-8)
   - [ ] Invitations and every state: `/sign-up` from an invitation, the switched off and could not load notices, the footer link, the signed in redirect, and the staff only line (AC-1, AC-4, AC-5, AC-8)
   - [x] Presentation: the Clerk cards themed to the tokens inside the shell, `noindex`, contrast and keyboard checked (AC-10)
-  - [ ] The proof the other features wait on, and the tests: a first booking with `changed_by` set, a long idle tab still writing, and the unit and database tests (AC-3, AC-5, AC-6, AC-7, AC-9) · tests done and green (`npm run check`, `npm run test:db`); the two live proofs wait on feature 6, the first booking UI
+  - [ ] The proof the other features wait on, and the tests: a first booking with `changed_by` set, a long idle tab still writing, and the unit and database tests (AC-3, AC-5, AC-6, AC-7, AC-9) · tests done and green (`npm run check`, `npm run test:db`); feature 6 is done, so the first booking with `changed_by` is covered there, and only the long idle tab proof is still open
 - [ ] Verify it: `/check verify staff sign in`
 - [ ] Test it: `/test staff sign in`
 - [ ] Review it (fresh model): `/check review staff sign in`
@@ -123,22 +123,22 @@ spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/page.t
   - [x] The limiter in `proxy.ts` with its tests (AC-8)
   - [x] The phone conveniences and the metadata: the next free strip, dimmed past hours, the now marker and scroll, the per day title, the canonical link and the JSON-LD block (AC-3, AC-4, AC-11)
 - [ ] Verify it: `/check verify public schedule board`
-- [ ] Test it: `/test public schedule board`
+- [x] Test it: `/test public schedule board`
 
 ## Slice 2: Manage the courts
 
-### 8. Courts & opening hours · in-progress
+### 8. Courts & opening hours · done
 Add a court, rename it, reorder it, retire it, and change the hours the venue is open, without touching the database by hand. Owner only, because these change what everyone else sees.
 **Done when:** an owner can add, rename, reorder, and retire a court, and can change the weekday and weekend opening hours, the slot length, and how far ahead staff may book. Retiring a court that still has future bookings is refused and says how many are in the way. Both boards reflect every change straight away.
 spec [0007](../specs/0007-courts-opening-hours/index.md) · code in `app/staff/settings/`, `components/settings/`, `components/staff-menu.tsx`, `components/schedule/use-schedule-channel.ts`, `lib/schedule/actions.ts`, `lib/schedule/queries.ts`, `lib/schedule/schemas.ts`, `lib/schedule/outside-hours.ts`, `lib/time.ts`, `supabase/migrations/20260915044956_courts_opening_hours.sql`
 - [x] Design it (spec): `/architect courts & opening hours`
-- [ ] Build it: `/develop courts & opening hours`
-  - [ ] The migration and the thin thread: the unique name index, the widened sort order check, the midnight check, `reorder_courts`, the shared broadcast trigger, the listener learning two events, `getOwnerSettings()`, the owner only `/staff/settings` page with its menu link and skeleton, and Add court proven live in a second browser (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8, AC-11)
+- [x] Build it: `/develop courts & opening hours`
+  - [x] The migration and the thin thread: the unique name index, the widened sort order check, the midnight check, `reorder_courts`, the shared broadcast trigger, the listener learning two events, `getOwnerSettings()`, the owner only `/staff/settings` page with its menu link and skeleton, and Add court proven live in a second browser (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8, AC-11)
   - [x] The court list in full: rename with the name clash on the field, the optimistic reorder with locked controls, retire through the confirm dialog with the count, and the retired disclosure with Restore (AC-4, AC-5, AC-6, AC-7, AC-13)
   - [x] Opening hours: `24:00` as a close time through the schema, the grid math and the labels, the form with dirty tracking, and the two step save that warns with the count of bookings left outside the hours (AC-8, AC-9, AC-10, AC-13)
-  - [ ] Finish: the out of range day on both boards, keyboard, names and contrast, and the full live proof on the real project (AC-12, AC-14, AC-15)
-- [ ] Verify it: `/check verify courts & opening hours`
-- [ ] Test it: `/test courts & opening hours`
+  - [x] Finish: the out of range day on both boards, keyboard, names and contrast, and the full live proof on the real project (AC-12, AC-14, AC-15)
+- [x] Verify it: `/check verify courts & opening hours` (skipped on 2026-09-15; the live owner walkthrough in `verify.md` was not run, marked done by the engineer)
+- [x] Test it: `/test courts & opening hours` (skipped on 2026-09-15; helper unit tests exist, no component or hook tests)
 
 ## Slice 3: Look back at the day
 
@@ -180,7 +180,9 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Grouping the rows of one multi court booking**: a class booked across two courts is two unrelated rows today, so cancelling it is two cancels. A `booking_group` column on `reservation` is a small forward only migration under spec 0002 · from spec 0005
 - **Changing a booking's end time in the edit form**: today a booking edit changes details only, while a closure edit may also move its end. The same free run select would let a booking grow or shrink without cancel and rebook · from spec 0005
 - **The staff board's now marker**: spec 0006 gives the public grid a `now` prop (dimmed past rows, a Now marker, scroll to the current hour). The staff board keeps its lock only dimming until it adopts the same prop, so the two boards read slightly differently on today until then · from spec 0006
-- **Closing at midnight**: `localTimeSchema` stops at `23:59`, so a closing time of midnight would make the last slot unbookable. Accept `24:00` for an end time only, in spec 0002 · from spec 0005
+- ~~**Closing at midnight**~~: resolved on 2026-09-15 by spec 0007, `closeTimeSchema` accepts `24:00` as an end · from spec 0005
+- **Drag reorder for courts**: the settings page reorders with up and down buttons, fine at a handful of courts. Drag on a desktop would sit on top of the same `reorder_courts` function with a keyboard fallback, and needs a decision on the library · needs a decision · from spec 0007
+- **Outside hours count in SQL**: saving opening hours counts the bookings left outside them in TypeScript over every active future booking. Fine at this venue's size; a venue ten times bigger should move the count into a SQL function · from spec 0007
 
 ## Legend
 

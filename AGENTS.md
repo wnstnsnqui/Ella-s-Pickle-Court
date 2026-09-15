@@ -76,6 +76,7 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - **Every Server Action calls `requireStaff()` first, then validates with Zod, then writes.** Server Actions accept whatever the network sends.
 - **Every write that changes state is conditional on the row's `version` and records `changed_by`.** A zero row result means somebody else got there first; refetch and show the fresh state rather than swallowing it.
 - **All timestamps are `timestamptz` in UTC.** Local time exists only when showing something to a person, and it is always `Asia/Manila`, never the reader's device.
+- **`24:00` is a valid time only as an end: a closing time, or where a booking or closure stops.** Validate an end with `closeTimeSchema`, a start or open with `localTimeSchema`, and read an end back from an instant with `localEndTimeInZone()` so the stroke of midnight comes out as `24:00`, never `00:00`.
 - **Migrations are forward only SQL files in `supabase/migrations/`, applied by the CLI.** No schema changes by hand in the dashboard.
 - **This is Next.js 16 and Clerk 7.** Request interception is `proxy.ts`, not `middleware.ts`. Clerk 7 is Core 3, so `<SignedIn>` and `<SignedOut>` do not exist; use `<Show when="signed-in">`. Read `node_modules/next/dist/docs/` before writing framework code.
 - **A page whose value is being current renders per request.** No static or cached rendering on the boards.
