@@ -55,6 +55,8 @@ export type Database = {
       reservation: {
         Row: {
           amount: number | null;
+          cancelled_at: string | null;
+          cancelled_by: string | null;
           changed_by: string | null;
           court_id: number;
           created_at: string;
@@ -74,6 +76,8 @@ export type Database = {
         };
         Insert: {
           amount?: number | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           changed_by?: string | null;
           court_id: number;
           created_at?: string;
@@ -93,6 +97,8 @@ export type Database = {
         };
         Update: {
           amount?: number | null;
+          cancelled_at?: string | null;
+          cancelled_by?: string | null;
           changed_by?: string | null;
           court_id?: number;
           created_at?: string;
@@ -111,6 +117,13 @@ export type Database = {
           version?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: "reservation_cancelled_by_fkey";
+            columns: ["cancelled_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["clerk_user_id"];
+          },
           {
             foreignKeyName: "reservation_changed_by_fkey";
             columns: ["changed_by"];
@@ -249,6 +262,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      court_usage: {
+        Args: { for_court_id?: number; from_date: string; to_date: string };
+        Returns: {
+          booked_minutes: number;
+          court_id: number;
+          hour: number;
+          local_date: string;
+        }[];
+      };
       ensure_staff: {
         Args: never;
         Returns: {

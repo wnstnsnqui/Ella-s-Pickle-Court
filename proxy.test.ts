@@ -31,10 +31,38 @@ beforeEach(() => {
 });
 
 describe("proxy", () => {
-  it.each(["/staff", "/staff/", "/staff/anything"])("protects %s (AC-1)", async (pathname) => {
+  it.each(["/staff", "/staff/", "/staff/anything", "/staff/reports", "/staff/settings"])(
+    "protects %s (AC-1)",
+    async (pathname) => {
+      const proxy = (await import("./proxy")).default;
+      await proxy(request(pathname) as never, {} as never);
+      expect(protect).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  /**
+   * Spec 0008, AC-9: `auth.protect()` answers an unauthenticated request with
+   * a redirect or Clerk's own 404, never the CSV route's own typed 401/403.
+   * The route is carved out of the blanket `/staff/` protection, but still
+   * has to sit inside `config.matcher` so Clerk middleware runs at all and
+   * the route's own `auth()` call has context to read.
+   */
+  it("runs Clerk middleware but skips auth.protect() for the usage CSV route (AC-9)", async () => {
     const proxy = (await import("./proxy")).default;
-    await proxy(request(pathname) as never, {} as never);
+    const response = await proxy(request("/staff/reports/usage.csv") as never, {} as never);
+    expect(protect).not.toHaveBeenCalled();
+    expect(response).toEqual({ marker: "clerk response" });
+  });
+
+  it("keeps every other path under /staff protected, including one that also ends .csv", async () => {
+    const proxy = (await import("./proxy")).default;
+    await proxy(request("/staff/reports/usage.csv/") as never, {} as never);
     expect(protect).toHaveBeenCalledTimes(1);
+  });
+
+  it("still matches /staff paths in config.matcher despite the static file extension exclusion", async () => {
+    const { config } = await import("./proxy");
+    expect(config.matcher).toContain("/staff(.*)");
   });
 
   it.each(["/", "/sign-in", "/sign-up", "/design", "/staffing", "/api/health"])(

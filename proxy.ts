@@ -32,9 +32,16 @@ if (!hasClerkKey && process.env.NODE_ENV === "production") {
  * A plain path test rather than Clerk's `createRouteMatcher`, which Clerk 7
  * has deprecated; the page itself still checks `currentStaff()`, so this is
  * the early door, not the lock.
+ *
+ * The CSV route (spec 0008, AC-9) is carved out: `auth.protect()` answers an
+ * unauthenticated request with a redirect or Clerk's own 404, never the typed
+ * 401/403 the route's own contract promises. It still needs to sit inside the
+ * matcher below so Clerk middleware runs and `auth()` has context to read;
+ * it just answers its own door rather than this one.
  */
 function isStaffRoute(request: NextRequest): boolean {
   const { pathname } = request.nextUrl;
+  if (pathname === "/staff/reports/usage.csv") return false;
   return pathname === "/staff" || pathname.startsWith("/staff/");
 }
 
@@ -104,5 +111,10 @@ export const config = {
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run on API and Server Action routes.
     "/(api|trpc)(.*)",
+    // Always run under /staff, whatever the last path segment looks like: the
+    // static file exclusion above would otherwise let a route named
+    // `usage.csv` (spec 0008) skip Clerk entirely, and `auth()` has no
+    // middleware context to read.
+    "/staff(.*)",
   ],
 };

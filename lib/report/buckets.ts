@@ -1,0 +1,250 @@
+import { addDays, daysBetween, isWeekend, timeToMinutes } from "@/lib/time";
+
+/**
+ * Folding `court_usage` rows into the shapes the report renders. Spec 0008,
+ * AC-5 and AC-7. Every function here is pure, so it is unit tested on fixed
+ * rows with no database.
+ */
+
+export type UsageRow = { courtId: number; localDate: string; hour: number; bookedMinutes: number };
+
+export type ReportHours = {
+  weekdayOpen: string;
+  weekdayClose: string;
+  weekendOpen: string;
+  weekendClose: string;
+};
+
+export type HourBucket = {
+  hour: number;
+  bookedMinutes: number;
+  openMinutes: number;
+  utilisationPercent: number;
+};
+
+export type DayBucket = {
+  date: string;
+  bookedMinutes: number;
+  openMinutes: number;
+  utilisationPercent: number;
+};
+
+export type WeekdayHourCell = {
+  weekday: number;
+  hour: number;
+  bookedMinutes: number;
+  openMinutes: number;
+  utilisationPercent: number;
+};
+
+export type ReportTotals = {
+  bookedMinutes: number;
+  openMinutes: number;
+  utilisationPercent: number;
+  busiestHour: number | null;
+  busiestWeekday: number | null;
+};
+
+/** Monday to Sunday, the order the weekday by hour heatmap reads in (spec 0008, Decision). */
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+function weekdayOf(date: string): number {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
+
+/** Every calendar date from `from` to `to`, inclusive. */
+export function datesInRange(from: string, to: string): string[] {
+  const count = daysBetween(from, to);
+  return Array.from({ length: count + 1 }, (_, index) => addDays(from, index));
+}
+
+function openPair(date: string, hours: ReportHours): { open: string; close: string } {
+  return isWeekend(date)
+    ? { open: hours.weekendOpen, close: hours.weekendClose }
+    : { open: hours.weekdayOpen, close: hours.weekdayClose };
+}
+
+/** Minutes the venue is open on one date, across `courtsCount` courts. */
+export function openMinutesForDate(date: string, hours: ReportHours, courtsCount: number): number {
+  const { open, close } = openPair(date, hours);
+  return Math.max(0, timeToMinutes(close) - timeToMinutes(open)) * courtsCount;
+}
+
+/** How many of `dates` have `hour` inside their own weekday or weekend pair. */
+function openDaysForHour(hour: number, dates: readonly string[], hours: ReportHours): number {
+  const hourStart = hour * 60;
+  return dates.filter((date) => {
+    const { open, close } = openPair(date, hours);
+    return hourStart >= timeToMinutes(open) && hourStart < timeToMinutes(close);
+  }).length;
+}
+
+function utilisationPercent(bookedMinutes: number, openMinutes: number): number {
+  if (openMinutes <= 0) return 0;
+  return Math.min(100, Math.round((bookedMinutes / openMinutes) * 100));
+}
+
+/** Booked minutes per hour of day, summed over the range. */
+export function byHour(
+  rows: readonly UsageRow[],
+  dates: readonly string[],
+  hours: ReportHours,
+  courtsCount: number,
+): HourBucket[] {
+  const perHour = new Array<number>(24).fill(0);
+  for (const row of rows) perHour[row.hour] += row.bookedMinutes;
+  return perHour.map((bookedMinutes, hour) => {
+    const openMinutes = openDaysForHour(hour, dates, hours) * 60 * courtsCount;
+    return {
+      hour,
+      bookedMinutes,
+      openMinutes,
+      utilisationPercent: utilisationPercent(bookedMinutes, openMinutes),
+    };
+  });
+}
+
+/** Booked minutes per local date, every date in the range present even at zero. */
+export function byDay(
+  rows: readonly UsageRow[],
+  dates: readonly string[],
+  hours: ReportHours,
+  courtsCount: number,
+): DayBucket[] {
+  const perDate = new Map<string, number>(dates.map((date) => [date, 0]));
+  for (const row of rows)
+    perDate.set(row.localDate, (perDate.get(row.localDate) ?? 0) + row.bookedMinutes);
+  return dates.map((date) => {
+    const bookedMinutes = perDate.get(date) ?? 0;
+    const openMinutes = openMinutesForDate(date, hours, courtsCount);
+    return {
+      date,
+      bookedMinutes,
+      openMinutes,
+      utilisationPercent: utilisationPercent(bookedMinutes, openMinutes),
+    };
+  });
+}
+
+/**
+ * A 7 by 24 grid of booked minutes, Monday to Sunday down the side, each cell
+ * carrying its own utilisation: open minutes counts only the dates in range
+ * that fall on that cell's weekday and have that hour inside their own
+ * weekday or weekend pair.
+ */
+export function byWeekdayHour(
+  rows: readonly UsageRow[],
+  dates: readonly string[],
+  hours: ReportHours,
+  courtsCount: number,
+): WeekdayHourCell[] {
+  const perCell = new Map<string, number>();
+  for (const row of rows) {
+    const key = `${weekdayOf(row.localDate)}-${row.hour}`;
+    perCell.set(key, (perCell.get(key) ?? 0) + row.bookedMinutes);
+  }
+  const datesByWeekday = new Map<number, string[]>();
+  for (const date of dates) {
+    const weekday = weekdayOf(date);
+    const list = datesByWeekday.get(weekday) ?? [];
+    list.push(date);
+    datesByWeekday.set(weekday, list);
+  }
+  const cells: WeekdayHourCell[] = [];
+  for (const weekday of WEEKDAY_ORDER) {
+    const datesForWeekday = datesByWeekday.get(weekday) ?? [];
+    for (let hour = 0; hour < 24; hour += 1) {
+      const bookedMinutes = perCell.get(`${weekday}-${hour}`) ?? 0;
+      const openMinutes = openDaysForHour(hour, datesForWeekday, hours) * 60 * courtsCount;
+      cells.push({
+        weekday,
+        hour,
+        bookedMinutes,
+        openMinutes,
+        utilisationPercent: utilisationPercent(bookedMinutes, openMinutes),
+      });
+    }
+  }
+  return cells;
+}
+
+/**
+ * Booked minutes, open minutes, utilisation and the busiest hour and weekday.
+ * Ties go to the earliest hour, and to the earliest weekday in the Monday
+ * first order above.
+ */
+export function totals(
+  rows: readonly UsageRow[],
+  dates: readonly string[],
+  hours: ReportHours,
+  courtsCount: number,
+): ReportTotals {
+  const bookedMinutes = rows.reduce((sum, row) => sum + row.bookedMinutes, 0);
+  const openMinutes = dates.reduce(
+    (sum, date) => sum + openMinutesForDate(date, hours, courtsCount),
+    0,
+  );
+
+  const perHour = new Array<number>(24).fill(0);
+  for (const row of rows) perHour[row.hour] += row.bookedMinutes;
+  let busiestHour: number | null = null;
+  let busiestHourMinutes = 0;
+  perHour.forEach((minutes, hour) => {
+    if (minutes > busiestHourMinutes) {
+      busiestHourMinutes = minutes;
+      busiestHour = hour;
+    }
+  });
+
+  const perWeekday = new Map<number, number>();
+  for (const row of rows) {
+    const weekday = weekdayOf(row.localDate);
+    perWeekday.set(weekday, (perWeekday.get(weekday) ?? 0) + row.bookedMinutes);
+  }
+  let busiestWeekday: number | null = null;
+  let busiestWeekdayMinutes = 0;
+  for (const weekday of WEEKDAY_ORDER) {
+    const minutes = perWeekday.get(weekday) ?? 0;
+    if (minutes > busiestWeekdayMinutes) {
+      busiestWeekdayMinutes = minutes;
+      busiestWeekday = weekday;
+    }
+  }
+
+  return {
+    bookedMinutes,
+    openMinutes,
+    utilisationPercent: utilisationPercent(bookedMinutes, openMinutes),
+    busiestHour,
+    busiestWeekday,
+  };
+}
+
+/**
+ * The hours the by hour chart and the heatmap show. Spec 0008, AC-7: from the
+ * earliest open time to the latest close time across both day pairs, widened
+ * to include any hour that has booked minutes so out of hours use is shown
+ * rather than clipped.
+ */
+export function hourAxis(hours: ReportHours, rows: readonly UsageRow[]): number[] {
+  let startHour = Math.floor(
+    Math.min(timeToMinutes(hours.weekdayOpen), timeToMinutes(hours.weekendOpen)) / 60,
+  );
+  let endHourExclusive = Math.ceil(
+    Math.max(timeToMinutes(hours.weekdayClose), timeToMinutes(hours.weekendClose)) / 60,
+  );
+
+  for (const row of rows) {
+    if (row.bookedMinutes <= 0) continue;
+    if (row.hour < startHour) startHour = row.hour;
+    if (row.hour + 1 > endHourExclusive) endHourExclusive = row.hour + 1;
+  }
+
+  startHour = Math.max(0, startHour);
+  endHourExclusive = Math.min(24, endHourExclusive);
+  return Array.from(
+    { length: Math.max(0, endHourExclusive - startHour) },
+    (_, index) => startHour + index,
+  );
+}

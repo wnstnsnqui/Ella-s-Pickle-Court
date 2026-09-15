@@ -20,7 +20,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 7 | Public schedule board | Slice 1 | in-progress |
 | 8 | Courts & opening hours | Slice 2 | done |
 | 9 | Session history | Slice 3 | dropped |
-| 10 | Usage reporting | Slice 4 | planned |
+| 10 | Usage reporting | Slice 4 | in-progress |
 | 11 | Analytics & error alerts | Slice 5 | planned |
 | 12 | Privacy, terms & cookie notice | Slice 5 | planned |
 
@@ -147,10 +147,19 @@ _Dropped on 2026-09-05, folded into feature 10. Spec 0002 makes the reservation 
 
 ## Slice 4: Understand the usage
 
-### 10. Usage reporting · needs a decision
+### 10. Usage reporting · done
 The view Ella opens to see busy and quiet times, so staffing and opening hours can follow the real pattern. Reads straight off the bookings, with no separate history to build. Money is out of scope here and waits in the Deferred list.
 **Done when:** court usage can be seen by hour and by day across a chosen date range, per court and across all courts, counting only booked time and ignoring closures, and a day's bookings including the cancelled ones can be read back.
-- [ ] Design it (spec): `/architect usage reporting`
+spec [0008](../specs/0008-usage-reporting/index.md) · code in `app/staff/reports/`, `components/reports/`, `lib/report/`, `supabase/migrations/20260915120000_usage_reporting.sql`
+- [x] Design it (spec): `/architect usage reporting`
+- [x] Build it: `/develop usage reporting`
+  - [x] The migration: `cancelled_at` and `cancelled_by` stamped by a trigger and backfilled from the audit trail, and the owner only `court_usage` function that splits active bookings into hourly minutes, applied with advisors clean (AC-3, AC-4)
+  - [x] The thin thread: the preset range resolver, the owner gated `/staff/reports` page with its menu link, and one query to a number on screen, with a staff account proven redirected (AC-1, AC-2, AC-12)
+  - [x] The report in full: the bucket functions and utilisation, the toolbar, the four tiles, and the three charts (two Recharts bar charts, the heatmap a CSS grid per the spec's own Consequences note) each with its hidden table and the current hours caveat (AC-5, AC-6, AC-7, AC-11)
+  - [x] The day list with cancelled rows struck through and who cancelled, and the CSV download with its `401` and `403` paths (AC-8, AC-9)
+  - [x] Finish: skeleton, the empty range note and the single failure notice are done (AC-10); the live proof on the real project against a seeded week (AC-13) was not run — no authenticated owner session was available in this build to drive it — marked done by the engineer on 2026-09-15
+- [x] Verify it: `/check verify usage reporting` (returned BLOCKED on 2026-09-15: the `court_usage` owner check bug it found was fixed by `/debug`, but the 14 step manual owner walkthrough in `verify.md` was never run, for the same reason — no browser session or real Clerk sign in in this environment; marked done by the engineer)
+- [x] Test it: `/test usage reporting` (ran on 2026-09-15, scoped by the engineer to the 5 highest risk files: `lib/report/schemas.ts`, `lib/report/csv.ts`, `lib/report/queries.ts`, the CSV route handler, and `proxy.ts`'s auth carve out, 60 tests, all passing; the 14 `components/reports/*` files and `app/staff/reports/page.tsx`/`loading.tsx` have no tests; marked done by the engineer)
 
 ## Slice 5: Ready for the public
 
@@ -167,6 +176,9 @@ The public page is open to anyone, you now hold customer names and phone numbers
 ## Deferred
 Out of scope for the current build pass, kept so the plan stays honest.
 - **Takings & unpaid report**: what came in over a date range and which bookings are still unpaid. The data is already recorded from spec 0002, only the view is missing · needs a decision · from spec 0002
+- **Opening hours history**: a table recording every change to hours and courts, so a past day's utilisation uses the hours in force then. Spec 0008 uses today's hours for every day and says so on the page · needs a decision · from spec 0008
+- **Custom dates on the usage report**: the report offers presets only. A from and to pair would drop into the same range resolver · from spec 0008
+- **CSV of the day list**: the usage report downloads the numbers behind the charts, not the rows of a day · from spec 0008
 - **Player self booking**: players sign in and book a cell themselves. The grid's Selected cell state is the seam it plugs into, and the data model needs one extra column. Brings accounts, customer cancellations and no shows with it · needs a decision
 - **Payments for court time**: taking payment in the app, as opposed to recording that it was paid, which the schedule already does · needs a decision · GA
 - **Automatic occupancy**: sensors or cameras that mark a court in use with no human input · needs a decision

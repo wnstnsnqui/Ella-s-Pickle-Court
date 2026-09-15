@@ -1,4 +1,4 @@
-import { CalendarDays, CircleAlert, Settings2, UserRoundX } from "lucide-react";
+import { CalendarDays, ChartColumn, CircleAlert, Settings2, UserRoundX } from "lucide-react";
 import Link from "next/link";
 
 import { AccountButton, SignOutButton } from "@/components/staff-controls";
@@ -51,14 +51,23 @@ export async function StaffMenu() {
           <span className="sr-only sm:not-sr-only">Schedule</span>
         </Link>
       </Button>
-      {/* Only an active owner sees the way to the settings (spec 0007, AC-1). */}
+      {/* Only an active owner sees the way to the reports and the settings
+          (spec 0008, AC-1; spec 0007, AC-1). */}
       {current.staff.role === "owner" ? (
-        <Button asChild variant="ghost" size="sm" title="Settings">
-          <Link href="/staff/settings">
-            <Settings2 aria-hidden="true" />
-            <span className="sr-only sm:not-sr-only">Settings</span>
-          </Link>
-        </Button>
+        <>
+          <Button asChild variant="ghost" size="sm" title="Reports">
+            <Link href="/staff/reports">
+              <ChartColumn aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">Reports</span>
+            </Link>
+          </Button>
+          <Button asChild variant="ghost" size="sm" title="Settings">
+            <Link href="/staff/settings">
+              <Settings2 aria-hidden="true" />
+              <span className="sr-only sm:not-sr-only">Settings</span>
+            </Link>
+          </Button>
+        </>
       ) : null}
       <AccountButton name={current.staff.displayName} />
       <SignOutButton />
