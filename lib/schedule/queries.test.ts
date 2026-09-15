@@ -31,9 +31,10 @@ function builder(table: string) {
 
 const staffSupabase = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
-vi.mock("@/lib/supabase/public", () => ({ publicSupabase: vi.fn() }));
+const publicSupabase = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/supabase/public", () => ({ publicSupabase }));
 
-const { getStaffSchedule } = await import("./queries");
+const { getSchedule, getStaffSchedule } = await import("./queries");
 
 const SETTINGS_ROW = {
   weekday_open: "06:00:00",
@@ -74,6 +75,7 @@ beforeEach(() => {
   answers.clear();
   auth.mockResolvedValue({ isAuthenticated: true, userId: "user_a" });
   staffSupabase.mockReturnValue({ from: (table: string) => builder(table) });
+  publicSupabase.mockReturnValue({ from: (table: string) => builder(table) });
   queue("venue_settings", { data: SETTINGS_ROW, error: null });
   queue("court", {
     data: [
@@ -169,6 +171,56 @@ describe("getStaffSchedule", () => {
     expect(result).toMatchObject({
       ok: false,
       error: { kind: "failed", message: "permission denied for table staff" },
+    });
+  });
+});
+
+/**
+ * Spec 0006, AC-1, AC-2, AC-4, AC-7 and AC-11: the public read names exactly
+ * the four granted columns, shows today onward only, and stamps the server's
+ * clock and the venue's hours on the schedule.
+ */
+describe("getSchedule", () => {
+  const yesterday = (() => {
+    const today = new Date();
+    today.setUTCDate(today.getUTCDate() - 2);
+    return today.toISOString().slice(0, 10);
+  })();
+
+  it("asks reservation for exactly the four columns anon is granted (AC-7)", async () => {
+    queue("reservation", { data: [], error: null });
+    await getSchedule();
+    const select = calls.find((call) => call.table === "reservation" && call.method === "select");
+    expect(select?.args).toEqual(["court_id, starts_at, ends_at, kind"]);
+  });
+
+  it("refuses a day before today while the staff read allows it (AC-2)", async () => {
+    queue("reservation", { data: [], error: null });
+    const result = await getSchedule(yesterday);
+    expect(result).toMatchObject({ ok: false, error: { kind: "invalid" } });
+    if (result.ok) return;
+    expect(result.error.message).toMatch(/has passed/);
+
+    queue("venue_settings", { data: SETTINGS_ROW, error: null });
+    queue("court", { data: [], error: null });
+    queue("reservation", { data: [], error: null });
+    queue("staff", { data: [], error: null });
+    const staff = await getStaffSchedule(yesterday);
+    expect(staff.ok).toBe(true);
+  });
+
+  it("stamps now and the venue hours on the schedule (AC-4, AC-11)", async () => {
+    queue("reservation", { data: [], error: null });
+    const before = Date.now();
+    const result = await getSchedule();
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(Date.parse(result.data.now)).toBeGreaterThanOrEqual(before);
+    expect(result.data.hours).toEqual({
+      weekdayOpen: "06:00",
+      weekdayClose: "22:00",
+      weekendOpen: "06:00",
+      weekendClose: "23:00",
     });
   });
 });

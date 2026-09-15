@@ -121,6 +121,36 @@ describe("formatSlotLabel", () => {
     const { formatSlotLabel } = await loadTime();
     expect(() => formatSlotLabel("teatime")).toThrow(RangeError);
   });
+
+  it("reads 24:00, the end of the day, as Midnight (spec 0007, AC-8)", async () => {
+    const { formatSlotLabel } = await loadTime();
+    expect(formatSlotLabel("24:00")).toBe("Midnight");
+  });
+});
+
+describe("midnight as an end (spec 0007, AC-10)", () => {
+  it("resolves 24:00 to the first instant of the next local day", async () => {
+    const { zonedTimeToUtc } = await loadTime();
+    expect(zonedTimeToUtc("2026-09-16", "24:00", "Asia/Manila").toISOString()).toBe(
+      "2026-09-16T16:00:00.000Z",
+    );
+    expect(zonedTimeToUtc("2026-09-16", "24:00", "Asia/Manila").getTime()).toBe(
+      zonedTimeToUtc("2026-09-17", "00:00", "Asia/Manila").getTime(),
+    );
+  });
+
+  it("still refuses anything else past 23:59", async () => {
+    const { zonedTimeToUtc } = await loadTime();
+    expect(() => zonedTimeToUtc("2026-09-16", "24:30", "Asia/Manila")).toThrow(RangeError);
+    expect(() => zonedTimeToUtc("2026-09-16", "25:00", "Asia/Manila")).toThrow(RangeError);
+  });
+
+  it("reads an end on the stroke of midnight as 24:00, and any other end as itself", async () => {
+    const { localEndTimeInZone, localTimeInZone } = await loadTime();
+    expect(localEndTimeInZone("2026-09-16T16:00:00Z", "Asia/Manila")).toBe("24:00");
+    expect(localTimeInZone("2026-09-16T16:00:00Z", "Asia/Manila")).toBe("00:00");
+    expect(localEndTimeInZone("2026-09-16T14:00:00Z", "Asia/Manila")).toBe("22:00");
+  });
 });
 
 describe("localTimeInZone", () => {
@@ -134,5 +164,18 @@ describe("localTimeInZone", () => {
   it("uses a 24 hour clock with a leading zero", async () => {
     const { localTimeInZone } = await loadTime();
     expect(localTimeInZone("2026-09-15T16:00:00.000Z", "Asia/Manila")).toBe("00:00");
+  });
+});
+
+describe("formatDayHeading", () => {
+  it("names the weekday, day and month from the calendar date alone (spec 0006, AC-11)", async () => {
+    const { formatDayHeading } = await loadTime();
+    expect(formatDayHeading("2026-09-20")).toBe("Sun 20 Sep");
+    expect(formatDayHeading("2026-01-01")).toBe("Thu 1 Jan");
+  });
+
+  it("refuses something that is not a date", async () => {
+    const { formatDayHeading } = await loadTime();
+    expect(() => formatDayHeading("nope")).toThrow(RangeError);
   });
 });

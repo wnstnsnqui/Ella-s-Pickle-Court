@@ -14,6 +14,7 @@ export function StaffToolbar() {
         date={date}
         timezone={schedule.grid.timezone}
         horizonDays={schedule.horizonDays}
+        now={schedule.now}
         className="min-w-0 flex-1"
       />
       <LiveIndicator channelStatus={channelStatus} lastUpdatedAt={lastUpdatedAt} />

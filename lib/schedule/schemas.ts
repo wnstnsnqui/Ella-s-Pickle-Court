@@ -39,6 +39,15 @@ export const localTimeSchema = z
   .string()
   .regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Use a time like 18:30.");
 
+/**
+ * A closing time, which may be `24:00` (spec 0007, AC-8). Only a close is ever
+ * allowed to be midnight: `localTimeSchema` is unchanged, so `24:00` can never
+ * be an open time or a booking start.
+ */
+export const closeTimeSchema = z
+  .string()
+  .regex(/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/, "Use a time like 22:00, or 24:00 for midnight.");
+
 const idSchema = z.int().positive();
 const versionSchema = z.int().positive();
 
@@ -77,7 +86,8 @@ const reservationFields = {
   courtId: idSchema,
   date: calendarDateSchema,
   startTime: localTimeSchema,
-  endTime: localTimeSchema,
+  // A booking may end at midnight, never start there (spec 0007, AC-10).
+  endTime: closeTimeSchema,
   kind: reservationKindSchema,
   customerName: customerNameSchema.optional(),
   customerPhone: customerPhoneSchema.optional(),
@@ -127,7 +137,7 @@ export const reservationRunSchema = z
     courtId: idSchema,
     date: calendarDateSchema,
     startTime: localTimeSchema,
-    endTime: localTimeSchema,
+    endTime: closeTimeSchema,
   })
   .superRefine(requireEndAfterStart);
 
@@ -224,19 +234,61 @@ export const cancelReservationSchema = z.object({
   version: versionSchema,
 });
 
-export const saveCourtSchema = z.object({
-  id: idSchema.optional(),
-  version: versionSchema.optional(),
-  name: z.string().trim().min(1, "A court needs a name.").max(40),
-  sortOrder: z.int().min(0).max(9999),
-  note: z.string().trim().max(200).nullish(),
-  // Clearing `retired_at` brings a court back. Its old sort order may be taken
-  // by now, which is an artifact of the partial unique index rather than a
-  // decision anybody made, so the action moves it to the next free one.
-  restore: z.boolean().optional(),
-});
+export const courtNameSchema = z
+  .string()
+  .trim()
+  .min(1, "A court needs a name.")
+  .max(40, "Keep the name to 40 characters.");
+
+export const courtNoteSchema = z.string().trim().max(200, "Keep the note to 200 characters.");
+
+export const saveCourtSchema = z
+  .object({
+    id: idSchema.optional(),
+    version: versionSchema.optional(),
+    name: courtNameSchema,
+    // Optional on create, where the action puts the new court last (spec 0007,
+    // AC-3). Required on an edit, so the sheet never moves a court by accident.
+    sortOrder: z.int().min(0).max(9999).optional(),
+    note: courtNoteSchema.nullish(),
+    // Clearing `retired_at` brings a court back. Its old sort order may be taken
+    // by now, which is an artifact of the partial unique index rather than a
+    // decision anybody made, so the action moves it to the next free one.
+    restore: z.boolean().optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.id !== undefined && value.sortOrder === undefined) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["sortOrder"],
+        message: "Editing a court needs its current position.",
+      });
+    }
+  });
 
 export type SaveCourtInput = z.infer<typeof saveCourtSchema>;
+
+/** The most courts one reorder may carry. Far above what any venue has. */
+export const MAX_COURTS_PER_REORDER = 50;
+
+/**
+ * The whole live list in its new order (spec 0007, AC-5). Every entry carries
+ * the version the page read, so `reorder_courts` can refuse a stale list
+ * before anything moves.
+ */
+export const reorderCourtsSchema = z
+  .object({
+    courts: z
+      .array(z.object({ id: idSchema, version: versionSchema }))
+      .min(1, "Send at least one court.")
+      .max(MAX_COURTS_PER_REORDER),
+  })
+  .refine((value) => new Set(value.courts.map((court) => court.id)).size === value.courts.length, {
+    path: ["courts"],
+    message: "A court appears twice in the list.",
+  });
+
+export type ReorderCourtsInput = z.infer<typeof reorderCourtsSchema>;
 
 export const retireCourtSchema = z.object({
   id: idSchema,
@@ -247,11 +299,14 @@ export const saveVenueSettingsSchema = z
   .object({
     version: versionSchema,
     weekdayOpen: localTimeSchema,
-    weekdayClose: localTimeSchema,
+    weekdayClose: closeTimeSchema,
     weekendOpen: localTimeSchema,
-    weekendClose: localTimeSchema,
+    weekendClose: closeTimeSchema,
     slotMinutes: slotMinutesSchema,
     bookingHorizonDays: z.int().min(1).max(365),
+    // Spec 0007, AC-9: the second step of a save that strands bookings outside
+    // the new hours. Without it the action counts and refuses; with it, it writes.
+    acknowledge: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
     if (value.weekdayClose <= value.weekdayOpen) {

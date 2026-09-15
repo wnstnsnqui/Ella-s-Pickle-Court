@@ -48,6 +48,15 @@ export type ScheduleGridProps = {
   lockedCells?: ReadonlySet<string>;
   /** The one line under a cell's icon, by key: the customer's name on a Booked cell. */
   cellCaptions?: ReadonlyMap<string, string>;
+  /**
+   * The board's clock, a UTC instant (spec 0006, AC-4). When given, rows that
+   * have ended are dimmed and a Now marker sits before the first row that has
+   * not. Past is a property of time, not of a court, so it is a row treatment
+   * and never a cell view.
+   */
+  now?: string;
+  /** The marker element, so a board can scroll it into view once. */
+  markerRef?: React.Ref<HTMLDivElement>;
   onRetry?: () => void;
   className?: string;
 };
@@ -65,6 +74,8 @@ export function ScheduleGrid({
   changedCells,
   lockedCells,
   cellCaptions,
+  now,
+  markerRef,
   onRetry,
   className,
 }: ScheduleGridProps) {
@@ -181,6 +192,10 @@ export function ScheduleGrid({
 
   const { grid } = view;
   const columns = `var(--col-time) repeat(${grid.courts.length}, minmax(var(--col-court-min), 1fr))`;
+  const nowMs = now === undefined ? null : Date.parse(now);
+  const isPast = (row: { endsAt: string }) => nowMs !== null && Date.parse(row.endsAt) <= nowMs;
+  // The marker goes before the first row still to come; none when every row has ended.
+  const markerBefore = nowMs === null ? -1 : grid.rows.findIndex((row) => !isPast(row));
 
   return (
     <div className={className}>
@@ -222,11 +237,25 @@ export function ScheduleGrid({
 
           {grid.rows.map((row, rowIndex) => (
             <div role="row" key={`${row.startsAt}-${row.endsAt}`} className="contents">
+              {rowIndex === markerBefore ? (
+                <div
+                  ref={markerRef}
+                  role="presentation"
+                  data-now-marker
+                  className="text-caption text-primary col-span-full flex scroll-mt-28 items-center gap-2 py-1"
+                >
+                  <span className="bg-primary h-px flex-1" aria-hidden="true" />
+                  <span className="font-medium">Now</span>
+                  <span className="bg-primary h-px flex-1" aria-hidden="true" />
+                </div>
+              ) : null}
               <div
                 role="rowheader"
+                data-past={isPast(row) || undefined}
                 className={cn(
                   "bg-background text-caption text-muted-foreground h-row w-time-col sticky left-0 z-10 grid place-items-center tabular-nums",
                   row.outOfHours && "text-state-outofhours-fg",
+                  isPast(row) && "opacity-60",
                 )}
               >
                 <time dateTime={row.startsAt}>{formatSlotLabel(row.label)}</time>
@@ -254,6 +283,7 @@ export function ScheduleGrid({
                     changed={changedCells?.has(key)}
                     caption={cellCaptions?.get(key)}
                     locked={locked}
+                    past={isPast(row)}
                     onSelect={
                       canAct && onSelectCell
                         ? () => onSelectCell(cell.courtId, row.startsAt)

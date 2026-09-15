@@ -5,18 +5,12 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { BoardNotice } from "@/components/board-notice";
 import { StaffBoard } from "@/components/staff/staff-board";
 import { StaffScheduleProvider } from "@/components/staff/staff-schedule-context";
 import { StaffToolbar } from "@/components/staff/staff-toolbar";
 import { StaffMenu } from "@/components/staff-menu";
 import { Button } from "@/components/ui/button";
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty";
 import { getStaffSchedule } from "@/lib/schedule/queries";
 import { currentStaff } from "@/lib/staff";
 import { VENUE_NAME } from "@/lib/venue";
@@ -49,29 +43,29 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
   if (current.kind === "signed_out") {
     // The proxy makes this unreachable; said plainly rather than left to chance.
     return (
-      <Notice icon={CircleAlert} title="Sign in to see the schedule">
+      <BoardNotice heading="Staff schedule" icon={CircleAlert} title="Sign in to see the schedule">
         <Button asChild>
           <Link href="/sign-in">Staff sign in</Link>
         </Button>
-      </Notice>
+      </BoardNotice>
     );
   }
 
   if (current.kind === "error") {
     return (
-      <Notice icon={CircleAlert} title="Could not load your account">
+      <BoardNotice heading="Staff schedule" icon={CircleAlert} title="Could not load your account">
         The venue database did not answer in time. Reload in a moment, and if it keeps happening
         tell Ella.
-      </Notice>
+      </BoardNotice>
     );
   }
 
   if (!current.staff.isActive) {
     return (
-      <Notice icon={UserRoundX} title="Your account is switched off">
+      <BoardNotice heading="Staff schedule" icon={UserRoundX} title="Your account is switched off">
         You are signed in, but this account can no longer change the schedule. Ask Ella if you think
         that is a mistake. You can still sign out from the header.
-      </Notice>
+      </BoardNotice>
     );
   }
 
@@ -79,12 +73,12 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
 
   if (!result.ok) {
     return (
-      <Notice icon={CircleAlert} title="That day could not be shown">
+      <BoardNotice heading="Staff schedule" icon={CircleAlert} title="That day could not be shown">
         <p>{result.error.message}</p>
         <Button asChild variant="outline">
           <Link href="/staff">Back to today</Link>
         </Button>
-      </Notice>
+      </BoardNotice>
     );
   }
 
@@ -108,39 +102,5 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
         <StaffBoard />
       </AppShell>
     </StaffScheduleProvider>
-  );
-}
-
-/** The shell with one message in it, for every state that is not a grid. */
-function Notice({
-  icon: Icon,
-  title,
-  children,
-}: {
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <AppShell
-      staff={
-        <Suspense fallback={null}>
-          <StaffMenu />
-        </Suspense>
-      }
-    >
-      <h1 className="sr-only">Staff schedule</h1>
-      <Empty className="border-border bg-card my-8 rounded-lg border">
-        <EmptyHeader>
-          <EmptyMedia variant="icon">
-            <Icon aria-hidden="true" />
-          </EmptyMedia>
-          <EmptyTitle>{title}</EmptyTitle>
-          <EmptyDescription className="flex flex-col items-center gap-3">
-            {children}
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
-    </AppShell>
   );
 }

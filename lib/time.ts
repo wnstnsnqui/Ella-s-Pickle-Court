@@ -33,6 +33,8 @@ export function formatAtVenue(
 
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const LOCAL_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+/** The one time past `23:59` that means anything: the end of the day (spec 0007, AC-10). */
+const MIDNIGHT_END = "24:00";
 
 const partFormatters = new Map<string, Intl.DateTimeFormat>();
 
@@ -78,9 +80,14 @@ export function zoneOffsetMs(instant: Date, timeZone: string): number {
  * The offset is resolved twice because the first guess is read at the wrong
  * instant when a zone changes offset. `Asia/Manila` never does, but a venue in
  * a zone that does would otherwise be an hour out twice a year.
+ *
+ * `24:00` is accepted as the end of the day (spec 0007, AC-10): it resolves to
+ * the first instant of the next local day, which is where a closing time of
+ * midnight, and a booking that ends then, has to land.
  */
 export function zonedTimeToUtc(date: string, time: string, timeZone: string): Date {
   if (!CALENDAR_DATE.test(date)) throw new RangeError(`Not a calendar date: ${date}`);
+  if (time === MIDNIGHT_END) return zonedTimeToUtc(addDays(date, 1), "00:00", timeZone);
   if (!LOCAL_TIME.test(time)) throw new RangeError(`Not a local time: ${time}`);
   const [year, month, day] = date.split("-").map(Number);
   const [hour, minute] = time.split(":").map(Number);
@@ -106,6 +113,17 @@ export function localTimeInZone(instant: Date | string, timeZone: string): strin
   const read = (type: Intl.DateTimeFormatPartTypes) =>
     parts.find((part) => part.type === type)?.value ?? "";
   return `${read("hour")}:${read("minute")}`;
+}
+
+/**
+ * The venue local `HH:mm` an end instant falls at, with the end of the day read
+ * as `24:00` (spec 0007, AC-10). No slot ever ends at `00:00` in the middle of
+ * a day, because an open time is always before midnight, so an end that lands
+ * on the stroke of midnight is always the end of the previous day.
+ */
+export function localEndTimeInZone(instant: Date | string, timeZone: string): string {
+  const time = localTimeInZone(instant, timeZone);
+  return time === "00:00" ? MIDNIGHT_END : time;
 }
 
 /** Today at the venue, which is what an empty date parameter means. */
@@ -168,8 +186,12 @@ export function trimSeconds(time: string): string {
  * The input is a `GridRow.label`, which spec 0002 already fixed as `HH:mm` in the
  * venue's timezone, so this is pure formatting: it never re-derives a time and
  * never touches the reader's own clock.
+ *
+ * `24:00` is the one label that is not a moment in the day but the end of it
+ * (spec 0007, AC-8), so it reads as Midnight rather than as another 12.
  */
 export function formatSlotLabel(label: string): string {
+  if (label === MIDNIGHT_END) return "Midnight";
   const [hour, minute] = label.split(":").map(Number);
   if (!Number.isInteger(hour) || !Number.isInteger(minute)) {
     throw new RangeError(`Not a local time: ${label}`);
@@ -182,4 +204,32 @@ export function formatSlotLabel(label: string): string {
   return minute === 0
     ? `${twelve}${suffix}`
     : `${twelve}:${String(minute).padStart(2, "0")}${suffix}`;
+}
+
+const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
+const MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/**
+ * "Sat 20 Sep" from a calendar date (spec 0006, AC-11). Built from fixed names
+ * rather than a locale, so a page title reads the same on every server build.
+ * A calendar date already names its weekday, so noon UTC of that date is safe
+ * in every zone.
+ */
+export function formatDayHeading(date: string): string {
+  const at = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(at.getTime())) throw new RangeError(`Not a calendar date: ${date}`);
+  return `${WEEKDAY_NAMES[at.getUTCDay()]} ${at.getUTCDate()} ${MONTH_NAMES[at.getUTCMonth()]}`;
 }

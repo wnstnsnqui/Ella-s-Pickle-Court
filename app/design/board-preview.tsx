@@ -75,6 +75,10 @@ export function CellStateGallery() {
 export function GridPreview({ date }: { date: string }) {
   const [kind, setKind] = useState<"ready" | "loading" | "no-courts" | "closed" | "error">("ready");
   const [selected, setSelected] = useState<ReadonlySet<string>>(() => new Set());
+  // The public board's clock (spec 0006, AC-4): 11:20 at the venue, so the
+  // morning is dimmed and the marker sits before the 11am row.
+  const [withClock, setWithClock] = useState(false);
+  const now = `${date}T03:20:00.000Z`;
 
   const view: GridView =
     kind === "ready"
@@ -106,8 +110,19 @@ export function GridPreview({ date }: { date: string }) {
         Page Up and Page Down move a screenful, and Enter picks the hour.
       </p>
 
+      <Button
+        size="sm"
+        variant={withClock ? "default" : "outline"}
+        aria-pressed={withClock}
+        onClick={() => setWithClock((held) => !held)}
+        className="self-start"
+      >
+        Past hours dimmed, Now marker
+      </Button>
+
       <ScheduleGrid
         view={view}
+        now={withClock ? now : undefined}
         selectedCells={selected}
         onSelectCell={(courtId, startsAt) => {
           const key = cellKey(courtId, startsAt);

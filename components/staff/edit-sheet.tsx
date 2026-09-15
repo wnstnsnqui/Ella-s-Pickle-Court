@@ -26,7 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import type { EndOption } from "@/lib/schedule/closure";
 import type { StaffReservation } from "@/lib/schedule/queries";
-import { formatSlotLabel, localTimeInZone } from "@/lib/time";
+import { formatSlotLabel, localEndTimeInZone } from "@/lib/time";
 
 import { BoardSheet } from "./board-sheet";
 import { applyIssues, BookingFields } from "./booking-fields";
@@ -199,7 +199,7 @@ function ClosureEditForm({
   endOptions: readonly EndOption[];
   onSubmit: (values: CloseEditFormValues) => Promise<EditOutcome>;
 }) {
-  const currentEnd = localTimeInZone(reservation.endsAt, timeZone);
+  const currentEnd = localEndTimeInZone(reservation.endsAt, timeZone);
   const form = useForm<CloseEditFormValues>({
     resolver: zodResolver(closeEditFormSchema),
     defaultValues: { note: reservation.note ?? "", endTime: currentEnd },

@@ -207,16 +207,18 @@ export function buildGrid(input: {
 }
 
 /**
- * The next free time on a court, derived rather than stored: the first slot
- * from `from` onward whose cell reads Available.
+ * The next free slot on a court, derived rather than stored: the first row
+ * ending after `from` whose cell reads Available (spec 0006, AC-3). The whole
+ * row comes back rather than its start instant, because a reader needs its
+ * venue local `label` and whether it has already started.
  */
-export function nextFreeTime(grid: Grid, courtId: number, from: Date = new Date()): string | null {
+export function nextFreeTime(grid: Grid, courtId: number, from: Date): GridRow | null {
   const cutoff = from.getTime();
   for (const row of grid.rows) {
     if (row.outOfHours) continue;
     if (Date.parse(row.endsAt) <= cutoff) continue;
     const cell = row.cells.find((candidate) => candidate.courtId === courtId);
-    if (cell?.state === "available") return row.startsAt;
+    if (cell?.state === "available") return row;
   }
   return null;
 }

@@ -1,16 +1,25 @@
 import "server-only";
 
-import { fail, ok, requireStaff, type ActionResult } from "@/lib/actions";
+import { cache } from "react";
+
+import { fail, ok, requireStaff, type ActionResult, type InvalidReason } from "@/lib/actions";
 import { publicSupabase } from "@/lib/supabase/public";
 import type { Database } from "@/lib/supabase/database.types";
 import { addDays, daysBetween, todayInZone, trimSeconds } from "@/lib/time";
 
-import { buildGrid, dayBoundsUtc, type Grid, type GridCourt, type ScheduleBlock } from "./grid";
+import {
+  buildGrid,
+  dayBoundsUtc,
+  type Grid,
+  type GridCourt,
+  type ScheduleBlock,
+  type VenueSettings,
+} from "./grid";
 import type { PaymentStatus, ReservationKind, ReservationStatus } from "./constants";
 import { calendarDateSchema } from "./schemas";
 
 /**
- * The two read paths for spec 0002.
+ * The read paths for spec 0002, plus the owner's settings read for spec 0007.
  *
  * `getSchedule` is the public grid: anon key, no Clerk token, and it names the
  * four columns anon is granted on `reservation`. It cannot ask for a customer's
@@ -18,6 +27,9 @@ import { calendarDateSchema } from "./schemas";
  *
  * `getStaffSchedule` is the same day read with the signed in staff member's
  * token, which is the only way the desk sees who a booking is for.
+ *
+ * `getOwnerSettings` is what the settings page reads: every court, live and
+ * retired, and the settings row, each with its version.
  */
 
 type VenueSettingsRow = Database["public"]["Tables"]["venue_settings"]["Row"];
@@ -28,6 +40,21 @@ export type Schedule = {
   settingsVersion: number;
   /** How far ahead the day navigation may go, from `venue_settings`. */
   horizonDays: number;
+  /**
+   * The server's clock at the read, a UTC instant (spec 0006, AC-4). Every
+   * "now" a board shows starts from this stamp and only ever adds elapsed time,
+   * so a device with a wrong clock cannot move the marker or the strip.
+   */
+  now: string;
+  /** The venue's opening hours, venue local `HH:mm`, for the JSON-LD block (spec 0006, AC-11). */
+  hours: VenueHours;
+};
+
+export type VenueHours = {
+  weekdayOpen: string;
+  weekdayClose: string;
+  weekendOpen: string;
+  weekendClose: string;
 };
 
 /** Every column of a reservation, which only the staff path ever sees. */
@@ -59,6 +86,23 @@ export type StaffName = {
 export type StaffSchedule = Schedule & {
   reservations: StaffReservation[];
   staff: StaffName[];
+};
+
+/** A court as the settings page holds it: identity, order, and the version every write carries. */
+export type OwnerCourt = {
+  id: number;
+  name: string;
+  note: string | null;
+  sortOrder: number;
+  /** A UTC instant when the court is retired, null while it is live. */
+  retiredAt: string | null;
+  version: number;
+};
+
+export type OwnerSettings = {
+  /** Every court, live and retired, in `sort_order`. */
+  courts: OwnerCourt[];
+  settings: VenueSettings;
 };
 
 function toSettings(row: VenueSettingsRow) {
@@ -105,45 +149,75 @@ async function loadSettings(supabase: ReturnType<typeof publicSupabase>) {
 /**
  * Resolve the day being shown. An absent date means today at the venue, never
  * today wherever the reader is standing.
+ *
+ * `allowPast` is the one difference between the two read paths (spec 0006):
+ * the public board shows today onward, because yesterday is history and belongs
+ * to Ella's reporting, while the staff read keeps the past so an owner can look back.
  */
 function resolveDate(
   date: string | undefined,
   timezone: string,
   horizonDays: number,
+  now: Date,
+  allowPast: boolean,
 ): { ok: true; date: string } | { ok: false; error: ReturnType<typeof failInvalidDate> } {
-  const today = todayInZone(timezone);
+  const today = todayInZone(timezone, now);
   if (date === undefined) return { ok: true, date: today };
 
   const parsed = calendarDateSchema.safeParse(date);
   if (!parsed.success) return { ok: false, error: failInvalidDate("Use a date like 2026-09-05.") };
 
+  if (!allowPast && daysBetween(today, parsed.data) < 0) {
+    return {
+      ok: false,
+      error: failInvalidDate("That day has passed. The board shows today onward."),
+    };
+  }
+
   if (daysBetween(today, parsed.data) > horizonDays) {
+    // Tagged, so a board showing this day when the horizon shrinks can go back
+    // to today rather than showing an error (spec 0007, AC-12).
     return {
       ok: false,
       error: failInvalidDate(
         `The schedule only goes as far as ${addDays(today, horizonDays)} for now.`,
+        "out_of_range",
       ),
     };
   }
   return { ok: true, date: parsed.data };
 }
 
-function failInvalidDate(message: string) {
-  return { kind: "invalid" as const, message, issues: { date: [message] } };
+function failInvalidDate(message: string, reason?: InvalidReason) {
+  return { kind: "invalid" as const, message, issues: { date: [message] }, reason };
+}
+
+function toHours(settings: ReturnType<typeof toSettings>): VenueHours {
+  return {
+    weekdayOpen: settings.weekdayOpen,
+    weekdayClose: settings.weekdayClose,
+    weekendOpen: settings.weekendOpen,
+    weekendClose: settings.weekendClose,
+  };
 }
 
 /**
  * The public grid. Anonymous, read only, and every column it asks for is one
  * anon holds a grant on.
+ *
+ * Wrapped in React's per request `cache()` so `generateMetadata` and the page
+ * body share one database round trip (spec 0006, AC-11): the same arguments in
+ * the same request return the same promise.
  */
-export async function getSchedule(date?: string): Promise<ActionResult<Schedule>> {
+export const getSchedule = cache(async (date?: string): Promise<ActionResult<Schedule>> => {
   const supabase = publicSupabase();
+  const now = new Date();
 
   const loaded = await loadSettings(supabase);
   if (!loaded.ok) return fail(loaded.error);
   const settings = loaded.settings;
 
-  const resolved = resolveDate(date, settings.timezone, settings.bookingHorizonDays);
+  const resolved = resolveDate(date, settings.timezone, settings.bookingHorizonDays, now, false);
   if (!resolved.ok) return fail(resolved.error);
 
   const bounds = dayBoundsUtc(resolved.date, settings.timezone);
@@ -174,8 +248,14 @@ export async function getSchedule(date?: string): Promise<ActionResult<Schedule>
     })),
   });
 
-  return ok({ grid, settingsVersion: settings.version, horizonDays: settings.bookingHorizonDays });
-}
+  return ok({
+    grid,
+    settingsVersion: settings.version,
+    horizonDays: settings.bookingHorizonDays,
+    now: now.toISOString(),
+    hours: toHours(settings),
+  });
+});
 
 /**
  * The same day as the desk sees it: the grid plus every reservation column,
@@ -186,12 +266,13 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
   if (!staff.ok) return fail(staff.error);
 
   const supabase = staff.supabase;
+  const now = new Date();
 
   const loaded = await loadSettings(supabase);
   if (!loaded.ok) return fail(loaded.error);
   const settings = loaded.settings;
 
-  const resolved = resolveDate(date, settings.timezone, settings.bookingHorizonDays);
+  const resolved = resolveDate(date, settings.timezone, settings.bookingHorizonDays, now, true);
   if (!resolved.ok) return fail(resolved.error);
 
   const bounds = dayBoundsUtc(resolved.date, settings.timezone);
@@ -238,6 +319,8 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
     grid,
     settingsVersion: settings.version,
     horizonDays: settings.bookingHorizonDays,
+    now: now.toISOString(),
+    hours: toHours(settings),
     reservations: rows.map((row): StaffReservation => ({
       id: row.id,
       courtId: row.court_id,
@@ -260,5 +343,44 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
       clerkUserId: row.clerk_user_id,
       displayName: row.display_name,
     })),
+  });
+}
+
+/**
+ * What the owner's settings page reads. Spec 0007, AC-2.
+ *
+ * A plain read on the staff client, not a widening of the schedule read: the
+ * page needs retired courts, which no board wants. The policies decide what
+ * comes back, and a non owner reaches this only through the page, which has
+ * already sent them to `/staff`.
+ */
+export async function getOwnerSettings(): Promise<ActionResult<OwnerSettings>> {
+  const staff = await requireStaff();
+  if (!staff.ok) return fail(staff.error);
+
+  const supabase = staff.supabase;
+
+  const [loaded, courts] = await Promise.all([
+    loadSettings(supabase),
+    supabase
+      .from("court")
+      .select("id, name, note, sort_order, retired_at, version")
+      .order("sort_order")
+      .order("id"),
+  ]);
+
+  if (!loaded.ok) return fail(loaded.error);
+  if (courts.error) return fail({ kind: "failed", message: courts.error.message });
+
+  return ok({
+    courts: (courts.data ?? []).map((row): OwnerCourt => ({
+      id: row.id,
+      name: row.name,
+      note: row.note,
+      sortOrder: row.sort_order,
+      retiredAt: row.retired_at,
+      version: row.version,
+    })),
+    settings: loaded.settings,
   });
 }

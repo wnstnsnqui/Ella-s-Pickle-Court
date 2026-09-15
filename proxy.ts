@@ -1,6 +1,8 @@
 import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { clientAddress, SlidingWindow } from "@/lib/rate-limit";
+
 /**
  * Next.js 16 renamed Middleware to Proxy. Same job, different filename.
  *
@@ -11,6 +13,11 @@ import { NextResponse, type NextRequest } from "next/server";
  * enforcement point. Proxy makes the Clerk session readable by `auth()` further
  * down the request, and sends a signed out visitor to `/sign-in` before any
  * response with customer data is built, with `/staff` carried as the return path.
+ *
+ * It is also where the public reads are rate limited (spec 0006, AC-8), before
+ * Clerk and before any database work. Proxy runs on the Node.js runtime in
+ * Next.js 16 (`node_modules/next/dist/docs`, "Runtime"), so the module level
+ * window below is one instance per container process.
  */
 
 const hasClerkKey = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
@@ -36,12 +43,56 @@ const withClerk = clerkMiddleware(async (auth, request) => {
 });
 
 /**
+ * The two public reads, capped per client address (spec 0006, AC-8). Sixty a
+ * minute is far above what a real player on a live board makes and far below
+ * a scraper in a loop. A request with no forwarded address (direct traffic,
+ * only in development or on a host that sets no header) is not limited,
+ * because a shared bucket would lock every real player out at once.
+ */
+export const PUBLIC_READ_LIMIT = 60;
+export const PUBLIC_READ_WINDOW_MS = 60_000;
+
+const publicReads = new SlidingWindow({
+  limit: PUBLIC_READ_LIMIT,
+  windowMs: PUBLIC_READ_WINDOW_MS,
+});
+
+function isPublicRead(request: NextRequest): boolean {
+  const { pathname } = request.nextUrl;
+  return request.method === "GET" && (pathname === "/" || pathname === "/api/schedule");
+}
+
+function tooManyRequests(request: NextRequest, retryAfterSeconds: number): NextResponse {
+  const headers = { "Retry-After": String(retryAfterSeconds), "Cache-Control": "no-store" };
+  if (request.nextUrl.pathname === "/api/schedule") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: { kind: "rate_limited", message: "Too many requests. Try again shortly." },
+      },
+      { status: 429, headers },
+    );
+  }
+  return new NextResponse(`Too many requests. Try again in ${retryAfterSeconds} seconds.`, {
+    status: 429,
+    headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" },
+  });
+}
+
+/**
  * In development with no keys yet, pass the request through untouched so the
  * scaffold still boots and the public path can be looked at. Anything needing a
  * signed in staff member fails clearly at `requireStaff()`. The check above means
  * this shortcut can never happen in production.
  */
 export default function proxy(request: NextRequest, event: Parameters<typeof withClerk>[1]) {
+  if (isPublicRead(request)) {
+    const address = clientAddress(request.headers);
+    if (address !== null) {
+      const decision = publicReads.hit(address);
+      if (!decision.allowed) return tooManyRequests(request, decision.retryAfterSeconds);
+    }
+  }
   if (!hasClerkKey) return NextResponse.next();
   return withClerk(request, event);
 }

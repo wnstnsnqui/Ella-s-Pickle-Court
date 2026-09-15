@@ -1,5 +1,5 @@
 import { cellKey, parseCellKey } from "@/components/schedule/cell-key";
-import { localTimeInZone } from "@/lib/time";
+import { localEndTimeInZone } from "@/lib/time";
 
 import type { Grid, GridRow } from "./grid";
 import type { ReservationRun } from "./schemas";
@@ -102,7 +102,7 @@ export function selectionRuns(selection: Selection, grid: Grid): SelectionRun[] 
         courtName: court.name,
         date: grid.date,
         startTime: first.label,
-        endTime: localTimeInZone(last.endsAt, grid.timezone),
+        endTime: localEndTimeInZone(last.endsAt, grid.timezone),
         startsAt: first.startsAt,
         endsAt: last.endsAt,
         keys: run.map((row) => cellKey(courtId, row.startsAt)),

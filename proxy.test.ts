@@ -18,7 +18,11 @@ const clerkMiddleware = vi.hoisted(() =>
 );
 vi.mock("@clerk/nextjs/server", () => ({ clerkMiddleware }));
 
-const request = (pathname: string) => ({ nextUrl: { pathname } });
+const request = (pathname: string, headers: Record<string, string> = {}, method = "GET") => ({
+  nextUrl: { pathname },
+  method,
+  headers: { get: (name: string) => headers[name.toLowerCase()] ?? null },
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -49,5 +53,67 @@ describe("proxy", () => {
     // Clerk's handler is built at import but never run, so nothing is protected.
     expect(protect).not.toHaveBeenCalled();
     expect(response).not.toEqual({ marker: "clerk response" });
+  });
+
+  /**
+   * Spec 0006, AC-8: the two public reads are capped per forwarded address,
+   * before Clerk runs; a request with no address is never limited.
+   */
+  describe("public read limit", () => {
+    const from = (address: string, pathname = "/") =>
+      request(pathname, { "x-forwarded-for": address }) as never;
+
+    it("answers 429 with Retry-After on the 61st read from one address inside a minute", async () => {
+      const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
+      for (let i = 0; i < PUBLIC_READ_LIMIT; i += 1) {
+        const response = await proxy(
+          from("203.0.113.9", i % 2 ? "/" : "/api/schedule"),
+          {} as never,
+        );
+        expect(response).toEqual({ marker: "clerk response" });
+      }
+      const refused = (await proxy(from("203.0.113.9"), {} as never)) as Response;
+      expect(refused.status).toBe(429);
+      expect(Number(refused.headers.get("Retry-After"))).toBeGreaterThanOrEqual(1);
+      expect(refused.headers.get("Content-Type")).toContain("text/plain");
+      expect(await refused.text()).toMatch(/Too many requests/);
+      // Clerk never ran for the refused request.
+      expect(clerkMiddleware.mock.results[0]?.value).toBeDefined();
+    });
+
+    it("answers the endpoint with a JSON error body", async () => {
+      const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
+      for (let i = 0; i < PUBLIC_READ_LIMIT; i += 1) {
+        await proxy(from("203.0.113.10", "/api/schedule"), {} as never);
+      }
+      const refused = (await proxy(from("203.0.113.10", "/api/schedule"), {} as never)) as Response;
+      expect(refused.status).toBe(429);
+      expect(await refused.json()).toMatchObject({ ok: false, error: { kind: "rate_limited" } });
+    });
+
+    it("keeps a second address on its own bucket", async () => {
+      const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
+      for (let i = 0; i <= PUBLIC_READ_LIMIT; i += 1)
+        await proxy(from("203.0.113.11"), {} as never);
+      const other = await proxy(from("203.0.113.12"), {} as never);
+      expect(other).toEqual({ marker: "clerk response" });
+    });
+
+    it("never limits a request with no forwarded address", async () => {
+      const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
+      for (let i = 0; i <= PUBLIC_READ_LIMIT + 5; i += 1) {
+        const response = await proxy(request("/") as never, {} as never);
+        expect(response).toEqual({ marker: "clerk response" });
+      }
+    });
+
+    it("leaves the staff board and the health endpoint unlimited", async () => {
+      const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
+      for (let i = 0; i <= PUBLIC_READ_LIMIT + 5; i += 1) {
+        await proxy(from("203.0.113.13", "/api/health"), {} as never);
+        const response = await proxy(from("203.0.113.13", "/staff"), {} as never);
+        expect(response).toEqual({ marker: "clerk response" });
+      }
+    });
   });
 });

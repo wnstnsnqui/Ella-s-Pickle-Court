@@ -53,8 +53,12 @@ const cell = cva(
         true: "opacity-60",
         false: "",
       },
+      past: {
+        true: "opacity-60",
+        false: "",
+      },
     },
-    defaultVariants: { interactive: false, locked: false },
+    defaultVariants: { interactive: false, locked: false, past: false },
   },
 );
 
@@ -70,6 +74,8 @@ export type ScheduleCellProps = {
   caption?: string;
   /** The slot has ended and this person may not change it (spec 0005, AC-11). */
   locked?: boolean;
+  /** The slot has ended, read only: dimmed, no lock icon (spec 0006, AC-4). */
+  past?: boolean;
   onSelect?: () => void;
   className?: string;
 } & Omit<React.ComponentProps<"div">, "onSelect" | "children">;
@@ -81,6 +87,7 @@ export function ScheduleCell({
   changed = false,
   caption,
   locked = false,
+  past = false,
   onSelect,
   className,
   ...props
@@ -105,7 +112,8 @@ export function ScheduleCell({
         }
       }}
       data-locked={locked || undefined}
-      className={cn(cell({ view, interactive, locked }), className)}
+      data-past={past || undefined}
+      className={cn(cell({ view, interactive, locked, past }), className)}
       {...props}
     >
       <span className="flex items-center gap-1">
@@ -121,7 +129,7 @@ export function ScheduleCell({
       <span className="sr-only">
         {label}. {CELL_VIEW_NAME[view]}
         {caption ? `, ${caption}` : ""}
-        {locked ? ", ended" : ""}
+        {locked || past ? ", ended" : ""}
       </span>
     </div>
   );

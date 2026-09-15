@@ -1,4 +1,4 @@
-import { localTimeInZone } from "@/lib/time";
+import { localEndTimeInZone } from "@/lib/time";
 
 import type { Grid } from "./grid";
 import type { StaffReservation } from "./queries";
@@ -38,7 +38,7 @@ export function closureEndOptions(
       (other) => Date.parse(other.startsAt) < rowEnd && rowStart < Date.parse(other.endsAt),
     );
     if (taken) break;
-    options.push({ time: localTimeInZone(row.endsAt, grid.timezone), endsAt: row.endsAt });
+    options.push({ time: localEndTimeInZone(row.endsAt, grid.timezone), endsAt: row.endsAt });
   }
 
   return options;

@@ -17,8 +17,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 4 | Design system & UI foundation | Foundation | done |
 | 5 | Staff sign in | Slice 1 | in-progress |
 | 6 | Staff booking schedule | Slice 1 | done |
-| 7 | Public schedule board | Slice 1 | planned |
-| 8 | Courts & opening hours | Slice 2 | planned |
+| 7 | Public schedule board | Slice 1 | in-progress |
+| 8 | Courts & opening hours | Slice 2 | in-progress |
 | 9 | Session history | Slice 3 | dropped |
 | 10 | Usage reporting | Slice 4 | planned |
 | 11 | Analytics & error alerts | Slice 5 | planned |
@@ -111,17 +111,34 @@ spec [0005](../specs/0005-staff-booking-schedule/index.md) · code in `app/staff
 - [x] Verify it: `/check verify staff booking schedule`
 - [x] Test it: `/test staff booking schedule`
 
-### 7. Public schedule board · needs a decision
+### 7. Public schedule board · in-progress
 The page players open before they drive over. Read only, no sign in, and it updates by itself within a second or two so nobody is looking at a stale grid.
 **Done when:** anyone can pick a day and see each court's hours as Booked, Available or Unavailable, a change made by staff appears without a reload, no customer name, phone, note or amount is reachable from the page or its live updates, the read is rate limited, and the page carries a proper title, description, and social card when shared as a link.
-- [ ] Design it (spec): `/architect public schedule board`
+spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/page.tsx`, `app/loading.tsx`, `app/api/schedule/`, `components/board/`, `components/board-notice.tsx`, `components/schedule/read-gate.ts`, `components/schedule/use-schedule-channel.ts`, `lib/rate-limit.ts`, `proxy.ts`
+- [x] Design it (spec): `/architect public schedule board`
+- [x] Build it: `/develop public schedule board`
+  - [x] The thin thread: `/` becomes the board on `getSchedule()` with the day range rule, the notice, the empty, error and loading states, and `GET /api/schedule`, proven against a staff booking after a reload (AC-1, AC-2, AC-12)
+  - [x] Live: the base listener hook extracted from the staff board, the public hook on the anonymous client, one booking seen in a signed out browser with no reload, and the privacy proof over the JSON and the HTML (AC-5, AC-7, AC-13)
+  - [x] Honest when not live: the slow poll, the focus refetch, the 429 wait, and the board following the venue's day at midnight (AC-6, AC-9, AC-10)
+  - [x] The limiter in `proxy.ts` with its tests (AC-8)
+  - [x] The phone conveniences and the metadata: the next free strip, dimmed past hours, the now marker and scroll, the per day title, the canonical link and the JSON-LD block (AC-3, AC-4, AC-11)
+- [ ] Verify it: `/check verify public schedule board`
+- [ ] Test it: `/test public schedule board`
 
 ## Slice 2: Manage the courts
 
-### 8. Courts & opening hours
+### 8. Courts & opening hours · in-progress
 Add a court, rename it, reorder it, retire it, and change the hours the venue is open, without touching the database by hand. Owner only, because these change what everyone else sees.
 **Done when:** an owner can add, rename, reorder, and retire a court, and can change the weekday and weekend opening hours, the slot length, and how far ahead staff may book. Retiring a court that still has future bookings is refused and says how many are in the way. Both boards reflect every change straight away.
+spec [0007](../specs/0007-courts-opening-hours/index.md) · code in `app/staff/settings/`, `components/settings/`, `components/staff-menu.tsx`, `components/schedule/use-schedule-channel.ts`, `lib/schedule/actions.ts`, `lib/schedule/queries.ts`, `lib/schedule/schemas.ts`, `lib/schedule/outside-hours.ts`, `lib/time.ts`, `supabase/migrations/20260915044956_courts_opening_hours.sql`
+- [x] Design it (spec): `/architect courts & opening hours`
 - [ ] Build it: `/develop courts & opening hours`
+  - [ ] The migration and the thin thread: the unique name index, the widened sort order check, the midnight check, `reorder_courts`, the shared broadcast trigger, the listener learning two events, `getOwnerSettings()`, the owner only `/staff/settings` page with its menu link and skeleton, and Add court proven live in a second browser (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8, AC-11)
+  - [x] The court list in full: rename with the name clash on the field, the optimistic reorder with locked controls, retire through the confirm dialog with the count, and the retired disclosure with Restore (AC-4, AC-5, AC-6, AC-7, AC-13)
+  - [x] Opening hours: `24:00` as a close time through the schema, the grid math and the labels, the form with dirty tracking, and the two step save that warns with the count of bookings left outside the hours (AC-8, AC-9, AC-10, AC-13)
+  - [ ] Finish: the out of range day on both boards, keyboard, names and contrast, and the full live proof on the real project (AC-12, AC-14, AC-15)
+- [ ] Verify it: `/check verify courts & opening hours`
+- [ ] Test it: `/test courts & opening hours`
 
 ## Slice 3: Look back at the day
 
@@ -162,6 +179,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Staff management screen**: an owner changes a role, switches a leaver off, or clears a leaver's email in the app instead of the Supabase SQL editor. Likely wanted within the first weeks of real use · needs a decision · from spec 0004
 - **Grouping the rows of one multi court booking**: a class booked across two courts is two unrelated rows today, so cancelling it is two cancels. A `booking_group` column on `reservation` is a small forward only migration under spec 0002 · from spec 0005
 - **Changing a booking's end time in the edit form**: today a booking edit changes details only, while a closure edit may also move its end. The same free run select would let a booking grow or shrink without cancel and rebook · from spec 0005
+- **The staff board's now marker**: spec 0006 gives the public grid a `now` prop (dimmed past rows, a Now marker, scroll to the current hour). The staff board keeps its lock only dimming until it adopts the same prop, so the two boards read slightly differently on today until then · from spec 0006
 - **Closing at midnight**: `localTimeSchema` stops at `23:59`, so a closing time of midnight would make the last slot unbookable. Accept `24:00` for an end time only, in spec 0002 · from spec 0005
 
 ## Legend

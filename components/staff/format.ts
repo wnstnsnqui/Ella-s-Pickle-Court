@@ -1,5 +1,10 @@
 import type { StaffName, StaffReservation } from "@/lib/schedule/queries";
-import { calendarDateInZone, formatSlotLabel, localTimeInZone } from "@/lib/time";
+import {
+  calendarDateInZone,
+  formatSlotLabel,
+  localEndTimeInZone,
+  localTimeInZone,
+} from "@/lib/time";
 
 /**
  * How the details sheet says things. Spec 0005, AC-7 value sourcing.
@@ -29,7 +34,7 @@ export function staffDisplayName(staff: readonly StaffName[], clerkUserId: strin
 
 /** "4pm to 6pm", in the venue's zone, in the grid's own compact labels. */
 export function formatRange(startsAt: string, endsAt: string, timeZone: string): string {
-  return `${formatSlotLabel(localTimeInZone(startsAt, timeZone))} to ${formatSlotLabel(localTimeInZone(endsAt, timeZone))}`;
+  return `${formatSlotLabel(localTimeInZone(startsAt, timeZone))} to ${formatSlotLabel(localEndTimeInZone(endsAt, timeZone))}`;
 }
 
 /** The venue day an instant falls on, as the day navigation would head it. */

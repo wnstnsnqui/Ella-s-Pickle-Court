@@ -20,7 +20,7 @@ export type ActionError =
   | { kind: "unauthenticated"; message: string }
   | { kind: "forbidden"; message: string }
   | { kind: "not_found"; message: string }
-  | { kind: "invalid"; message: string; issues: Record<string, string[]> }
+  | { kind: "invalid"; message: string; issues: Record<string, string[]>; reason?: InvalidReason }
   | { kind: "conflict"; message: string; reason?: ConflictReason; count?: number }
   | { kind: "failed"; message: string };
 
@@ -29,8 +29,21 @@ export type ActionError =
  * the exclusion constraint refusing a double booking, and it must arrive as a
  * named conflict rather than a raw database error (AC-2).
  */
+/**
+ * Why an input was refused, when a screen needs to tell one refusal from
+ * another. `out_of_range` is the day a board is showing having fallen past the
+ * booking horizon (spec 0007, AC-12): the board goes back to today rather than
+ * showing an error.
+ */
+export type InvalidReason = "out_of_range";
+
 export type ConflictReason =
-  "slot_taken" | "version_stale" | "sort_order_taken" | "court_has_bookings";
+  | "slot_taken"
+  | "version_stale"
+  | "sort_order_taken"
+  | "court_has_bookings"
+  | "name_taken"
+  | "bookings_outside_hours";
 
 export function ok<T>(data: T): ActionResult<T> {
   return { ok: true, data };
@@ -90,8 +103,10 @@ type DatabaseError = { code?: string; message: string };
  *
  * SQLSTATE `23P01` on `reservation_no_overlap` is the exclusion constraint
  * doing its job, and it is the whole reason the data model is shaped this way.
- * It is never surfaced as a raw error and never swallowed. `42501` is row level
- * security refusing the write, which is an authorization answer, not a failure.
+ * It is never surfaced as a raw error and never swallowed. `23505` on one of
+ * the two partial unique indexes on `court` is a named conflict too. `42501`
+ * is row level security refusing the write, which is an authorization answer,
+ * not a failure.
  */
 export function describeDatabaseError(error: DatabaseError): ActionError {
   if (error.code === "23P01" && error.message.includes("reservation_no_overlap")) {
@@ -109,6 +124,23 @@ export function describeDatabaseError(error: DatabaseError): ActionError {
         message: "Another court already sits in that position.",
       };
     }
+    if (error.message.includes("court_live_name_idx")) {
+      return {
+        kind: "conflict",
+        reason: "name_taken",
+        message: "Another court already has that name.",
+      };
+    }
+  }
+  // `reorder_courts` refusing a list whose versions no longer match (spec 0007,
+  // AC-5): the second way a version conflict surfaces, mapped to the same answer
+  // a zero row update gives.
+  if (error.code === "P0002") {
+    return {
+      kind: "conflict",
+      reason: "version_stale",
+      message: "Somebody else changed the courts first. The list has been reloaded.",
+    };
   }
   if (error.code === "42501") {
     return {

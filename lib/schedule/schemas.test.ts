@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { createReservationsSchema, customerPhoneSchema, updateReservationSchema } from "./schemas";
+import {
+  closeTimeSchema,
+  createReservationsSchema,
+  customerPhoneSchema,
+  localTimeSchema,
+  reorderCourtsSchema,
+  saveCourtSchema,
+  saveVenueSettingsSchema,
+  updateReservationSchema,
+} from "./schemas";
 
 /**
  * The boundary rules spec 0005 added: a whole selection of runs at once, a
@@ -92,5 +101,69 @@ describe("updateReservationSchema", () => {
       updateReservationSchema.safeParse({ id: 4, version: 2, startTime: "18:00", endTime: "19:00" })
         .success,
     ).toBe(false);
+  });
+});
+
+describe("closeTimeSchema and saveVenueSettingsSchema (spec 0007, AC-8)", () => {
+  const base = {
+    version: 1,
+    weekdayOpen: "06:00",
+    weekdayClose: "22:00",
+    weekendOpen: "06:00",
+    weekendClose: "23:00",
+    slotMinutes: 60,
+    bookingHorizonDays: 30,
+  };
+
+  it("accepts 24:00 as a close and nothing later", () => {
+    expect(closeTimeSchema.safeParse("24:00").success).toBe(true);
+    expect(closeTimeSchema.safeParse("23:30").success).toBe(true);
+    expect(closeTimeSchema.safeParse("24:30").success).toBe(false);
+    expect(localTimeSchema.safeParse("24:00").success).toBe(false);
+  });
+
+  it("lets a day close at midnight but never open there", () => {
+    expect(saveVenueSettingsSchema.safeParse({ ...base, weekdayClose: "24:00" }).success).toBe(
+      true,
+    );
+    expect(saveVenueSettingsSchema.safeParse({ ...base, weekendOpen: "24:00" }).success).toBe(
+      false,
+    );
+  });
+
+  it("carries the acknowledgement for the two step save", () => {
+    const parsed = saveVenueSettingsSchema.safeParse({ ...base, acknowledge: true });
+    expect(parsed.success && parsed.data.acknowledge).toBe(true);
+  });
+});
+
+describe("saveCourtSchema and reorderCourtsSchema (spec 0007, AC-3 and AC-5)", () => {
+  it("lets a new court omit its position and insists on it for an edit", () => {
+    expect(saveCourtSchema.safeParse({ name: "Court 3" }).success).toBe(true);
+    const edit = saveCourtSchema.safeParse({ id: 1, version: 1, name: "Court 3" });
+    expect(edit.success).toBe(false);
+    expect(
+      saveCourtSchema.safeParse({ id: 1, version: 1, name: "Court 3", sortOrder: 2 }).success,
+    ).toBe(true);
+  });
+
+  it("refuses an empty list and a repeated court", () => {
+    expect(reorderCourtsSchema.safeParse({ courts: [] }).success).toBe(false);
+    expect(
+      reorderCourtsSchema.safeParse({
+        courts: [
+          { id: 1, version: 1 },
+          { id: 1, version: 2 },
+        ],
+      }).success,
+    ).toBe(false);
+    expect(
+      reorderCourtsSchema.safeParse({
+        courts: [
+          { id: 2, version: 1 },
+          { id: 1, version: 4 },
+        ],
+      }).success,
+    ).toBe(true);
   });
 });

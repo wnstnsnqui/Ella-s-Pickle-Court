@@ -18,22 +18,28 @@ import { cn } from "@/lib/utils";
  *
  * The bounds come from `venue_settings`: yesterday and before is history, and
  * `booking_horizon_days` is as far ahead as anybody may look.
+ *
+ * `now` is the server's stamp on the schedule (spec 0006, AC-4), so which day
+ * counts as today never comes from the device clock. Absent, the device clock
+ * is used, which only the design gallery does.
  */
 export function DayNav({
   date,
   timezone,
   horizonDays,
+  now,
   className,
 }: {
   date: string;
   timezone: string;
   horizonDays: number;
+  now?: string;
   className?: string;
 }) {
   const pathname = usePathname();
   const params = useSearchParams();
 
-  const today = todayInZone(timezone);
+  const today = todayInZone(timezone, now ? new Date(now) : new Date());
   const offset = daysBetween(today, date);
   const atHorizon = offset >= horizonDays;
 

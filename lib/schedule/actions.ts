@@ -11,11 +11,19 @@ import {
 import type { Database } from "@/lib/supabase/database.types";
 import { calendarDateInZone, daysBetween, todayInZone, zonedTimeToUtc } from "@/lib/time";
 
-import { getStaffSchedule, type StaffSchedule } from "./queries";
+import { countOutsideHours } from "./outside-hours";
+import {
+  getOwnerSettings,
+  getStaffSchedule,
+  type OwnerCourt,
+  type OwnerSettings,
+  type StaffSchedule,
+} from "./queries";
 import {
   cancelReservationSchema,
   createReservationSchema,
   createReservationsSchema,
+  reorderCourtsSchema,
   retireCourtSchema,
   saveCourtSchema,
   saveVenueSettingsSchema,
@@ -24,7 +32,8 @@ import {
 } from "./schemas";
 
 /**
- * Every write for spec 0002.
+ * Every write for spec 0002, and the reorder and the settings refetch spec
+ * 0007 adds beside them.
  *
  * The order never varies: `requireStaff()` first, then Zod, then a write that
  * is conditional on the version the caller last read. None of that replaces the
@@ -145,6 +154,15 @@ export async function refreshStaffSchedule(input: unknown): Promise<ActionResult
   const parsed = parseInput(scheduleDateSchema, input);
   if (!parsed.ok) return fail(parsed.error);
   return getStaffSchedule(parsed.data.date);
+}
+
+/**
+ * The settings page's own refetch, after a write or a stale version. Spec
+ * 0007, AC-13. The page holds no live subscription; this is how it corrects
+ * itself. `getOwnerSettings` runs `requireStaff()` itself.
+ */
+export async function refreshOwnerSettings(): Promise<ActionResult<OwnerSettings>> {
+  return getOwnerSettings();
 }
 
 export async function createReservation(input: unknown): Promise<ActionResult<ReservationRow>> {
@@ -385,6 +403,17 @@ export async function saveCourt(input: unknown): Promise<ActionResult<CourtRow>>
   let sortOrder = parsed.data.sortOrder;
 
   if (id === undefined) {
+    // A new court always lands last (spec 0007, AC-3): the highest live order
+    // plus one, or zero when there are no live courts. A caller may still name
+    // a position, which spec 0002 allowed.
+    if (sortOrder === undefined) {
+      const { data: live, error: liveError } = await staff.supabase
+        .from("court")
+        .select("sort_order")
+        .is("retired_at", null);
+      if (liveError) return fail(describeDatabaseError(liveError));
+      sortOrder = live && live.length > 0 ? Math.max(...live.map((row) => row.sort_order)) + 1 : 0;
+    }
     const { data, error } = await staff.supabase
       .from("court")
       .insert({ name, sort_order: sortOrder, note: note ?? null, changed_by: staff.staffId })
@@ -397,6 +426,11 @@ export async function saveCourt(input: unknown): Promise<ActionResult<CourtRow>>
   if (version === undefined) {
     const message = "Editing a court needs the version you last read.";
     return fail({ kind: "invalid", message, issues: { version: [message] } });
+  }
+  if (sortOrder === undefined) {
+    // The schema already insists on it for an edit; said again so the type narrows.
+    const message = "Editing a court needs its current position.";
+    return fail({ kind: "invalid", message, issues: { sortOrder: [message] } });
   }
 
   const patch: Database["public"]["Tables"]["court"]["Update"] = {
@@ -486,12 +520,89 @@ export async function retireCourt(input: unknown): Promise<ActionResult<CourtRow
   return ok(data);
 }
 
+/**
+ * Every live court in its new order, in one transaction. Spec 0007, AC-5.
+ *
+ * The list is exactly what was on screen, each entry with the version the
+ * page read, and `reorder_courts` refuses the whole list if any of them moved.
+ * Row level security still applies inside the function; a non owner gets
+ * `forbidden` because the function counts the rows its updates touched.
+ */
+export async function reorderCourts(input: unknown): Promise<ActionResult<OwnerCourt[]>> {
+  const staff = await requireStaff();
+  if (!staff.ok) return fail(staff.error);
+
+  const parsed = parseInput(reorderCourtsSchema, input);
+  if (!parsed.ok) return fail(parsed.error);
+
+  const { error } = await staff.supabase.rpc("reorder_courts", {
+    ids: parsed.data.courts.map((court) => court.id),
+    versions: parsed.data.courts.map((court) => court.version),
+  });
+  if (error) return fail(describeDatabaseError(error));
+
+  // The fresh live list, so the page can replace what it holds rather than
+  // trusting that its optimistic order is what landed.
+  const { data, error: readError } = await staff.supabase
+    .from("court")
+    .select("id, name, note, sort_order, retired_at, version")
+    .is("retired_at", null)
+    .order("sort_order");
+  if (readError) return fail(describeDatabaseError(readError));
+
+  return ok(
+    (data ?? []).map((row): OwnerCourt => ({
+      id: row.id,
+      name: row.name,
+      note: row.note,
+      sortOrder: row.sort_order,
+      retiredAt: row.retired_at,
+      version: row.version,
+    })),
+  );
+}
+
 export async function saveVenueSettings(input: unknown): Promise<ActionResult<VenueSettingsRow>> {
   const staff = await requireStaff();
   if (!staff.ok) return fail(staff.error);
 
   const parsed = parseInput(saveVenueSettingsSchema, input);
   if (!parsed.ok) return fail(parsed.error);
+
+  // Spec 0007, AC-9: say how many future bookings the new hours would strand,
+  // and write nothing until the owner has seen the number. Closures are never
+  // counted, and a day beyond a shortened horizon is not this check's business.
+  if (!parsed.data.acknowledge) {
+    const loaded = await loadSettings(staff.supabase);
+    if (!loaded.ok) return fail(loaded.error);
+
+    const { data: bookings, error: bookingsError } = await staff.supabase
+      .from("reservation")
+      .select("starts_at, ends_at")
+      .eq("kind", "booking")
+      .eq("status", "active")
+      .gt("ends_at", new Date().toISOString());
+    if (bookingsError) return fail(describeDatabaseError(bookingsError));
+
+    const count = countOutsideHours(
+      (bookings ?? []).map((row) => ({ startsAt: row.starts_at, endsAt: row.ends_at })),
+      {
+        weekdayOpen: parsed.data.weekdayOpen,
+        weekdayClose: parsed.data.weekdayClose,
+        weekendOpen: parsed.data.weekendOpen,
+        weekendClose: parsed.data.weekendClose,
+      },
+      loaded.settings.timezone,
+    );
+    if (count > 0) {
+      return fail({
+        kind: "conflict",
+        reason: "bookings_outside_hours",
+        count,
+        message: `${count} future booking${count === 1 ? "" : "s"} fall${count === 1 ? "s" : ""} outside these hours.`,
+      });
+    }
+  }
 
   const { data, error } = await staff.supabase
     .from("venue_settings")
