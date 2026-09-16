@@ -55,6 +55,18 @@
       "skillPath": "skills/document/SKILL.md",
       "computedHash": "90933443f204d2ed29c84730be87b7b5470f6819fccde6129aedad1df517fb92"
     },
+    "instrument-error-tracking": {
+      "source": "posthog/skills",
+      "sourceType": "github",
+      "skillPath": "skills/omnibus/instrument-error-tracking/SKILL.md",
+      "computedHash": "948f8fce4d6a61a49f31254e70f31c7f9374febc6a1430f3e9e8b1068afce5f3"
+    },
+    "instrument-integration": {
+      "source": "posthog/skills",
+      "sourceType": "github",
+      "skillPath": "skills/omnibus/instrument-integration/SKILL.md",
+      "computedHash": "a3b1fcef658e20f506d0a1fd1532c90f3db19cee0bc3960cd1a11603d546e396"
+    },
     "react-hook-form": {
       "source": "pproenca/dot-skills",
       "sourceType": "github",

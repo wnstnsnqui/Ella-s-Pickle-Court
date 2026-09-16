@@ -81,6 +81,7 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - **This is Next.js 16 and Clerk 7.** Request interception is `proxy.ts`, not `middleware.ts`. Clerk 7 is Core 3, so `<SignedIn>` and `<SignedOut>` do not exist; use `<Show when="signed-in">`. Read `node_modules/next/dist/docs/` before writing framework code.
 - **A page whose value is being current renders per request.** No static or cached rendering on the boards.
 - **Prettier owns layout, ESLint owns real problems.** `eslint-config-prettier` stands down every formatting rule, so never add one back. Run `npm run check` before calling a slice finished: it is lint, format check, typecheck, and tests in that order.
+- **Every Server Action sends its analytics event only after a successful write, through `captureStaffEvent()`, and never awaits it.** See `lib/analytics/AGENTS.md`.
 
 ## Agent skills
 
@@ -91,13 +92,16 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - [tailwind-4-docs](.agents/skills/tailwind-4-docs/): `lombiq/tailwind-agent-skills`, Tailwind 4 utilities and config (v3 patterns are wrong here)
 - [zod](.agents/skills/zod/): `pproenca/dot-skills`, schema validation and inferred types
 - [vitest](.agents/skills/vitest/): `antfu/skills`, writing tests, mocking with `vi.*`, coverage and test filtering
+- [instrument-integration](.agents/skills/instrument-integration/): `posthog/skills`, PostHog SDK install, provider setup, client and server init
+- [instrument-error-tracking](.agents/skills/instrument-error-tracking/): `posthog/skills`, PostHog exception capture, error boundaries, alerts
 
-MCP servers: supabase (recommended, not connected), clerk (recommended, not connected)
-Declined: prettier (the setup is done and the available skills are all scaffolders)
+MCP servers: supabase (recommended, not connected), clerk (recommended, not connected), posthog (recommended, not connected)
+Declined: prettier (the setup is done and the available skills are all scaffolders), vm0-ai/vm0-skills@discord-webhook (PostHog dropped its native Discord integration; the alert destination is Slack instead), posthog/posthog-for-claude@posthog-instrumentation (instrument-integration and instrument-error-tracking cover the same ground)
 
 ## Context files
 
 - [lib/supabase/AGENTS.md](lib/supabase/AGENTS.md): the three Supabase clients and which one to reach for
 - [supabase/AGENTS.md](supabase/AGENTS.md): migrations, row level security policies, and the broadcast trigger
+- [lib/analytics/AGENTS.md](lib/analytics/AGENTS.md): PostHog analytics and error tracking, the event allow list, and the off switch
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

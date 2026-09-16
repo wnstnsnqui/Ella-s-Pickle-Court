@@ -92,7 +92,18 @@ function tooManyRequests(request: NextRequest, retryAfterSeconds: number): NextR
  * signed in staff member fails clearly at `requireStaff()`. The check above means
  * this shortcut can never happen in production.
  */
+/**
+ * PostHog's ingest rewrite (spec 0009, AC-10): traffic to `/ingest/*` is
+ * forwarded straight to PostHog by `next.config.ts` and must never be seen by
+ * Clerk or the public read limiter, so it is excluded here and in
+ * `config.matcher` below.
+ */
+function isIngest(request: NextRequest): boolean {
+  return request.nextUrl.pathname.startsWith("/ingest/");
+}
+
 export default function proxy(request: NextRequest, event: Parameters<typeof withClerk>[1]) {
+  if (isIngest(request)) return NextResponse.next();
   if (isPublicRead(request)) {
     const address = clientAddress(request.headers);
     if (address !== null) {
@@ -106,9 +117,9 @@ export default function proxy(request: NextRequest, event: Parameters<typeof wit
 
 export const config = {
   matcher: [
-    // Everything except Next.js internals and static files, unless a file name
-    // shows up in a search parameter.
-    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Everything except Next.js internals, the PostHog ingest rewrite, and
+    // static files, unless a file name shows up in a search parameter.
+    "/((?!_next|ingest|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     // Always run on API and Server Action routes.
     "/(api|trpc)(.*)",
     // Always run under /staff, whatever the last path segment looks like: the

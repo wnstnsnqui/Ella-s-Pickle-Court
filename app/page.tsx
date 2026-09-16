@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { BoardNotice } from "@/components/board-notice";
+import { BoardDayViewed } from "@/components/board/board-day-viewed";
 import { PublicBoard } from "@/components/board/public-board";
 import { PublicScheduleProvider } from "@/components/board/public-schedule-context";
 import { PublicToolbar } from "@/components/board/public-toolbar";
@@ -86,6 +87,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
         }
       >
         <VenueJsonLd hours={hours} url={SITE_URL} />
+        <BoardDayViewed date={grid.date} />
         <div className="mb-4 flex flex-col gap-1">
           <h1 className="text-title">Court schedule</h1>
           <p className="text-caption text-muted-foreground">{VENUE_TAGLINE}</p>

@@ -21,8 +21,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 8 | Courts & opening hours | Slice 2 | done |
 | 9 | Session history | Slice 3 | dropped |
 | 10 | Usage reporting | Slice 4 | in-progress |
-| 11 | Analytics & error alerts | Slice 5 | planned |
-| 12 | Privacy, terms & cookie notice | Slice 5 | planned |
+| 11 | Analytics & error alerts | Slice 5 | done |
+| 12 | Privacy, terms & cookie notice | Slice 5 | in-progress |
 
 ## Foundations
 
@@ -163,15 +163,31 @@ spec [0008](../specs/0008-usage-reporting/index.md) · code in `app/staff/report
 
 ## Slice 5: Ready for the public
 
-### 11. Analytics & error alerts · needs a decision
+### 11. Analytics & error alerts · done
 Know whether staff really keep the schedule current, whether players use the public page, and get told when something breaks in the wild.
 **Done when:** page views and booking events are recorded, and an error in production reaches you without a customer reporting it.
-- [ ] Design it (spec): `/architect analytics & error alerts`
+spec [0009](../specs/0009-analytics-error-alerts/index.md) · code in `lib/analytics/`, `instrumentation.ts`, `instrumentation-client.ts`, `app/error.tsx`, `app/global-error.tsx`, `app/staff/layout.tsx`, `components/analytics/`, `components/board/board-day-viewed.tsx`, `next.config.ts`, `proxy.ts`
+- [x] Design it (spec): `/architect analytics & error alerts`
+- [x] Build it: `/develop analytics & error alerts`
+  - [x] Three thin threads proven on a local production build: one cookieless public page view through `/ingest` and `board_day_viewed`, staff identified on `/staff`, and `booking_created` from a Server Action, all confirmed live in PostHog's activity feed on 2026-09-16; the off switch when the key is empty is covered by an automated test, not a live proof (AC-1, AC-2, AC-3, AC-4, AC-9, AC-10) · the "one deliberate error reaching Discord" leg was not run: PostHog dropped its Discord integration, so the destination is Slack instead, and the alert itself was not proven live (AC-6, AC-7, AC-8)
+  - [x] Every Server Action sends its event through the strict allow list, `failed` results are reported scrubbed, with unit tests for the scrubber and for a representative set of actions (`createReservation`, `createReservations`, `saveCourt`, `retireCourt`, `saveVenueSettings`); not every action/branch has its own test (e.g. `updateReservation`, `cancelReservation`, `reorderCourts`, and `saveCourt`'s `renamed`/`note`/`restored` branches are wired but untested) (AC-4, AC-5, AC-7)
+  - [x] Staff identified by Clerk id with name and role, reset on sign out; the `board_day_viewed` event on the public board — confirmed live on 2026-09-16, two staff accounts identified separately with no merge (AC-2, AC-3)
+  - [ ] The PostHog project itself: replay, autocapture and surveys off, Ella invited, her dashboard built and pinned, settings recorded in `verify.md` — not done; marked done by the engineer anyway on 2026-09-16 (AC-11, AC-12)
+- [x] Verify it: `/check verify analytics & error alerts` (not run as its own pass; the live checks above were confirmed ad hoc in conversation instead, per `verify.md`. The PostHog project settings, the Slack alert, and per-action event tests remain unconfirmed. Marked done by the engineer on 2026-09-16)
+- [x] Test it: `/test analytics & error alerts` (not run as its own pass; `npm run check` (lint, format, typecheck, unit tests) is green. Marked done by the engineer on 2026-09-16)
 
-### 12. Privacy, terms & cookie notice · needs a decision
+### 12. Privacy, terms & cookie notice · in-progress
 The public page is open to anyone, you now hold customer names and phone numbers, and once analytics is in, visitors deserve to be told and asked.
 **Done when:** privacy and terms pages exist and are linked, the privacy page states how long a customer phone number is kept and something actually enforces it, and if tracking is used, a consent notice gates it and remembers the answer.
-- [ ] Design it (spec): `/architect privacy, terms & cookie notice`
+spec [0010](../specs/0010-privacy-terms-cookie-notice/index.md) · code in `supabase/migrations/20260916022657_privacy_terms_retention.sql`, `lib/legal/`, `app/privacy/`, `app/terms/`, `app/staff/layout.tsx`, `components/staff/privacy-notice-dialog.tsx`, `components/legal-page.tsx`, `components/app-shell.tsx`
+- [x] Design it (spec): `/architect privacy, terms & cookie notice`
+- [ ] Build it: `/develop privacy, terms & cookie notice`
+  - [ ] The migration and the thin proof: `pg_cron`, `purge_customer_phones()` clearing the phone from `reservation` and the audit JSON, the nightly schedule, the two `staff` columns, `ensure_staff()` widened, `acknowledge_privacy_notice()`, proven by hand on the real project and covered by database tests (AC-5, AC-6, AC-7, AC-8, AC-9) — migration applied and proven by hand; letting one night pass and reading `cron.job_run_details` still pending (AC-15)
+  - [x] The staff acknowledgement: `lib/legal/constants.ts`, `currentStaff()` carrying the version, the Server Action with its event, and the blocking dialog in the staff layout with its four states and the version bump (AC-4, AC-10, AC-11, AC-12, AC-13, AC-14)
+  - [x] The pages and the links: `/privacy` and `/terms` with metadata, every fact from the constants, and the footer links on every page (AC-1, AC-2, AC-3, AC-4, AC-7)
+  - [ ] Finish: Ella's legal name, email and address in the constants, her read of both pages, the live acknowledgement seen in PostHog, `npm run check` and `npm run test:db` green (AC-13, AC-15)
+- [ ] Verify it: `/check verify privacy, terms & cookie notice`
+- [ ] Test it: `/test privacy, terms & cookie notice`
 
 ## Deferred
 Out of scope for the current build pass, kept so the plan stays honest.
@@ -194,7 +210,14 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **The staff board's now marker**: spec 0006 gives the public grid a `now` prop (dimmed past rows, a Now marker, scroll to the current hour). The staff board keeps its lock only dimming until it adopts the same prop, so the two boards read slightly differently on today until then · from spec 0006
 - ~~**Closing at midnight**~~: resolved on 2026-09-15 by spec 0007, `closeTimeSchema` accepts `24:00` as an end · from spec 0005
 - **Drag reorder for courts**: the settings page reorders with up and down buttons, fine at a handful of courts. Drag on a desktop would sit on top of the same `reorder_courts` function with a keyboard fallback, and needs a decision on the library · needs a decision · from spec 0007
+- **Uptime monitoring**: PostHog only sees errors from a running app; a stopped container is silence. Spec 0001 asked for an external ping on `/api/health` from day one and spec 0009 skipped it on purpose. Better Stack's free tier posting to the same Discord channel is the ten minute answer once the host is known · from spec 0009
+- **Source maps for browser errors**: `@posthog/nextjs-config` uploads them at build time but needs a personal API key inside the Docker build, so it waits for the hosting decision. Until then browser stack traces in PostHog are minified · from spec 0009
+- **Audience numbers on the usage report**: Ella reads analytics in PostHog and court usage in `/staff/reports`. A small tile reading PostHog's query API server side would put them side by side · needs a decision · from spec 0009
 - **Outside hours count in SQL**: saving opening hours counts the bookings left outside them in TypeScript over every active future booking. Fine at this venue's size; a venue ten times bigger should move the count into a SQL function · from spec 0007
+- **Retention clock from the cancellation**: the phone purge counts 90 days from a booking's scheduled end, so a booking cancelled long before its date keeps the number longer than needed. One `least()` of `ends_at` and `cancelled_at` in the purge's `where` clause · from spec 0010
+- **Purging the booking note too**: only the phone is cleared after 90 days. If notes turn out to carry personal details, the same function clears one more column · from spec 0010
+- **Retention hint in the Book sheet**: one line under the phone field ("Kept 90 days after the booking") if staff want a script for what to tell customers · from spec 0010
+- **A check that the purge ran**: `pg_cron` failures are invisible from the app. When uptime monitoring lands, add a check that `cron.job_run_details` shows a successful `purge_customer_phones` run in the last two days · from spec 0010
 
 ## Legend
 

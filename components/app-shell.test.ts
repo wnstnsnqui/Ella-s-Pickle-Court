@@ -115,6 +115,13 @@ describe("AppShell", () => {
     expect(bad).toContain('aria-label="Theme: Follows your device. Switch to light"');
   });
 
+  it("carries Privacy and Terms links in the footer on every page (spec 0010, AC-3)", async () => {
+    const html = await render({});
+    const footer = html.match(/<footer[^>]*>[\s\S]*<\/footer>/)?.[0] ?? "";
+    expect(footer).toMatch(/<a[^>]*href="\/privacy"[^>]*>Privacy<\/a>/);
+    expect(footer).toMatch(/<a[^>]*href="\/terms"[^>]*>Terms<\/a>/);
+  });
+
   it("merges an extra class onto main", async () => {
     const html = await render({ className: "board-main" });
     expect(html).toMatch(/<main[^>]*class="[^"]*board-main/);

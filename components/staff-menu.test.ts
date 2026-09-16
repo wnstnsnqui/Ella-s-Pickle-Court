@@ -36,7 +36,15 @@ describe("StaffMenu", () => {
   });
 
   it("shows the display name from the staff row and a sign out button (AC-4)", async () => {
-    current = { kind: "ok", staff: { displayName: "Ella", role: "owner", isActive: true } };
+    current = {
+      kind: "ok",
+      staff: {
+        displayName: "Ella",
+        role: "owner",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
+    };
     const html = await render();
     expect(html).toContain('data-probe="account"');
     expect(html).toContain("Ella");
@@ -44,7 +52,15 @@ describe("StaffMenu", () => {
   });
 
   it("shows the switched off notice, not the name, for an inactive account (AC-5)", async () => {
-    current = { kind: "ok", staff: { displayName: "Sam", role: "staff", isActive: false } };
+    current = {
+      kind: "ok",
+      staff: {
+        displayName: "Sam",
+        role: "staff",
+        isActive: false,
+        privacyAcknowledgedVersion: null,
+      },
+    };
     const html = await render();
     expect(html).toContain("Your account is switched off");
     expect(html).not.toContain('data-probe="account"');

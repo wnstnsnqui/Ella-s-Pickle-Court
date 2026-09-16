@@ -3,6 +3,7 @@ import "server-only";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
+import { reportFailure } from "@/lib/analytics/server";
 import { staffSupabase } from "@/lib/supabase/staff";
 
 /**
@@ -108,7 +109,16 @@ type DatabaseError = { code?: string; message: string };
  * is row level security refusing the write, which is an authorization answer,
  * not a failure.
  */
-export function describeDatabaseError(error: DatabaseError): ActionError {
+/**
+ * `action` names the Server Action that ran, for `reportFailure()`; `distinctId`
+ * is the staff member's Clerk id, when one is known. Only the final, unnamed
+ * `failed` branch is ever reported: `slot_taken` and the other named
+ * conflicts are expected outcomes and are never captured (spec 0009, AC-7).
+ */
+export function describeDatabaseError(
+  error: DatabaseError,
+  context: { action: string; distinctId?: string },
+): ActionError {
   if (error.code === "23P01" && error.message.includes("reservation_no_overlap")) {
     return {
       kind: "conflict",
@@ -148,5 +158,6 @@ export function describeDatabaseError(error: DatabaseError): ActionError {
       message: "Your account is not allowed to make that change.",
     };
   }
+  reportFailure(error, context);
   return { kind: "failed", message: error.message };
 }

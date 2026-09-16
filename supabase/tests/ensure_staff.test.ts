@@ -179,7 +179,14 @@ describe.skipIf(!process.env.DB_TESTS)(
       );
       expect(result).toEqual({
         ok: true,
-        rows: [{ display_name: "Switched Off", role: "staff", is_active: false }],
+        rows: [
+          {
+            display_name: "Switched Off",
+            role: "staff",
+            is_active: false,
+            privacy_acknowledged_version: null,
+          },
+        ],
       });
     });
   },

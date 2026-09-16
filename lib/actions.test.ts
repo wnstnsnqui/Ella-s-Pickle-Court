@@ -10,9 +10,11 @@ import { z } from "zod";
 
 const auth = vi.hoisted(() => vi.fn());
 const staffSupabase = vi.hoisted(() => vi.fn(() => ({ marker: "staff client" })));
+const reportFailure = vi.hoisted(() => vi.fn());
 
 vi.mock("@clerk/nextjs/server", () => ({ auth }));
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
+vi.mock("@/lib/analytics/server", () => ({ reportFailure }));
 
 const { describeDatabaseError, fail, ok, parseInput, requireStaff } = await import("./actions");
 
@@ -138,30 +140,64 @@ describe("parseInput", () => {
 describe("describeDatabaseError", () => {
   it("maps a row level security refusal (42501) to forbidden, never a raw failure (spec 0004, AC-5)", () => {
     expect(
-      describeDatabaseError({ code: "42501", message: "permission denied for table reservation" }),
+      describeDatabaseError(
+        { code: "42501", message: "permission denied for table reservation" },
+        { action: "test" },
+      ),
     ).toEqual({ kind: "forbidden", message: "Your account is not allowed to make that change." });
   });
 
   it("maps the overlap exclusion constraint to a slot_taken conflict", () => {
-    const error = describeDatabaseError({
-      code: "23P01",
-      message: 'conflicting key value violates exclusion constraint "reservation_no_overlap"',
-    });
+    const error = describeDatabaseError(
+      {
+        code: "23P01",
+        message: 'conflicting key value violates exclusion constraint "reservation_no_overlap"',
+      },
+      { action: "test" },
+    );
     expect(error).toMatchObject({ kind: "conflict", reason: "slot_taken" });
   });
 
   it("maps the live sort order index to a sort_order_taken conflict", () => {
-    const error = describeDatabaseError({
-      code: "23505",
-      message: 'duplicate key value violates unique constraint "court_live_sort_order_idx"',
-    });
+    const error = describeDatabaseError(
+      {
+        code: "23505",
+        message: 'duplicate key value violates unique constraint "court_live_sort_order_idx"',
+      },
+      { action: "test" },
+    );
     expect(error).toMatchObject({ kind: "conflict", reason: "sort_order_taken" });
   });
 
   it("passes anything else through as failed with the database message", () => {
-    expect(describeDatabaseError({ code: "XX000", message: "disk on fire" })).toEqual({
+    expect(
+      describeDatabaseError({ code: "XX000", message: "disk on fire" }, { action: "test" }),
+    ).toEqual({
       kind: "failed",
       message: "disk on fire",
     });
+  });
+
+  /**
+   * Spec 0009, AC-7: only the unnamed `failed` outcome is reported. Every
+   * named conflict above is an expected outcome and must never reach
+   * `reportFailure()`.
+   */
+  it("reports only the unnamed failed branch, never a named conflict (AC-7)", () => {
+    describeDatabaseError({ code: "42501", message: "permission denied" }, { action: "test" });
+    describeDatabaseError(
+      { code: "23P01", message: 'exclusion constraint "reservation_no_overlap"' },
+      { action: "test" },
+    );
+    expect(reportFailure).not.toHaveBeenCalled();
+
+    describeDatabaseError(
+      { code: "XX000", message: "disk on fire" },
+      { action: "test", distinctId: "user_1" },
+    );
+    expect(reportFailure).toHaveBeenCalledExactlyOnceWith(
+      { code: "XX000", message: "disk on fire" },
+      { action: "test", distinctId: "user_1" },
+    );
   });
 });

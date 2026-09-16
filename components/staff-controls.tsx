@@ -6,6 +6,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { resetIdentity } from "@/lib/analytics/browser";
 
 /**
  * The two client pieces of the staff menu. Spec 0004, AC-4.
@@ -45,6 +46,7 @@ export function SignOutButton() {
   async function handleSignOut() {
     setPending(true);
     try {
+      resetIdentity();
       await signOut({ redirectUrl: "/" });
     } catch {
       toast.error("Could not sign out. Check your connection and try again.");

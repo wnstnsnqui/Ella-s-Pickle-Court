@@ -3,6 +3,7 @@ import "server-only";
 import { cache } from "react";
 
 import { fail, ok, requireStaff, type ActionResult, type InvalidReason } from "@/lib/actions";
+import { reportFailure } from "@/lib/analytics/server";
 import { publicSupabase } from "@/lib/supabase/public";
 import type { Database } from "@/lib/supabase/database.types";
 import { addDays, daysBetween, todayInZone, trimSeconds } from "@/lib/time";
@@ -127,7 +128,7 @@ function toCourt(row: Pick<CourtRow, "id" | "name" | "note" | "sort_order">): Gr
  * hours and the day's UTC bounds all depend on the timezone stored there
  * rather than on wherever this server happens to be running.
  */
-async function loadSettings(supabase: ReturnType<typeof publicSupabase>) {
+async function loadSettings(supabase: ReturnType<typeof publicSupabase>, distinctId?: string) {
   const { data, error } = await supabase
     .from("venue_settings")
     .select(
@@ -135,8 +136,10 @@ async function loadSettings(supabase: ReturnType<typeof publicSupabase>) {
     )
     .maybeSingle();
 
-  if (error)
+  if (error) {
+    reportFailure(error, { action: "loadSettings", distinctId });
     return { ok: false as const, error: { kind: "failed" as const, message: error.message } };
+  }
   if (!data) {
     return {
       ok: false as const,
@@ -233,8 +236,14 @@ export const getSchedule = cache(async (date?: string): Promise<ActionResult<Sch
       .gt("ends_at", bounds.start.toISOString()),
   ]);
 
-  if (courts.error) return fail({ kind: "failed", message: courts.error.message });
-  if (blocks.error) return fail({ kind: "failed", message: blocks.error.message });
+  if (courts.error) {
+    reportFailure(courts.error, { action: "getSchedule" });
+    return fail({ kind: "failed", message: courts.error.message });
+  }
+  if (blocks.error) {
+    reportFailure(blocks.error, { action: "getSchedule" });
+    return fail({ kind: "failed", message: blocks.error.message });
+  }
 
   const grid = buildGrid({
     date: resolved.date,
@@ -268,7 +277,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
   const supabase = staff.supabase;
   const now = new Date();
 
-  const loaded = await loadSettings(supabase);
+  const loaded = await loadSettings(supabase, staff.staffId);
   if (!loaded.ok) return fail(loaded.error);
   const settings = loaded.settings;
 
@@ -294,9 +303,18 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
     supabase.from("staff").select("clerk_user_id, display_name"),
   ]);
 
-  if (courts.error) return fail({ kind: "failed", message: courts.error.message });
-  if (reservations.error) return fail({ kind: "failed", message: reservations.error.message });
-  if (staffRows.error) return fail({ kind: "failed", message: staffRows.error.message });
+  if (courts.error) {
+    reportFailure(courts.error, { action: "getStaffSchedule", distinctId: staff.staffId });
+    return fail({ kind: "failed", message: courts.error.message });
+  }
+  if (reservations.error) {
+    reportFailure(reservations.error, { action: "getStaffSchedule", distinctId: staff.staffId });
+    return fail({ kind: "failed", message: reservations.error.message });
+  }
+  if (staffRows.error) {
+    reportFailure(staffRows.error, { action: "getStaffSchedule", distinctId: staff.staffId });
+    return fail({ kind: "failed", message: staffRows.error.message });
+  }
 
   const rows = reservations.data ?? [];
 
@@ -361,7 +379,7 @@ export async function getOwnerSettings(): Promise<ActionResult<OwnerSettings>> {
   const supabase = staff.supabase;
 
   const [loaded, courts] = await Promise.all([
-    loadSettings(supabase),
+    loadSettings(supabase, staff.staffId),
     supabase
       .from("court")
       .select("id, name, note, sort_order, retired_at, version")
@@ -370,7 +388,10 @@ export async function getOwnerSettings(): Promise<ActionResult<OwnerSettings>> {
   ]);
 
   if (!loaded.ok) return fail(loaded.error);
-  if (courts.error) return fail({ kind: "failed", message: courts.error.message });
+  if (courts.error) {
+    reportFailure(courts.error, { action: "getOwnerSettings", distinctId: staff.staffId });
+    return fail({ kind: "failed", message: courts.error.message });
+  }
 
   return ok({
     courts: (courts.data ?? []).map((row): OwnerCourt => ({

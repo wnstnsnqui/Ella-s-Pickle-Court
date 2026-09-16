@@ -47,3 +47,14 @@ export const VENUE_TIMEZONE = process.env.NEXT_PUBLIC_VENUE_TIMEZONE || "Asia/Ma
  * false in development.
  */
 export const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+/**
+ * Whether a PostHog project key is present. Spec 0009, AC-9.
+ *
+ * With this false, `instrumentation-client.ts` never calls `posthog.init`,
+ * `captureStaffEvent()` and `reportFailure()` in `lib/analytics/server.ts`
+ * return without contacting anything, and `onRequestError` in
+ * `instrumentation.ts` is a no-op. Development stays silent by leaving the key
+ * empty; there is no separate `NODE_ENV` gate.
+ */
+export const posthogConfigured = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);

@@ -19,7 +19,12 @@ vi.mock("react", async (importOriginal) => ({
 
 const { currentStaff, ENSURE_STAFF_TIMEOUT_MS } = await import("./staff");
 
-type Row = { display_name: string; role: string; is_active: boolean };
+type Row = {
+  display_name: string;
+  role: string;
+  is_active: boolean;
+  privacy_acknowledged_version?: string | null;
+};
 
 /** A stand in for the PostgREST builder chain `rpc().abortSignal().single()`. */
 function rpcResolving(result: {
@@ -54,11 +59,24 @@ describe("currentStaff", () => {
 
   it("calls ensure_staff with no arguments and returns the row it made (AC-3)", async () => {
     auth.mockResolvedValue({ isAuthenticated: true });
-    rpcResolving({ data: { display_name: "Ella", role: "owner", is_active: true }, error: null });
+    rpcResolving({
+      data: {
+        display_name: "Ella",
+        role: "owner",
+        is_active: true,
+        privacy_acknowledged_version: null,
+      },
+      error: null,
+    });
 
     expect(await currentStaff()).toEqual({
       kind: "ok",
-      staff: { displayName: "Ella", role: "owner", isActive: true },
+      staff: {
+        displayName: "Ella",
+        role: "owner",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
     });
     expect(rpc).toHaveBeenCalledWith("ensure_staff");
     expect(rpc.mock.calls[0]).toHaveLength(1);

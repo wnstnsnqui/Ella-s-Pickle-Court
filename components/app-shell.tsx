@@ -64,17 +64,31 @@ export async function AppShell({
       <footer className="border-border text-caption text-muted-foreground mt-8 border-t">
         <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4">
           <p>All times are venue time, Asia/Manila.</p>
-          {/* The one quiet door for staff. A signed in person already has the menu above. */}
-          {clerkConfigured ? (
-            <Show when="signed-out">
-              <Link
-                href="/sign-in"
-                className="text-foreground rounded-sm underline-offset-4 hover:underline"
-              >
-                Staff sign in
-              </Link>
-            </Show>
-          ) : null}
+          <div className="flex items-center gap-4">
+            <Link
+              href="/privacy"
+              className="text-foreground rounded-sm underline-offset-4 hover:underline"
+            >
+              Privacy
+            </Link>
+            <Link
+              href="/terms"
+              className="text-foreground rounded-sm underline-offset-4 hover:underline"
+            >
+              Terms
+            </Link>
+            {/* The one quiet door for staff. A signed in person already has the menu above. */}
+            {clerkConfigured ? (
+              <Show when="signed-out">
+                <Link
+                  href="/sign-in"
+                  className="text-foreground rounded-sm underline-offset-4 hover:underline"
+                >
+                  Staff sign in
+                </Link>
+              </Show>
+            ) : null}
+          </div>
         </div>
       </footer>
     </div>

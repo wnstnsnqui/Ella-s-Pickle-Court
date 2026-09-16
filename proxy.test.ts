@@ -74,6 +74,32 @@ describe("proxy", () => {
     },
   );
 
+  /**
+   * Spec 0009, AC-10: PostHog's ingest rewrite must reach `next.config.ts`
+   * untouched by Clerk or the public read limiter.
+   */
+  it("leaves POST /ingest/e/ unredirected and unlimited (AC-10)", async () => {
+    const proxy = (await import("./proxy")).default;
+    const response = await proxy(request("/ingest/e/", {}, "POST") as never, {} as never);
+    expect(protect).not.toHaveBeenCalled();
+    // `withClerk` is built once at import time, so it always shows one call;
+    // what matters is that it is never invoked per request for `/ingest`.
+    expect(response).not.toEqual({ marker: "clerk response" });
+  });
+
+  it("leaves /ingest open even from an address already over the public read limit (AC-10)", async () => {
+    const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
+    const address = "203.0.113.20";
+    for (let i = 0; i <= PUBLIC_READ_LIMIT; i += 1) {
+      await proxy(request("/", { "x-forwarded-for": address }) as never, {} as never);
+    }
+    const ingest = (await proxy(
+      request("/ingest/e/", { "x-forwarded-for": address }, "POST") as never,
+      {} as never,
+    )) as Response;
+    expect(ingest.status).not.toBe(429);
+  });
+
   it("passes the request through untouched in development with no Clerk key", async () => {
     delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
     const proxy = (await import("./proxy")).default;

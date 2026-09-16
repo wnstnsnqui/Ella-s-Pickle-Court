@@ -185,6 +185,8 @@ export type Database = {
           email: string | null;
           is_active: boolean;
           last_signed_in_at: string | null;
+          privacy_acknowledged_at: string | null;
+          privacy_acknowledged_version: string | null;
           role: string;
         };
         Insert: {
@@ -194,6 +196,8 @@ export type Database = {
           email?: string | null;
           is_active?: boolean;
           last_signed_in_at?: string | null;
+          privacy_acknowledged_at?: string | null;
+          privacy_acknowledged_version?: string | null;
           role?: string;
         };
         Update: {
@@ -203,6 +207,8 @@ export type Database = {
           email?: string | null;
           is_active?: boolean;
           last_signed_in_at?: string | null;
+          privacy_acknowledged_at?: string | null;
+          privacy_acknowledged_version?: string | null;
           role?: string;
         };
         Relationships: [];
@@ -262,6 +268,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
+      acknowledge_privacy_notice: { Args: { version: string }; Returns: string };
       court_usage: {
         Args: { for_court_id?: number; from_date: string; to_date: string };
         Returns: {
@@ -276,9 +283,11 @@ export type Database = {
         Returns: {
           display_name: string;
           is_active: boolean;
+          privacy_acknowledged_version: string;
           role: string;
         }[];
       };
+      purge_customer_phones: { Args: never; Returns: number };
       reorder_courts: {
         Args: { ids: number[]; versions: number[] };
         Returns: undefined;

@@ -25,11 +25,21 @@ function requestFor(query: Record<string, string> = {}) {
 
 const OWNER = {
   kind: "ok" as const,
-  staff: { displayName: "Ella", role: "owner" as const, isActive: true },
+  staff: {
+    displayName: "Ella",
+    role: "owner" as const,
+    isActive: true,
+    privacyAcknowledgedVersion: null,
+  },
 };
 const STAFF = {
   kind: "ok" as const,
-  staff: { displayName: "Sean", role: "staff" as const, isActive: true },
+  staff: {
+    displayName: "Sean",
+    role: "staff" as const,
+    isActive: true,
+    privacyAcknowledgedVersion: null,
+  },
 };
 
 const REPORT = {

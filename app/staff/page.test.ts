@@ -64,7 +64,12 @@ describe("/staff", () => {
   it("shows the switched off notice and never reads the day for an inactive account (AC-12)", async () => {
     currentStaff.mockResolvedValue({
       kind: "ok",
-      staff: { displayName: "Lea", role: "staff", isActive: false },
+      staff: {
+        displayName: "Lea",
+        role: "staff",
+        isActive: false,
+        privacyAcknowledgedVersion: null,
+      },
     });
     const html = await render();
     expect(html).toContain("Your account is switched off");
@@ -82,7 +87,12 @@ describe("/staff", () => {
   it("renders the board for an active staff member, on the day asked for (AC-2)", async () => {
     currentStaff.mockResolvedValue({
       kind: "ok",
-      staff: { displayName: "Ella", role: "owner", isActive: true },
+      staff: {
+        displayName: "Ella",
+        role: "owner",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
     });
     const html = await render("2026-09-16");
     expect(getStaffSchedule).toHaveBeenCalledWith("2026-09-16");
@@ -93,7 +103,12 @@ describe("/staff", () => {
   it("explains a day that could not be read and offers the way back", async () => {
     currentStaff.mockResolvedValue({
       kind: "ok",
-      staff: { displayName: "Ella", role: "owner", isActive: true },
+      staff: {
+        displayName: "Ella",
+        role: "owner",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
     });
     getStaffSchedule.mockResolvedValue({
       ok: false,

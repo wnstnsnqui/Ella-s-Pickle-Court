@@ -27,6 +27,8 @@ export type Staff = {
   displayName: string;
   role: StaffRole;
   isActive: boolean;
+  /** Which privacy notice version this person last acknowledged, or null. Spec 0010, AC-10. */
+  privacyAcknowledgedVersion: string | null;
 };
 
 export type CurrentStaff =
@@ -51,6 +53,7 @@ export const currentStaff = cache(async (): Promise<CurrentStaff> => {
         displayName: data.display_name,
         role: data.role === "owner" ? "owner" : "staff",
         isActive: data.is_active,
+        privacyAcknowledgedVersion: data.privacy_acknowledged_version,
       },
     };
   } catch (error) {

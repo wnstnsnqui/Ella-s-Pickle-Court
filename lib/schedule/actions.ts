@@ -8,8 +8,15 @@ import {
   requireStaff,
   type ActionResult,
 } from "@/lib/actions";
+import { captureStaffEvent } from "@/lib/analytics/server";
 import type { Database } from "@/lib/supabase/database.types";
-import { calendarDateInZone, daysBetween, todayInZone, zonedTimeToUtc } from "@/lib/time";
+import {
+  calendarDateInZone,
+  daysBetween,
+  todayInZone,
+  trimSeconds,
+  zonedTimeToUtc,
+} from "@/lib/time";
 
 import { countOutsideHours } from "./outside-hours";
 import {
@@ -54,12 +61,17 @@ type StaffClient =
     : never;
 
 /** The timezone, slot length and booking window every write is measured against. */
-async function loadSettings(supabase: StaffClient) {
+async function loadSettings(supabase: StaffClient, distinctId: string) {
   const { data, error } = await supabase
     .from("venue_settings")
     .select("timezone, booking_horizon_days, version")
     .maybeSingle();
-  if (error) return { ok: false as const, error: describeDatabaseError(error) };
+  if (error) {
+    return {
+      ok: false as const,
+      error: describeDatabaseError(error, { action: "loadSettings", distinctId }),
+    };
+  }
   if (!data) {
     return {
       ok: false as const,
@@ -142,6 +154,74 @@ function checkBookingWindow(date: string, timezone: string, horizonDays: number)
   return checkHorizon(date, timezone, horizonDays);
 }
 
+type ReservationEventName =
+  | "booking_created"
+  | "booking_edited"
+  | "booking_cancelled"
+  | "closure_created"
+  | "closure_edited"
+  | "closure_cancelled";
+
+/**
+ * One `booking_*` or `closure_*` event per written row, fired after the write
+ * has already returned its result to the caller (invariant 1: analytics never
+ * changes an outcome or its latency). Spec 0009, AC-4.
+ *
+ * `court_name` is not held by any reservation write today, so it is read back
+ * in this background task rather than adding a round trip to the write path
+ * itself.
+ */
+function fireReservationEvent(
+  supabase: StaffClient,
+  distinctId: string,
+  row: ReservationRow,
+  action: "created" | "edited" | "cancelled",
+  now?: Date,
+): void {
+  void (async () => {
+    const { data: court } = await supabase
+      .from("court")
+      .select("name")
+      .eq("id", row.court_id)
+      .maybeSingle();
+
+    const durationMinutes = Math.round(
+      (Date.parse(row.ends_at) - Date.parse(row.starts_at)) / 60_000,
+    );
+    const eventName: ReservationEventName =
+      row.kind === "booking" ? `booking_${action}` : `closure_${action}`;
+
+    captureStaffEvent(distinctId, eventName, {
+      reservation_id: row.id,
+      court_id: row.court_id,
+      court_name: court?.name ?? "unknown",
+      kind: row.kind as "booking" | "closure",
+      action,
+      starts_at: row.starts_at,
+      ends_at: row.ends_at,
+      duration_minutes: durationMinutes,
+      ...(row.kind === "booking" && action === "created" && now
+        ? { lead_time_hours: Math.round((Date.parse(row.starts_at) - now.getTime()) / 3_600_000) }
+        : {}),
+    });
+  })();
+}
+
+type CourtChangedAction = "created" | "renamed" | "note" | "restored" | "retired" | "reordered";
+
+/** One `court_changed` event. `court_id`/`court_name` are null for a reorder. Spec 0009, AC-4. */
+function fireCourtChanged(
+  distinctId: string,
+  court: { id: number; name: string } | null,
+  action: CourtChangedAction,
+): void {
+  captureStaffEvent(distinctId, "court_changed", {
+    court_id: court?.id ?? null,
+    court_name: court?.name ?? null,
+    action,
+  });
+}
+
 /**
  * The day as the desk sees it, callable from the browser. Spec 0005, AC-10.
  *
@@ -172,7 +252,8 @@ export async function createReservation(input: unknown): Promise<ActionResult<Re
   const parsed = parseInput(createReservationSchema, input);
   if (!parsed.ok) return fail(parsed.error);
 
-  const loaded = await loadSettings(staff.supabase);
+  const now = new Date();
+  const loaded = await loadSettings(staff.supabase, staff.staffId);
   if (!loaded.ok) return fail(loaded.error);
 
   const windowError = checkBookingWindow(
@@ -208,7 +289,12 @@ export async function createReservation(input: unknown): Promise<ActionResult<Re
     .single();
 
   // The exclusion constraint refusing an overlap lands here, and only here.
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(
+      describeDatabaseError(error, { action: "createReservation", distinctId: staff.staffId }),
+    );
+  }
+  fireReservationEvent(staff.supabase, staff.staffId, data, "created", now);
   return ok(data);
 }
 
@@ -228,7 +314,8 @@ export async function createReservations(input: unknown): Promise<ActionResult<R
   const parsed = parseInput(createReservationsSchema, input);
   if (!parsed.ok) return fail(parsed.error);
 
-  const loaded = await loadSettings(staff.supabase);
+  const now = new Date();
+  const loaded = await loadSettings(staff.supabase, staff.staffId);
   if (!loaded.ok) return fail(loaded.error);
 
   for (const run of parsed.data.runs) {
@@ -264,7 +351,12 @@ export async function createReservations(input: unknown): Promise<ActionResult<R
   const { data, error } = await staff.supabase.from("reservation").insert(rows).select();
 
   // One statement, so `23P01` here means the whole set was refused.
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(
+      describeDatabaseError(error, { action: "createReservations", distinctId: staff.staffId }),
+    );
+  }
+  for (const row of data) fireReservationEvent(staff.supabase, staff.staffId, row, "created", now);
   return ok(data);
 }
 
@@ -275,7 +367,7 @@ export async function updateReservation(input: unknown): Promise<ActionResult<Re
   const parsed = parseInput(updateReservationSchema, input);
   if (!parsed.ok) return fail(parsed.error);
 
-  const loaded = await loadSettings(staff.supabase);
+  const loaded = await loadSettings(staff.supabase, staff.staffId);
   if (!loaded.ok) return fail(loaded.error);
 
   const patch: Database["public"]["Tables"]["reservation"]["Update"] = {
@@ -322,7 +414,14 @@ export async function updateReservation(input: unknown): Promise<ActionResult<Re
       .select("starts_at")
       .eq("id", parsed.data.id)
       .maybeSingle();
-    if (storedError) return fail(describeDatabaseError(storedError));
+    if (storedError) {
+      return fail(
+        describeDatabaseError(storedError, {
+          action: "updateReservation",
+          distinctId: staff.staffId,
+        }),
+      );
+    }
     if (!stored) return fail({ kind: "not_found", message: "That row is gone." });
 
     const date = calendarDateInZone(new Date(stored.starts_at), loaded.settings.timezone);
@@ -342,7 +441,11 @@ export async function updateReservation(input: unknown): Promise<ActionResult<Re
     .select()
     .maybeSingle();
 
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(
+      describeDatabaseError(error, { action: "updateReservation", distinctId: staff.staffId }),
+    );
+  }
   if (!data) {
     return fail(
       await explainZeroRows(
@@ -353,6 +456,7 @@ export async function updateReservation(input: unknown): Promise<ActionResult<Re
       ),
     );
   }
+  fireReservationEvent(staff.supabase, staff.staffId, data, "edited");
   return ok(data);
 }
 
@@ -378,7 +482,11 @@ export async function cancelReservation(input: unknown): Promise<ActionResult<Re
     .select()
     .maybeSingle();
 
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(
+      describeDatabaseError(error, { action: "cancelReservation", distinctId: staff.staffId }),
+    );
+  }
   if (!data) {
     return fail(
       await explainZeroRows(
@@ -389,6 +497,7 @@ export async function cancelReservation(input: unknown): Promise<ActionResult<Re
       ),
     );
   }
+  fireReservationEvent(staff.supabase, staff.staffId, data, "cancelled");
   return ok(data);
 }
 
@@ -411,7 +520,11 @@ export async function saveCourt(input: unknown): Promise<ActionResult<CourtRow>>
         .from("court")
         .select("sort_order")
         .is("retired_at", null);
-      if (liveError) return fail(describeDatabaseError(liveError));
+      if (liveError) {
+        return fail(
+          describeDatabaseError(liveError, { action: "saveCourt", distinctId: staff.staffId }),
+        );
+      }
       sortOrder = live && live.length > 0 ? Math.max(...live.map((row) => row.sort_order)) + 1 : 0;
     }
     const { data, error } = await staff.supabase
@@ -419,7 +532,10 @@ export async function saveCourt(input: unknown): Promise<ActionResult<CourtRow>>
       .insert({ name, sort_order: sortOrder, note: note ?? null, changed_by: staff.staffId })
       .select()
       .single();
-    if (error) return fail(describeDatabaseError(error));
+    if (error) {
+      return fail(describeDatabaseError(error, { action: "saveCourt", distinctId: staff.staffId }));
+    }
+    fireCourtChanged(staff.staffId, data, "created");
     return ok(data);
   }
 
@@ -432,6 +548,15 @@ export async function saveCourt(input: unknown): Promise<ActionResult<CourtRow>>
     const message = "Editing a court needs its current position.";
     return fail({ kind: "invalid", message, issues: { sortOrder: [message] } });
   }
+
+  // Read the row as it stood before the update, the same way `updateReservation`
+  // reads the stored start: this is the only way to tell a rename or a note
+  // edit from a save that changed nothing (spec 0009, AC-4).
+  const { data: prior } = await staff.supabase
+    .from("court")
+    .select("name, note")
+    .eq("id", id)
+    .maybeSingle();
 
   const patch: Database["public"]["Tables"]["court"]["Update"] = {
     name,
@@ -465,9 +590,18 @@ export async function saveCourt(input: unknown): Promise<ActionResult<CourtRow>>
     .select()
     .maybeSingle();
 
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(describeDatabaseError(error, { action: "saveCourt", distinctId: staff.staffId }));
+  }
   if (!data) {
     return fail(await explainZeroRows(staff.supabase, "court", { id }, version));
+  }
+  if (restore) {
+    fireCourtChanged(staff.staffId, data, "restored");
+  } else if (prior && prior.name !== data.name) {
+    fireCourtChanged(staff.staffId, data, "renamed");
+  } else if (prior && prior.note !== data.note) {
+    fireCourtChanged(staff.staffId, data, "note");
   }
   return ok(data);
 }
@@ -489,7 +623,11 @@ export async function retireCourt(input: unknown): Promise<ActionResult<CourtRow
     .eq("status", "active")
     .gt("ends_at", new Date().toISOString());
 
-  if (countError) return fail(describeDatabaseError(countError));
+  if (countError) {
+    return fail(
+      describeDatabaseError(countError, { action: "retireCourt", distinctId: staff.staffId }),
+    );
+  }
   if (count && count > 0) {
     return fail({
       kind: "conflict",
@@ -511,12 +649,15 @@ export async function retireCourt(input: unknown): Promise<ActionResult<CourtRow
     .select()
     .maybeSingle();
 
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(describeDatabaseError(error, { action: "retireCourt", distinctId: staff.staffId }));
+  }
   if (!data) {
     return fail(
       await explainZeroRows(staff.supabase, "court", { id: parsed.data.id }, parsed.data.version),
     );
   }
+  fireCourtChanged(staff.staffId, data, "retired");
   return ok(data);
 }
 
@@ -539,7 +680,11 @@ export async function reorderCourts(input: unknown): Promise<ActionResult<OwnerC
     ids: parsed.data.courts.map((court) => court.id),
     versions: parsed.data.courts.map((court) => court.version),
   });
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(
+      describeDatabaseError(error, { action: "reorderCourts", distinctId: staff.staffId }),
+    );
+  }
 
   // The fresh live list, so the page can replace what it holds rather than
   // trusting that its optimistic order is what landed.
@@ -548,8 +693,13 @@ export async function reorderCourts(input: unknown): Promise<ActionResult<OwnerC
     .select("id, name, note, sort_order, retired_at, version")
     .is("retired_at", null)
     .order("sort_order");
-  if (readError) return fail(describeDatabaseError(readError));
+  if (readError) {
+    return fail(
+      describeDatabaseError(readError, { action: "reorderCourts", distinctId: staff.staffId }),
+    );
+  }
 
+  fireCourtChanged(staff.staffId, null, "reordered");
   return ok(
     (data ?? []).map((row): OwnerCourt => ({
       id: row.id,
@@ -573,7 +723,7 @@ export async function saveVenueSettings(input: unknown): Promise<ActionResult<Ve
   // and write nothing until the owner has seen the number. Closures are never
   // counted, and a day beyond a shortened horizon is not this check's business.
   if (!parsed.data.acknowledge) {
-    const loaded = await loadSettings(staff.supabase);
+    const loaded = await loadSettings(staff.supabase, staff.staffId);
     if (!loaded.ok) return fail(loaded.error);
 
     const { data: bookings, error: bookingsError } = await staff.supabase
@@ -582,7 +732,14 @@ export async function saveVenueSettings(input: unknown): Promise<ActionResult<Ve
       .eq("kind", "booking")
       .eq("status", "active")
       .gt("ends_at", new Date().toISOString());
-    if (bookingsError) return fail(describeDatabaseError(bookingsError));
+    if (bookingsError) {
+      return fail(
+        describeDatabaseError(bookingsError, {
+          action: "saveVenueSettings",
+          distinctId: staff.staffId,
+        }),
+      );
+    }
 
     const count = countOutsideHours(
       (bookings ?? []).map((row) => ({ startsAt: row.starts_at, endsAt: row.ends_at })),
@@ -621,11 +778,23 @@ export async function saveVenueSettings(input: unknown): Promise<ActionResult<Ve
     .select()
     .maybeSingle();
 
-  if (error) return fail(describeDatabaseError(error));
+  if (error) {
+    return fail(
+      describeDatabaseError(error, { action: "saveVenueSettings", distinctId: staff.staffId }),
+    );
+  }
   if (!data) {
     return fail(
       await explainZeroRows(staff.supabase, "venue_settings", { id: true }, parsed.data.version),
     );
   }
+  captureStaffEvent(staff.staffId, "hours_changed", {
+    weekday_open: trimSeconds(data.weekday_open),
+    weekday_close: trimSeconds(data.weekday_close),
+    weekend_open: trimSeconds(data.weekend_open),
+    weekend_close: trimSeconds(data.weekend_close),
+    slot_minutes: data.slot_minutes,
+    booking_horizon_days: data.booking_horizon_days,
+  });
   return ok(data);
 }

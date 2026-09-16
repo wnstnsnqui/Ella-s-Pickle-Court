@@ -59,7 +59,18 @@ vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
 const getStaffSchedule = vi.hoisted(() => vi.fn());
 vi.mock("./queries", () => ({ getStaffSchedule }));
 
-const { createReservations, refreshStaffSchedule, updateReservation } = await import("./actions");
+const captureStaffEvent = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics/server", () => ({ captureStaffEvent, reportFailure: vi.fn() }));
+
+const {
+  createReservation,
+  createReservations,
+  refreshStaffSchedule,
+  retireCourt,
+  saveCourt,
+  saveVenueSettings,
+  updateReservation,
+} = await import("./actions");
 
 const SETTINGS = {
   data: { timezone: "Asia/Manila", booking_horizon_days: 14, version: 1 },
@@ -289,5 +300,176 @@ describe("refreshStaffSchedule", () => {
 
     expect(result).toMatchObject({ ok: false, error: { kind: "invalid" } });
     expect(getStaffSchedule).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Spec 0009, AC-4: one analytics event after a successful write, none after a
+ * refused one. `fireReservationEvent()` reads the court's name in a
+ * background task, so these await `vi.waitFor()` rather than the action's own
+ * promise to observe it.
+ */
+describe("analytics events (spec 0009, AC-4)", () => {
+  it("fires one booking_created per row after createReservations succeeds", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", {
+      data: [
+        {
+          id: 1,
+          court_id: 1,
+          kind: "booking",
+          starts_at: "2026-09-16T08:00:00.000Z",
+          ends_at: "2026-09-16T09:00:00.000Z",
+        },
+        {
+          id: 2,
+          court_id: 2,
+          kind: "booking",
+          starts_at: "2026-09-16T08:00:00.000Z",
+          ends_at: "2026-09-16T09:00:00.000Z",
+        },
+      ],
+      error: null,
+    });
+    queue("court", { data: { name: "Court 1" }, error: null });
+    queue("court", { data: { name: "Court 2" }, error: null });
+    const date = tomorrow();
+
+    await createReservations({
+      runs: [
+        { courtId: 1, date, startTime: "16:00", endTime: "17:00" },
+        { courtId: 2, date, startTime: "16:00", endTime: "17:00" },
+      ],
+      kind: "booking",
+      customerName: "Maria",
+    });
+
+    await vi.waitFor(() => expect(captureStaffEvent).toHaveBeenCalledTimes(2));
+    expect(captureStaffEvent).toHaveBeenNthCalledWith(
+      1,
+      "user_staff",
+      "booking_created",
+      expect.objectContaining({
+        reservation_id: 1,
+        court_id: 1,
+        court_name: "Court 1",
+        action: "created",
+      }),
+    );
+  });
+
+  it("fires no event when createReservations is refused", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", {
+      data: null,
+      error: { code: "23P01", message: 'exclusion constraint "reservation_no_overlap"' },
+    });
+    const date = tomorrow();
+
+    await createReservations({
+      runs: [{ courtId: 1, date, startTime: "16:00", endTime: "17:00" }],
+      kind: "booking",
+      customerName: "Maria",
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(captureStaffEvent).not.toHaveBeenCalled();
+  });
+
+  it("fires booking_created with lead_time_hours for a single createReservation", async () => {
+    queue("venue_settings", SETTINGS);
+    queue("reservation", {
+      data: {
+        id: 5,
+        court_id: 1,
+        kind: "booking",
+        starts_at: "2026-09-16T08:00:00.000Z",
+        ends_at: "2026-09-16T09:00:00.000Z",
+      },
+      error: null,
+    });
+    queue("court", { data: { name: "Court 1" }, error: null });
+    const date = tomorrow();
+
+    await createReservation({
+      courtId: 1,
+      date,
+      startTime: "16:00",
+      endTime: "17:00",
+      kind: "booking",
+      customerName: "Maria",
+    });
+
+    await vi.waitFor(() => expect(captureStaffEvent).toHaveBeenCalledTimes(1));
+    expect(captureStaffEvent.mock.calls[0][2]).toHaveProperty("lead_time_hours");
+  });
+
+  it("fires court_changed with action created after saveCourt inserts a new court", async () => {
+    // sortOrder is given, so the "highest live order" read never runs and this
+    // one queued answer is the insert's own `.select().single()`.
+    queue("court", { data: { id: 9, name: "Court 9", note: null }, error: null });
+
+    await saveCourt({ name: "Court 9", sortOrder: 0 });
+
+    expect(captureStaffEvent).toHaveBeenCalledWith("user_staff", "court_changed", {
+      court_id: 9,
+      court_name: "Court 9",
+      action: "created",
+    });
+  });
+
+  it("fires no event when saveCourt is refused", async () => {
+    queue("court", {
+      data: null,
+      error: { code: "42501", message: "permission denied" },
+    });
+
+    await saveCourt({ name: "Court 9" });
+
+    expect(captureStaffEvent).not.toHaveBeenCalled();
+  });
+
+  it("fires court_changed with action retired after retireCourt succeeds", async () => {
+    queue("reservation", { count: 0, error: null });
+    queue("court", { data: { id: 3, name: "Court 3" }, error: null });
+
+    await retireCourt({ id: 3, version: 1 });
+
+    expect(captureStaffEvent).toHaveBeenCalledWith("user_staff", "court_changed", {
+      court_id: 3,
+      court_name: "Court 3",
+      action: "retired",
+    });
+  });
+
+  it("fires hours_changed after saveVenueSettings succeeds", async () => {
+    queue("venue_settings", {
+      data: {
+        weekday_open: "06:00:00",
+        weekday_close: "22:00:00",
+        weekend_open: "06:00:00",
+        weekend_close: "22:00:00",
+        slot_minutes: 60,
+        booking_horizon_days: 14,
+      },
+      error: null,
+    });
+
+    await saveVenueSettings({
+      weekdayOpen: "06:00",
+      weekdayClose: "22:00",
+      weekendOpen: "06:00",
+      weekendClose: "22:00",
+      slotMinutes: 60,
+      bookingHorizonDays: 14,
+      version: 1,
+      acknowledge: true,
+    });
+
+    expect(captureStaffEvent).toHaveBeenCalledWith(
+      "user_staff",
+      "hours_changed",
+      expect.objectContaining({ weekday_open: "06:00", weekday_close: "22:00" }),
+    );
   });
 });
