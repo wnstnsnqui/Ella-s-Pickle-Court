@@ -94,6 +94,12 @@ export function LiveIndicator({
         className,
       )}
     >
+      {reading === "live" ? (
+        <span aria-hidden="true" className="relative flex size-1.5">
+          <span className="bg-state-available-fg absolute inline-flex size-full animate-ping rounded-full opacity-75" />
+          <span className="bg-state-available-fg relative inline-flex size-1.5 rounded-full" />
+        </span>
+      ) : null}
       <Icon
         aria-hidden="true"
         className={cn("size-3.5", reading === "reconnecting" && "animate-spin")}

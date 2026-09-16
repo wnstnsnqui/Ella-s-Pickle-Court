@@ -28,32 +28,33 @@
    * second copy of the palette to keep in step.
    */
 
-  /* Surface. */
-  --light-background: oklch(0.987 0.023 96);
+  /* Surface. Direction "Sunbeam": white reads as white first, the warmth
+   * comes from the brand band and state fills rather than a tinted page. */
+  --light-background: oklch(0.996 0.01 93);
   --dark-background: oklch(0.208 0.011 73);
   --light-foreground: oklch(0.216 0.006 56);
   --dark-foreground: oklch(0.958 0.018 89);
-  --light-card: oklch(0.995 0.012 101);
+  --light-card: oklch(0.999 0.004 96);
   --dark-card: oklch(0.234 0.014 72);
   --light-card-foreground: oklch(0.216 0.006 56);
   --dark-card-foreground: oklch(0.958 0.018 89);
-  --light-popover: oklch(0.995 0.012 101);
+  --light-popover: oklch(0.999 0.004 96);
   --dark-popover: oklch(0.234 0.014 72);
   --light-popover-foreground: oklch(0.216 0.006 56);
   --dark-popover-foreground: oklch(0.958 0.018 89);
-  --light-muted: oklch(0.951 0.024 94);
+  --light-muted: oklch(0.965 0.022 94);
   --dark-muted: oklch(0.265 0.014 67);
   --light-muted-foreground: oklch(0.468 0.023 91);
   --dark-muted-foreground: oklch(0.764 0.028 90);
-  --light-accent: oklch(0.96 0.032 95);
+  --light-accent: oklch(0.975 0.03 95);
   --dark-accent: oklch(0.285 0.015 71);
   --light-accent-foreground: oklch(0.216 0.006 56);
   --dark-accent-foreground: oklch(0.958 0.018 89);
-  --light-secondary: oklch(0.951 0.024 94);
+  --light-secondary: oklch(0.965 0.022 94);
   --dark-secondary: oklch(0.265 0.014 67);
   --light-secondary-foreground: oklch(0.216 0.006 56);
   --dark-secondary-foreground: oklch(0.958 0.018 89);
-  --light-border: oklch(0.909 0.037 93);
+  --light-border: oklch(0.93 0.035 93);
   --dark-border: oklch(0.325 0.02 77);
   --light-input: oklch(0.657 0.032 92);
   --dark-input: oklch(0.525 0.021 78);
@@ -62,7 +63,11 @@
   --light-overlay: oklch(0 0 0 / 0.5);
   --dark-overlay: oklch(0 0 0 / 0.68);
 
-  /* Accent. Primary is deep teal; brand is the golden header band; mark is the letter badge. */
+  /* Accent. Primary is deep teal, kept as-is: a yellow bright enough to read
+   * as yellow can't clear 4.5:1 as link text on a white card, so the
+   * livelier yellow lives in brand and mark, not in primary/ring.
+   * Brand is the golden header band, pushed more vivid; mark is the letter
+   * badge, its foreground matched to the same gold. */
   --light-primary: oklch(0.511 0.086 186);
   --dark-primary: oklch(0.785 0.133 182);
   --light-primary-foreground: oklch(1 0 0);
@@ -70,28 +75,31 @@
   --light-destructive: oklch(0.553 0.174 38);
   --dark-destructive: oklch(0.758 0.159 56);
   --light-destructive-foreground: oklch(1 0 0);
-  --light-mark-foreground: oklch(0.854 0.171 87);
+  --light-mark-foreground: oklch(0.84 0.185 86.5);
   --light-mark: oklch(0.216 0.006 56);
   --light-brand-foreground: oklch(0.216 0.006 56);
-  --light-brand: oklch(0.854 0.171 87);
+  --light-brand: oklch(0.84 0.185 86.5);
   --dark-destructive-foreground: oklch(0.214 0.051 58);
   --dark-mark-foreground: oklch(0.208 0.011 73);
   --dark-mark: oklch(0.854 0.171 87);
   --dark-brand-foreground: oklch(0.958 0.018 89);
   --dark-brand: oklch(0.208 0.011 73);
 
-  /* State: the five roles the grid owns. Saving reuses muted, Failed reuses destructive. */
-  --light-state-available: oklch(0.937 0.042 182);
+  /* State: the five roles the grid owns. Saving reuses muted, Failed reuses destructive.
+   * Available and booked carry more chroma than before, at the same lightness,
+   * so the grid feels alive against the brighter background without moving
+   * off any contrast pair AC-4 already measures. */
+  --light-state-available: oklch(0.937 0.06 182);
   --dark-state-available: oklch(0.322 0.046 184);
   --light-state-available-fg: oklch(0.434 0.075 183);
   --dark-state-available-fg: oklch(0.877 0.093 184);
-  --light-state-available-border: oklch(0.639 0.123 183);
+  --light-state-available-border: oklch(0.6 0.14 183);
   --dark-state-available-border: oklch(0.654 0.111 182);
-  --light-state-booked: oklch(0.923 0.062 74);
+  --light-state-booked: oklch(0.923 0.085 74);
   --dark-state-booked: oklch(0.32 0.064 60);
   --light-state-booked-fg: oklch(0.445 0.121 48);
   --dark-state-booked-fg: oklch(0.861 0.1 65);
-  --light-state-booked-border: oklch(0.67 0.159 56);
+  --light-state-booked-border: oklch(0.67 0.19 56);
   --dark-state-booked-border: oklch(0.669 0.149 54);
   --light-state-unavailable: oklch(0.949 0.014 93);
   --dark-state-unavailable: oklch(0.258 0.012 78);
@@ -115,10 +123,11 @@
   --font-inter-fallback:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  /* Space and geometry: the grid's fixed measurements. */
-  --radius: 0.5rem;
-  --radius-cell: 0.25rem;
-  --row-h: 2.75rem;
+  /* Space and geometry: the grid's fixed measurements. Radius nudged up for
+   * the friendlier "Sunbeam" direction: still crisp, not pill-shaped. */
+  --radius: 0.625rem;
+  --radius-cell: 0.5rem;
+  --row-h: 3rem;
   --col-time: 3.5rem;
   --col-court-min: 5.5rem;
 

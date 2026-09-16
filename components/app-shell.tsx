@@ -37,12 +37,12 @@ export async function AppShell({
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="border-border sticky top-0 z-30 border-b">
+      <header className="border-border sticky top-0 z-30 border-b shadow-sm">
         {/* The brand band: golden in daylight, and the plain page colour at night. */}
         <div className="bg-brand text-brand-foreground">
-          <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-3 px-4 py-3">
+          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
             <Wordmark />
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {staff && clerkConfigured ? (
                 <Show when="signed-in">
                   <div className="flex items-center gap-2">{staff}</div>

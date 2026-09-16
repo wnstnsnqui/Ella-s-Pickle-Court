@@ -28,7 +28,7 @@ import { CELL_VIEW_ICON, CELL_VIEW_NAME, type CellView } from "./cell-view";
 const cell = cva(
   [
     "relative grid h-row place-items-center gap-0.5 rounded-cell border text-cell tabular-nums select-none",
-    "scroll-ml-time-col transition-colors duration-(--dur-fast)",
+    "scroll-ml-time-col transition-[background-color,border-color,color,transform] duration-(--dur-fast) ease-out",
     "outline-none focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring",
     "data-[changed=true]:animate-cell-changed",
   ],
@@ -46,7 +46,7 @@ const cell = cva(
         failed: "bg-destructive text-destructive-foreground border-destructive",
       },
       interactive: {
-        true: "cursor-pointer hover:brightness-[0.97] active:brightness-95",
+        true: "cursor-pointer hover:brightness-[0.97] active:scale-[0.98] active:brightness-95",
         false: "cursor-default",
       },
       locked: {

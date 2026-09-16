@@ -19,7 +19,7 @@ from their phones, and Ella looks back at how the courts were used.
 - **Framework**: Next.js 16.3.3, App Router, React 19, Tailwind CSS 4
 - **Key dependencies**: `@supabase/supabase-js` (database and realtime), `@clerk/nextjs` 7 (staff identity), `zod` (every Server Action boundary)
 - **Package manager**: npm
-- **Hosting**: self hosted Docker container, `output: "standalone"`
+- **Hosting**: Vercel for now; planned move to a self hosted Docker container. `next.config.ts` only sets `output: "standalone"` when not building on Vercel (`process.env.VERCEL`), so the existing `Dockerfile` keeps working for that move.
 
 Mirrors [docs/specs/0001-stack-architecture/index.md](docs/specs/0001-stack-architecture/index.md), which is the source of truth.
 

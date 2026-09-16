@@ -206,7 +206,7 @@ export function ScheduleGrid({
        * never slides under the reader on a phone, and the time column stays
        * pinned inside it.
        */}
-      <div className="border-border overflow-x-auto rounded-lg border">
+      <div className="overflow-x-auto">
         <div
           ref={gridRef}
           role="grid"
