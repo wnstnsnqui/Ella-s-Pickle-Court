@@ -1,13 +1,12 @@
 "use client";
 
 import { DayNav } from "@/components/day-nav";
-import { LiveIndicator } from "@/components/live-indicator";
 
 import { usePublicBoard } from "./public-schedule-context";
 
-/** The strip under the brand band: which day, and whether the board is live. */
+/** The strip under the brand band: which day. */
 export function PublicToolbar() {
-  const { schedule, channelStatus, lastUpdatedAt } = usePublicBoard();
+  const { schedule } = usePublicBoard();
   return (
     <div className="flex items-center justify-between gap-3">
       <DayNav
@@ -17,7 +16,6 @@ export function PublicToolbar() {
         now={schedule.now}
         className="min-w-0 flex-1"
       />
-      <LiveIndicator channelStatus={channelStatus} lastUpdatedAt={lastUpdatedAt} />
     </div>
   );
 }
