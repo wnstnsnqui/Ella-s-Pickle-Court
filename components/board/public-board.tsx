@@ -23,13 +23,18 @@ const CHANGED_HOLD_MS = 4_000;
 
 /** The views a public reader can meet: the browser only ones never appear here. */
 const PUBLIC_LEGEND: readonly CellView[] = CELL_VIEWS.filter(
-  (view) => view !== "selected" && view !== "saving" && view !== "failed",
+  (view) => view !== "selected" && view !== "saving" && view !== "failed" && view !== "out-of-hours",
 );
 
 export function PublicBoard() {
   const { schedule, refetchError, now, requestRead } = usePublicBoard();
   const { grid } = schedule;
   const changedCells = useChangedCells(grid, CHANGED_HOLD_MS);
+
+  // Outside opening hours only earns a legend entry on a day that actually
+  // has one: most venues never show it, and an unused entry is just noise.
+  const hasOutOfHours = grid.rows.some((row) => row.outOfHours);
+  const legendViews = hasOutOfHours ? [...PUBLIC_LEGEND, "out-of-hours" as const] : PUBLIC_LEGEND;
 
   const isToday = calendarDateInZone(new Date(now), grid.timezone) === grid.date;
 
@@ -60,7 +65,7 @@ export function PublicBoard() {
 
       <ScheduleGrid
         view={view}
-        legendViews={PUBLIC_LEGEND}
+        legendViews={legendViews}
         changedCells={changedCells}
         now={isToday ? new Date(now).toISOString() : undefined}
         markerRef={markerRef}
