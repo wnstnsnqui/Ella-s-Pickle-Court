@@ -59,6 +59,18 @@ const privacyNoticeAcknowledgedSchema = z
   .strict();
 
 /**
+ * A diagnostic counter, not a staff action: PostgREST turned a Clerk token away
+ * (`PGRST301`, `PGRST302`, `PGRST303`). The refusal reads as `unauthenticated`
+ * rather than an exception, so this event keeps the refusal rate visible. It
+ * carries only the PostgREST code, never a token or a claim.
+ */
+const staffSessionRefusedSchema = z
+  .object({
+    code: z.string(),
+  })
+  .strict();
+
+/**
  * Every event `captureStaffEvent()` or `captureDayViewed()` may send, and the
  * schema its properties must pass. Adding an event means adding a row here
  * first; there is no way to send an event this map does not name.
@@ -74,6 +86,7 @@ export const eventSchemas = {
   hours_changed: hoursChangedSchema,
   board_day_viewed: boardDayViewedSchema,
   privacy_notice_acknowledged: privacyNoticeAcknowledgedSchema,
+  staff_session_refused: staffSessionRefusedSchema,
 } satisfies Record<string, z.ZodType>;
 
 export type AnalyticsEvent = keyof typeof eventSchemas;

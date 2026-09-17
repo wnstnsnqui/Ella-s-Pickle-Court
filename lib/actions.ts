@@ -3,7 +3,7 @@ import "server-only";
 import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
-import { reportFailure } from "@/lib/analytics/server";
+import { captureStaffEvent, reportFailure } from "@/lib/analytics/server";
 import { staffSupabase } from "@/lib/supabase/staff";
 
 /**
@@ -107,7 +107,9 @@ type DatabaseError = { code?: string; message: string };
  * It is never surfaced as a raw error and never swallowed. `23505` on one of
  * the two partial unique indexes on `court` is a named conflict too. `42501`
  * is row level security refusing the write, which is an authorization answer,
- * not a failure.
+ * not a failure. `PGRST301`, `PGRST302` and `PGRST303` are PostgREST turning a
+ * Clerk token away (expired, not yet valid, or otherwise unusable), which is a
+ * session answer, not a broken query.
  */
 /**
  * `action` names the Server Action that ran, for `reportFailure()`; `distinctId`
@@ -156,6 +158,19 @@ export function describeDatabaseError(
     return {
       kind: "forbidden",
       message: "Your account is not allowed to make that change.",
+    };
+  }
+  // PostgREST refusing the caller's Clerk token. It reads as `unauthenticated`
+  // so the desk sees "sign in again" rather than a database string, and it is
+  // never captured as an exception. A `staff_session_refused` counter keeps the
+  // refusal rate visible without the noise of a false unexpected failure.
+  if (error.code === "PGRST301" || error.code === "PGRST302" || error.code === "PGRST303") {
+    if (context.distinctId) {
+      captureStaffEvent(context.distinctId, "staff_session_refused", { code: error.code });
+    }
+    return {
+      kind: "unauthenticated",
+      message: "Your session has expired. Sign in again.",
     };
   }
   reportFailure(error, context);

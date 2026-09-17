@@ -162,6 +162,21 @@ describe("getStaffSchedule", () => {
     expect(result.error.message).toMatch(/only goes as far as \d{4}-\d{2}-\d{2}/);
   });
 
+  it("maps a PostgREST token refusal on the settings read to unauthenticated, not a raw failure", async () => {
+    answers.clear();
+    queue("venue_settings", {
+      data: null,
+      error: { code: "PGRST303", message: "JWT not yet valid" },
+    });
+
+    const result = await getStaffSchedule("2026-09-15");
+
+    expect(result).toMatchObject({
+      ok: false,
+      error: { kind: "unauthenticated", message: "Your session has expired. Sign in again." },
+    });
+  });
+
   it("passes a staff list read error through rather than showing a grid with no names", async () => {
     queue("reservation", { data: [], error: null });
     queue("staff", { data: null, error: { message: "permission denied for table staff" } });
