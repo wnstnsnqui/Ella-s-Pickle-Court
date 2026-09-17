@@ -79,7 +79,6 @@ export default async function Home({ searchParams }: PageProps<"/">) {
       requestedDate={date}
     >
       <AppShell
-        toolbar={<PublicToolbar />}
         staff={
           <Suspense fallback={null}>
             <StaffMenu />
@@ -92,6 +91,7 @@ export default async function Home({ searchParams }: PageProps<"/">) {
           <h1 className="text-title">Court schedule</h1>
           <p className="text-caption text-muted-foreground">{VENUE_TAGLINE}</p>
         </div>
+        <PublicToolbar className="mb-4" />
         <PublicBoard />
       </AppShell>
     </PublicScheduleProvider>

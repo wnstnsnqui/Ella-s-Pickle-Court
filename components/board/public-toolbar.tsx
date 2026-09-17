@@ -1,21 +1,20 @@
 "use client";
 
 import { DayNav } from "@/components/day-nav";
+import { cn } from "@/lib/utils";
 
 import { usePublicBoard } from "./public-schedule-context";
 
-/** The strip under the brand band: which day. */
-export function PublicToolbar() {
+/** Which day the board shows, sized to its own content rather than the row. */
+export function PublicToolbar({ className }: { className?: string }) {
   const { schedule } = usePublicBoard();
   return (
-    <div className="flex items-center justify-between gap-3">
-      <DayNav
-        date={schedule.grid.date}
-        timezone={schedule.grid.timezone}
-        horizonDays={schedule.horizonDays}
-        now={schedule.now}
-        className="min-w-0 flex-1"
-      />
-    </div>
+    <DayNav
+      date={schedule.grid.date}
+      timezone={schedule.grid.timezone}
+      horizonDays={schedule.horizonDays}
+      now={schedule.now}
+      className={cn("w-fit", className)}
+    />
   );
 }

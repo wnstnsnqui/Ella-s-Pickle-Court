@@ -18,6 +18,13 @@ import DesignPage, { dynamic, metadata } from "./page";
 
 vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
 vi.mock("@clerk/nextjs", () => ({ Show: () => null }));
+// `DayNav`'s calendar picker (spec 0011) reads `useRouter` to navigate on pick; that
+// hook throws outside a mounted app router, unlike `usePathname`/`useSearchParams`,
+// which this static render already relies on degrading gracefully.
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  useRouter: () => ({ push: () => {} }),
+}));
 
 type Props = { children?: ReactNode; toolbar?: ReactNode; staff?: ReactNode };
 

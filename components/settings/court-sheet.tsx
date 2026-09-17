@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, TriangleAlert } from "lucide-react";
 import { useForm } from "react-hook-form";
 
-import { BoardSheet } from "@/components/staff/board-sheet";
+import { BoardSheet } from "@/components/board-sheet";
 import { applyIssues } from "@/components/staff/booking-fields";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";

@@ -14,7 +14,8 @@ export function StaffToolbar() {
         timezone={schedule.grid.timezone}
         horizonDays={schedule.horizonDays}
         now={schedule.now}
-        className="min-w-0 flex-1"
+        allowPastPick
+        className="w-fit"
       />
     </div>
   );

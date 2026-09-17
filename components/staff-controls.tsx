@@ -29,7 +29,7 @@ export function AccountButton({ name }: { name: string }) {
       title="Manage your account"
     >
       <UserRound aria-hidden="true" />
-      <span className="sr-only sm:not-sr-only sm:max-w-32 sm:truncate">{name}</span>
+      <span className="max-w-32 truncate">{name}</span>
       <span className="sr-only">, manage your account</span>
     </Button>
   );
@@ -37,9 +37,9 @@ export function AccountButton({ name }: { name: string }) {
 
 /**
  * Ends the Clerk session and returns to `/`. Clerk unreachable → a toast, the
- * button stays. Icon only on a phone, where the band holds four controls.
+ * button stays.
  */
-export function SignOutButton() {
+export function SignOutButton({ className }: { className?: string }) {
   const { signOut } = useClerk();
   const [pending, setPending] = useState(false);
 
@@ -62,9 +62,10 @@ export function SignOutButton() {
       onClick={handleSignOut}
       disabled={pending}
       title="Sign out"
+      className={className}
     >
       <LogOut aria-hidden="true" />
-      <span className="sr-only sm:not-sr-only">Sign out</span>
+      <span>Sign out</span>
     </Button>
   );
 }

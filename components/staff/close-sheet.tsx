@@ -17,7 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { describeSummary, summarizeRuns, type SelectionRun } from "@/lib/schedule/selection";
 
-import { BoardSheet } from "./board-sheet";
+import { BoardSheet } from "@/components/board-sheet";
 import { applyIssues } from "./booking-fields";
 import type { SubmitOutcome } from "./book-sheet";
 import { closeFormSchema, type CloseFormValues } from "./forms";

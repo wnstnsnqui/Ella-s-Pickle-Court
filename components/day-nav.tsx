@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
+import { DatePicker } from "@/components/date-picker";
 import { Button } from "@/components/ui/button";
 import { addDays, daysBetween, todayInZone } from "@/lib/time";
 import { cn } from "@/lib/utils";
@@ -28,12 +29,15 @@ export function DayNav({
   timezone,
   horizonDays,
   now,
+  allowPastPick = false,
   className,
 }: {
   date: string;
   timezone: string;
   horizonDays: number;
   now?: string;
+  /** Staff may pick any past day in the calendar; the public board may not. */
+  allowPastPick?: boolean;
   className?: string;
 }) {
   const pathname = usePathname();
@@ -49,12 +53,21 @@ export function DayNav({
     return `${pathname}?${next.toString()}`;
   };
 
-  const heading = new Intl.DateTimeFormat("en-PH", {
+  const monthDay = new Intl.DateTimeFormat("en-PH", {
     timeZone: timezone,
-    weekday: "short",
     day: "numeric",
     month: "short",
   }).format(new Date(`${date}T12:00:00Z`));
+
+  const heading =
+    offset === 0
+      ? `Today, ${monthDay}`
+      : new Intl.DateTimeFormat("en-PH", {
+          timeZone: timezone,
+          weekday: "short",
+          day: "numeric",
+          month: "short",
+        }).format(new Date(`${date}T12:00:00Z`));
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
@@ -64,10 +77,11 @@ export function DayNav({
         </Link>
       </Button>
 
-      <p className="text-label min-w-0 flex-1 text-center">
+      <p className="text-body min-w-0 flex-1 text-center font-semibold">
         <span className="tabular-nums">{heading}</span>
-        {offset === 0 ? <span className="text-muted-foreground"> · today</span> : null}
-        {offset < 0 ? <span className="text-muted-foreground"> · past</span> : null}
+        {offset < 0 ? (
+          <span className="text-label text-muted-foreground font-normal"> · past</span>
+        ) : null}
       </p>
 
       {atHorizon ? (
@@ -87,11 +101,14 @@ export function DayNav({
         </Button>
       )}
 
-      {offset !== 0 ? (
-        <Button asChild variant="ghost" size="sm">
-          <Link href={href(today)}>Today</Link>
-        </Button>
-      ) : null}
+      <DatePicker
+        date={date}
+        timezone={timezone}
+        horizonDays={horizonDays}
+        now={now}
+        allowPastPick={allowPastPick}
+        href={href}
+      />
     </div>
   );
 }

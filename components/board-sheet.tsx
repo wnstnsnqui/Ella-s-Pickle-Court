@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { useMediaQuery, WIDE_QUERY } from "./use-media-query";
 
 /**
- * Every staff sheet, in one shape. Spec 0005, AC-15.
+ * Every board sheet, in one shape. Spec 0005, AC-15.
  *
  * From the bottom on a phone, so the thumb reaches the form; from the right
  * from 768 pixels, so the grid stays beside it and the person can still see
@@ -31,6 +31,7 @@ export function BoardSheet({
   children,
   footer,
   returnFocusTo,
+  compact = false,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -39,6 +40,13 @@ export function BoardSheet({
   children: React.ReactNode;
   footer?: React.ReactNode;
   returnFocusTo?: React.RefObject<HTMLElement | null>;
+  /**
+   * For content much shorter than a form: hug it on the bottom sheet instead of
+   * reserving the usual near full height. The wide side stays as is; on a phone
+   * screen it is the calendar picker's phone fallback (spec 0011), a popover on
+   * anything wide enough to anchor one.
+   */
+  compact?: boolean;
 }) {
   const wide = useMediaQuery(WIDE_QUERY);
   return (
@@ -58,13 +66,22 @@ export function BoardSheet({
             target.focus();
           }
         }}
-        className={cn("gap-0", wide ? "w-full sm:max-w-md" : "max-h-[88vh] rounded-t-lg")}
+        className={cn(
+          "gap-0",
+          wide
+            ? "w-full sm:max-w-md"
+            : compact
+              ? "h-fit max-h-[85vh] rounded-t-lg"
+              : "max-h-[88vh] rounded-t-lg",
+        )}
       >
         <SheetHeader className="pr-12">
           <SheetTitle className="text-title">{title}</SheetTitle>
           <SheetDescription className="text-caption">{description}</SheetDescription>
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">{children}</div>
+        <div className={cn("min-h-0 overflow-y-auto px-4 pb-4", compact ? "" : "flex-1")}>
+          {children}
+        </div>
         {footer ? <SheetFooter className="border-border border-t">{footer}</SheetFooter> : null}
       </SheetContent>
     </Sheet>

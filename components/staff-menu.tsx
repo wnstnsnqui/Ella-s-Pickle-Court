@@ -27,7 +27,7 @@ export async function StaffMenu() {
     return (
       <>
         <StaffNotice icon={CircleAlert}>Could not load your account</StaffNotice>
-        <SignOutButton />
+        <SignOutButton className="order-last" />
       </>
     );
   }
@@ -36,19 +36,18 @@ export async function StaffMenu() {
     return (
       <>
         <StaffNotice icon={UserRoundX}>Your account is switched off</StaffNotice>
-        <SignOutButton />
+        <SignOutButton className="order-last" />
       </>
     );
   }
 
   return (
     <>
-      {/* The way to the staff board from anywhere else (spec 0005, AC-1). Icon
-          only on a phone, where the band has no room for four labels. */}
+      {/* The way to the staff board from anywhere else (spec 0005, AC-1). */}
       <Button asChild variant="ghost" size="sm" title="Schedule">
         <Link href="/staff">
           <CalendarDays aria-hidden="true" />
-          <span className="sr-only sm:not-sr-only">Schedule</span>
+          <span>Schedule</span>
         </Link>
       </Button>
       {/* Only an active owner sees the way to the reports and the settings
@@ -58,19 +57,21 @@ export async function StaffMenu() {
           <Button asChild variant="ghost" size="sm" title="Reports">
             <Link href="/staff/reports">
               <ChartColumn aria-hidden="true" />
-              <span className="sr-only sm:not-sr-only">Reports</span>
+              <span>Reports</span>
             </Link>
           </Button>
           <Button asChild variant="ghost" size="sm" title="Settings">
             <Link href="/staff/settings">
               <Settings2 aria-hidden="true" />
-              <span className="sr-only sm:not-sr-only">Settings</span>
+              <span>Settings</span>
             </Link>
           </Button>
         </>
       ) : null}
       <AccountButton name={current.staff.displayName} />
-      <SignOutButton />
+      {/* `order-last` (not source order) puts Sign out after the theme toggle,
+          which this component's caller renders straight after it. */}
+      <SignOutButton className="order-last" />
     </>
   );
 }

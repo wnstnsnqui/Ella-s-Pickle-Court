@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { describeSummary, summarizeRuns, type SelectionRun } from "@/lib/schedule/selection";
 
-import { BoardSheet } from "./board-sheet";
+import { BoardSheet } from "@/components/board-sheet";
 import { applyIssues, BookingFields } from "./booking-fields";
 import { bookFormSchema, EMPTY_BOOK_FORM, type BookFormValues } from "./forms";
 

@@ -2,6 +2,7 @@ import { Show } from "@clerk/nextjs";
 import { cookies } from "next/headers";
 import Link from "next/link";
 
+import { NavMenu } from "@/components/nav-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Wordmark } from "@/components/wordmark";
 import { clerkConfigured } from "@/lib/env";
@@ -34,6 +35,7 @@ export async function AppShell({
   className?: string;
 }) {
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const themeToggle = <ThemeToggle initial={theme} />;
 
   return (
     <div className="flex min-h-full flex-col">
@@ -44,11 +46,27 @@ export async function AppShell({
             <Wordmark />
             <div className="flex flex-wrap items-center gap-2">
               {staff && clerkConfigured ? (
-                <Show when="signed-in">
-                  <div className="flex items-center gap-2">{staff}</div>
-                </Show>
-              ) : null}
-              <ThemeToggle initial={theme} />
+                <>
+                  {/* Signed in: everything collapses behind one menu below
+                      1024px, where showing every item inline wraps and
+                      crowds the band; at 1024px and up they stay inline. */}
+                  <Show when="signed-in">
+                    <div className="hidden items-center gap-2 lg:flex">
+                      {staff}
+                      {themeToggle}
+                    </div>
+                    <NavMenu>
+                      {staff}
+                      {themeToggle}
+                    </NavMenu>
+                  </Show>
+                  {/* Signed out with a staff slot in play (the public board):
+                      nothing to collapse, the toggle just sits here as always. */}
+                  <Show when="signed-out">{themeToggle}</Show>
+                </>
+              ) : (
+                themeToggle
+              )}
             </div>
           </div>
         </div>

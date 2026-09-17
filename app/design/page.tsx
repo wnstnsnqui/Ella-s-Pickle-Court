@@ -6,8 +6,9 @@ import { DayNav } from "@/components/day-nav";
 import { StateLegend } from "@/components/schedule/state-legend";
 import { CELL_VIEWS } from "@/components/schedule/cell-view";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
-import { todayInZone } from "@/lib/time";
+import { addDays, calendarDateToLocalDate, todayInZone } from "@/lib/time";
 import { VENUE_NAME } from "@/lib/venue";
 
 import { CellStateGallery, GridPreview, LiveIndicatorPreview } from "./board-preview";
@@ -36,6 +37,8 @@ export const dynamic = "force-dynamic";
 
 export default function DesignPage() {
   const date = todayInZone(SAMPLE_TIMEZONE);
+  const dateLocal = calendarDateToLocalDate(date);
+  const lastBookableDayLocal = calendarDateToLocalDate(addDays(date, SAMPLE_HORIZON_DAYS));
   // The shell's own indicator, as a real board would hand it: the moment this
   // render happened, which is exactly what the age counts from. Reading the clock
   // is impure and the rule is right to say so on the client, but this is a server
@@ -144,6 +147,25 @@ export default function DesignPage() {
           blurb="Whether the board is still telling the truth, and how old it is when it is not."
         >
           <LiveIndicatorPreview />
+        </Section>
+
+        <Section
+          id="calendar"
+          title="Pick a date"
+          blurb="The calendar behind the toolbar's `Pick a date` button above (spec 0011), shown bare here since a sheet would portal outside this swatch. Days before today and past the booking horizon are disabled."
+        >
+          <ThemePair>
+            <Calendar
+              mode="single"
+              required
+              selected={dateLocal}
+              today={dateLocal}
+              month={dateLocal}
+              startMonth={dateLocal}
+              endMonth={lastBookableDayLocal}
+              disabled={[{ before: dateLocal }, { after: lastBookableDayLocal }]}
+            />
+          </ThemePair>
         </Section>
 
         <Section

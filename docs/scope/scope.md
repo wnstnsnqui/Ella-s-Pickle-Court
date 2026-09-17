@@ -114,7 +114,7 @@ spec [0005](../specs/0005-staff-booking-schedule/index.md) · code in `app/staff
 ### 7. Public schedule board · in-progress
 The page players open before they drive over. Read only, no sign in, and it updates by itself within a second or two so nobody is looking at a stale grid.
 **Done when:** anyone can pick a day and see each court's hours as Booked, Available or Unavailable, a change made by staff appears without a reload, no customer name, phone, note or amount is reachable from the page or its live updates, the read is rate limited, and the page carries a proper title, description, and social card when shared as a link.
-spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/page.tsx`, `app/loading.tsx`, `app/api/schedule/`, `components/board/`, `components/board-notice.tsx`, `components/schedule/read-gate.ts`, `components/schedule/use-schedule-channel.ts`, `lib/rate-limit.ts`, `proxy.ts`
+spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/page.tsx`, `app/loading.tsx`, `app/api/schedule/`, `components/board/`, `components/board-notice.tsx`, `components/schedule/read-gate.ts`, `components/schedule/use-schedule-channel.ts`, `lib/rate-limit.ts`, `proxy.ts`; the calendar date picker (spec [0011](../specs/0011-calendar-date-picker/index.md)) folds in here too, code in `components/day-nav.tsx`, `components/date-picker.tsx`, `components/board-sheet.tsx`, `components/use-media-query.ts`, `components/ui/calendar.tsx`, `components/ui/popover.tsx`
 - [x] Design it (spec): `/architect public schedule board`
 - [x] Build it: `/develop public schedule board`
   - [x] The thin thread: `/` becomes the board on `getSchedule()` with the day range rule, the notice, the empty, error and loading states, and `GET /api/schedule`, proven against a staff booking after a reload (AC-1, AC-2, AC-12)
@@ -122,8 +122,9 @@ spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/page.t
   - [x] Honest when not live: the slow poll, the focus refetch, the 429 wait, and the board following the venue's day at midnight (AC-6, AC-9, AC-10)
   - [x] The limiter in `proxy.ts` with its tests (AC-8)
   - [x] The phone conveniences and the metadata: the next free strip, dimmed past hours, the now marker and scroll, the per day title, the canonical link and the JSON-LD block (AC-3, AC-4, AC-11)
+  - [x] Calendar date picker (spec 0011): the `Pick a date` button on `DayNav` opening a shadcn `Calendar` inside the promoted, shared `BoardSheet`, bounded to the booking window and the staff/public past rule, on both boards; `BoardSheet`/`useMediaQuery` promoted out of `components/staff/` (spec 0011, all ACs)
 - [ ] Verify it: `/check verify public schedule board`
-- [x] Test it: `/test public schedule board`
+- [ ] Test it: `/test public schedule board`
 
 ## Slice 2: Manage the courts
 

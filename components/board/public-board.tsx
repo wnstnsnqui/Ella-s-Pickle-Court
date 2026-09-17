@@ -7,7 +7,6 @@ import { ScheduleGrid, type GridView } from "@/components/schedule/schedule-grid
 import { useChangedCells } from "@/components/schedule/use-changed-cells";
 import { calendarDateInZone } from "@/lib/time";
 
-import { NextFreeStrip } from "./next-free-strip";
 import { usePublicBoard } from "./public-schedule-context";
 
 /**
@@ -15,8 +14,8 @@ import { usePublicBoard } from "./public-schedule-context";
  *
  * Read only: the grid takes no `onSelectCell`, so the cells take focus and
  * nothing acts. The interesting parts are about time and about staying
- * honest: the strip and the dimming follow the board's clock, the highlight
- * follows what changed under the reader, and every re read replaces the day whole.
+ * honest: the dimming follows the board's clock, the highlight follows what
+ * changed under the reader, and every re read replaces the day whole.
  */
 
 /** How long a changed cell stays highlighted. Same as the staff board. */
@@ -53,8 +52,6 @@ export function PublicBoard() {
 
   return (
     <div className="flex flex-col gap-4">
-      {isToday && view.kind === "ready" ? <NextFreeStrip grid={grid} now={now} /> : null}
-
       {refetchError ? (
         <p role="alert" className="text-caption text-destructive">
           The last reload failed: {refetchError}. The board shows the day as it was before.

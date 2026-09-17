@@ -21,12 +21,14 @@ vi.mock("next/headers", () => ({
   }),
 }));
 
-// Clerk's `<Show>` stands in for the real gate: it renders its children only when
-// the test says a staff member is signed in.
+// Clerk's `<Show>` stands in for the real gate: it renders its children for
+// whichever side (`signed-in` or `signed-out`) matches the test's state.
 let signedIn = false;
 vi.mock("@clerk/nextjs", () => ({
-  Show: ({ when, children }: { when: string; children: ReactNode }) =>
-    when === "signed-in" && signedIn ? children : null,
+  Show: ({ when, children }: { when: string; children: ReactNode }) => {
+    const matches = when === "signed-in" ? signedIn : when === "signed-out" ? !signedIn : false;
+    return matches ? children : null;
+  },
 }));
 
 // Whether Clerk keys exist, set per test.
@@ -91,6 +93,12 @@ describe("AppShell", () => {
     signedIn = true;
     const html = await render({ staff: createElement("button", null, "Staff control") });
     expect(html).toContain("Staff control");
+  });
+
+  it("still shows the theme toggle to a signed out visitor even with a staff slot in play", async () => {
+    signedIn = false;
+    const html = await render({ staff: createElement("button", null, "Staff control") });
+    expect(html).toContain('aria-label="Theme: Follows your device. Switch to light"');
   });
 
   it("never asks Clerk about the staff slot when Clerk is not configured (AC-10)", async () => {

@@ -152,7 +152,8 @@ export function buildGrid(input: {
   const openInstant = zonedTimeToUtc(date, open, timezone).getTime();
   const closeInstant = zonedTimeToUtc(date, close, timezone).getTime();
 
-  const slotRanges: Array<{ start: number; end: number; label: string; outOfHours: boolean }> = [];
+  const inHoursRanges: Array<{ start: number; end: number; label: string; outOfHours: boolean }> =
+    [];
 
   for (
     let minute = openMinutes;
@@ -162,11 +163,19 @@ export function buildGrid(input: {
     const label = minutesToTime(minute);
     const start = zonedTimeToUtc(date, label, timezone).getTime();
     const end = start + settings.slotMinutes * 60_000;
-    slotRanges.push({ start, end, label, outOfHours: false });
+    inHoursRanges.push({ start, end, label, outOfHours: false });
   }
 
   // AC-11. One extra row per distinct out of hours range, so two courts closed
   // over the same early morning stretch share a row rather than doubling it.
+  // These always render below the closing time row, never mixed above it, so
+  // sort them among themselves but keep them after every in hours row.
+  const outOfHoursRanges: Array<{
+    start: number;
+    end: number;
+    label: string;
+    outOfHours: boolean;
+  }> = [];
   const seen = new Set<string>();
   for (const block of blocks) {
     const start = Date.parse(block.startsAt);
@@ -175,7 +184,7 @@ export function buildGrid(input: {
     const key = `${start}-${end}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    slotRanges.push({
+    outOfHoursRanges.push({
       start,
       end,
       label: localTimeInZone(new Date(start), timezone),
@@ -183,7 +192,9 @@ export function buildGrid(input: {
     });
   }
 
-  slotRanges.sort((a, b) => a.start - b.start || a.end - b.end);
+  outOfHoursRanges.sort((a, b) => a.start - b.start || a.end - b.end);
+
+  const slotRanges = [...inHoursRanges, ...outOfHoursRanges];
 
   const rows: GridRow[] = slotRanges.map((slot) => ({
     startsAt: new Date(slot.start).toISOString(),
@@ -204,21 +215,4 @@ export function buildGrid(input: {
     courts,
     rows,
   };
-}
-
-/**
- * The next free slot on a court, derived rather than stored: the first row
- * ending after `from` whose cell reads Available (spec 0006, AC-3). The whole
- * row comes back rather than its start instant, because a reader needs its
- * venue local `label` and whether it has already started.
- */
-export function nextFreeTime(grid: Grid, courtId: number, from: Date): GridRow | null {
-  const cutoff = from.getTime();
-  for (const row of grid.rows) {
-    if (row.outOfHours) continue;
-    if (Date.parse(row.endsAt) <= cutoff) continue;
-    const cell = row.cells.find((candidate) => candidate.courtId === courtId);
-    if (cell?.state === "available") return row;
-  }
-  return null;
 }

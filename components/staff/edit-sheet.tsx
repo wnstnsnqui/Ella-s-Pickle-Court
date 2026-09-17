@@ -28,7 +28,7 @@ import type { EndOption } from "@/lib/schedule/closure";
 import type { StaffReservation } from "@/lib/schedule/queries";
 import { formatSlotLabel, localEndTimeInZone } from "@/lib/time";
 
-import { BoardSheet } from "./board-sheet";
+import { BoardSheet } from "@/components/board-sheet";
 import { applyIssues, BookingFields } from "./booking-fields";
 import {
   bookFormSchema,

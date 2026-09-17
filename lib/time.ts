@@ -148,6 +148,30 @@ export function addDays(date: string, days: number): string {
   return moved.toISOString().slice(0, 10);
 }
 
+/**
+ * A calendar date as a `Date` at local midnight, the identity `react-day-picker`
+ * compares days by (year, month, day on the reader's own device, never a zone
+ * conversion). Spec 0011, AC-2: this is what lets the calendar mark "today" and
+ * "selected" without disagreeing with the venue's day.
+ */
+export function calendarDateToLocalDate(date: string): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+/**
+ * The reverse of {@link calendarDateToLocalDate}: `react-day-picker`'s own local
+ * year/month/day fields back to `YYYY-MM-DD`. Never routed through a timezone,
+ * so a device west of the venue still writes the day it shows, not the day
+ * before (spec 0011, AC-2).
+ */
+export function localDateToCalendarDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 /** Whole days from one calendar date to another, `to` minus `from`. */
 export function daysBetween(from: string, to: string): number {
   const parse = (value: string) => {

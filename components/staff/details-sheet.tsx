@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import type { StaffName, StaffReservation } from "@/lib/schedule/queries";
 
-import { BoardSheet } from "./board-sheet";
+import { BoardSheet } from "@/components/board-sheet";
 import {
   formatDayOf,
   formatPeso,

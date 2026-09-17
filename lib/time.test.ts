@@ -167,6 +167,25 @@ describe("localTimeInZone", () => {
   });
 });
 
+describe("calendarDateToLocalDate and localDateToCalendarDate (spec 0011, AC-2)", () => {
+  it("round trips a calendar date through the local Date identity react-day-picker compares by", async () => {
+    const { calendarDateToLocalDate, localDateToCalendarDate } = await loadTime();
+    expect(localDateToCalendarDate(calendarDateToLocalDate("2026-09-20"))).toBe("2026-09-20");
+    expect(localDateToCalendarDate(calendarDateToLocalDate("2026-01-01"))).toBe("2026-01-01");
+    expect(localDateToCalendarDate(calendarDateToLocalDate("2026-12-31"))).toBe("2026-12-31");
+  });
+
+  it("reads the picked day back from a device west of the venue without shifting a day", async () => {
+    // A device on this clock reads the same wall time react-day-picker itself would
+    // have shown, regardless of what the venue's own zone is doing at that instant.
+    process.env.TZ = "America/Los_Angeles";
+    const { calendarDateToLocalDate, localDateToCalendarDate } = await loadTime();
+    const picked = calendarDateToLocalDate("2026-09-20");
+    expect(picked.getHours()).toBe(0);
+    expect(localDateToCalendarDate(picked)).toBe("2026-09-20");
+  });
+});
+
 describe("formatDayHeading", () => {
   it("names the weekday, day and month from the calendar date alone (spec 0006, AC-11)", async () => {
     const { formatDayHeading } = await loadTime();
