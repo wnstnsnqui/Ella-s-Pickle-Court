@@ -79,6 +79,18 @@ describe("parseEventProperties", () => {
     } as never);
     expect(result.ok).toBe(false);
   });
+
+  it("accepts a staff_session_refused bag carrying only the PostgREST code", () => {
+    expect(parseEventProperties("staff_session_refused", { code: "PGRST303" }).ok).toBe(true);
+  });
+
+  it("refuses a staff_session_refused bag carrying anything beyond the code", () => {
+    const result = parseEventProperties("staff_session_refused", {
+      code: "PGRST303",
+      customer_name: "leak",
+    } as never);
+    expect(result.ok).toBe(false);
+  });
 });
 
 describe("scrubError", () => {

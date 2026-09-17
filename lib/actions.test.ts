@@ -11,10 +11,11 @@ import { z } from "zod";
 const auth = vi.hoisted(() => vi.fn());
 const staffSupabase = vi.hoisted(() => vi.fn(() => ({ marker: "staff client" })));
 const reportFailure = vi.hoisted(() => vi.fn());
+const captureStaffEvent = vi.hoisted(() => vi.fn());
 
 vi.mock("@clerk/nextjs/server", () => ({ auth }));
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
-vi.mock("@/lib/analytics/server", () => ({ reportFailure }));
+vi.mock("@/lib/analytics/server", () => ({ reportFailure, captureStaffEvent }));
 
 const { describeDatabaseError, fail, ok, parseInput, requireStaff } = await import("./actions");
 
@@ -167,6 +168,40 @@ describe("describeDatabaseError", () => {
       { action: "test" },
     );
     expect(error).toMatchObject({ kind: "conflict", reason: "sort_order_taken" });
+  });
+
+  it.each(["PGRST301", "PGRST302", "PGRST303"])(
+    "maps the PostgREST token refusal %s to unauthenticated, never a raw failure",
+    (code) => {
+      const error = describeDatabaseError(
+        { code, message: "JWT not yet valid" },
+        { action: "loadSettings", distinctId: "user_1" },
+      );
+      expect(error).toEqual({
+        kind: "unauthenticated",
+        message: "Your session has expired. Sign in again.",
+      });
+      expect(reportFailure).not.toHaveBeenCalled();
+    },
+  );
+
+  it("counts a session refusal keyed on the code, without reporting an exception", () => {
+    describeDatabaseError(
+      { code: "PGRST303", message: "JWT not yet valid" },
+      { action: "loadSettings", distinctId: "user_1" },
+    );
+    expect(captureStaffEvent).toHaveBeenCalledExactlyOnceWith("user_1", "staff_session_refused", {
+      code: "PGRST303",
+    });
+    expect(reportFailure).not.toHaveBeenCalled();
+  });
+
+  it("skips the session counter when no staff id is known (the public board)", () => {
+    describeDatabaseError(
+      { code: "PGRST303", message: "JWT not yet valid" },
+      { action: "getSchedule" },
+    );
+    expect(captureStaffEvent).not.toHaveBeenCalled();
   });
 
   it("passes anything else through as failed with the database message", () => {
