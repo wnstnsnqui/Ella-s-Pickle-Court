@@ -4,6 +4,7 @@ import { LoaderCircle } from "lucide-react";
 import { useState } from "react";
 
 import { BoardSheet } from "@/components/board-sheet";
+import { firstName } from "@/components/staff/format";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -56,7 +57,7 @@ export function UserSheet({
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}
-      title={account ? `Edit ${account.displayName}` : "Edit account"}
+      title={account ? `Edit ${firstName(account.displayName)}` : "Edit account"}
       description="Change their role or active flag, then save."
       footer={
         <Button type="submit" form="user-form" disabled={pending} className="w-full">

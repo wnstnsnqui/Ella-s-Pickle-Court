@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  firstName,
   formatDayOf,
   formatPeso,
   formatRange,
@@ -33,13 +34,20 @@ describe("staffDisplayName", () => {
     { clerkUserId: "user_leaver", displayName: "Old Staff" },
   ];
 
-  it("resolves an id from the list, a leaver included (AC-7)", () => {
-    expect(staffDisplayName(staff, "user_leaver")).toBe("Old Staff");
+  it("resolves an id from the list, a leaver included (AC-7), to their first name", () => {
+    expect(staffDisplayName(staff, "user_leaver")).toBe("Old");
   });
 
   it("falls back to a plain phrase for a missing id or a null writer", () => {
     expect(staffDisplayName(staff, "user_unknown")).toBe("a staff member");
     expect(staffDisplayName(staff, null)).toBe("a staff member");
+  });
+});
+
+describe("firstName", () => {
+  it("takes the first word of a full name", () => {
+    expect(firstName("Ella Santos")).toBe("Ella");
+    expect(firstName("Ella")).toBe("Ella");
   });
 });
 

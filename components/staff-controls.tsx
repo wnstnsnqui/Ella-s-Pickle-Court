@@ -5,6 +5,7 @@ import { LogOut, UserRound } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { firstName } from "@/components/staff/format";
 import { Button } from "@/components/ui/button";
 import { resetIdentity } from "@/lib/analytics/browser";
 
@@ -17,7 +18,10 @@ import { resetIdentity } from "@/lib/analytics/browser";
  * back on the public board.
  */
 
-/** The signed in person's name. Pressing it opens Clerk's account modal. */
+/**
+ * The signed in person's first name. Pressing it opens Clerk's account modal,
+ * where their full name and other profile details live.
+ */
 export function AccountButton({ name }: { name: string }) {
   const { openUserProfile } = useClerk();
   return (
@@ -26,10 +30,10 @@ export function AccountButton({ name }: { name: string }) {
       variant="ghost"
       size="sm"
       onClick={() => openUserProfile()}
-      title="Manage your account"
+      title={`Manage your account (${name})`}
     >
       <UserRound aria-hidden="true" />
-      <span className="max-w-32 truncate">{name}</span>
+      <span className="max-w-32 truncate">{firstName(name)}</span>
       <span className="sr-only">, manage your account</span>
     </Button>
   );

@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/schedule/empty-state";
+import { firstName } from "@/components/staff/format";
 import { Button } from "@/components/ui/button";
 import type { StaffRole } from "@/lib/schedule/constants";
 import { withRetry } from "@/lib/schedule/retry";
@@ -85,7 +86,7 @@ export function UsersPanel({
       await refetch();
       setBusy(false);
       setSheetAccount(null);
-      toast.success(`${target.displayName} updated.`);
+      toast.success(`${firstName(target.displayName)} updated.`);
       return;
     }
 
@@ -120,7 +121,7 @@ export function UsersPanel({
               className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
             >
               <div className="min-w-0 flex-1">
-                <p className="text-label truncate">{row.displayName}</p>
+                <p className="text-label truncate">{firstName(row.displayName)}</p>
                 <p className="text-caption text-muted-foreground truncate">
                   {row.email ?? "No email on file"}
                   {row.lastSignedInAt
@@ -145,7 +146,7 @@ export function UsersPanel({
                     onClick={(event) => openEdit(row, event.currentTarget)}
                   >
                     <Pencil aria-hidden="true" />
-                    <span className="sr-only">Edit {row.displayName}</span>
+                    <span className="sr-only">Edit {firstName(row.displayName)}</span>
                   </Button>
                 </div>
               )}

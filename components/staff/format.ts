@@ -29,7 +29,13 @@ export function telHref(phone: string): string {
 /** Who a Clerk id is. The foreign key means a miss should not happen; it still reads sensibly. */
 export function staffDisplayName(staff: readonly StaffName[], clerkUserId: string | null): string {
   if (!clerkUserId) return "a staff member";
-  return staff.find((row) => row.clerkUserId === clerkUserId)?.displayName ?? "a staff member";
+  const match = staff.find((row) => row.clerkUserId === clerkUserId);
+  return match ? firstName(match.displayName) : "a staff member";
+}
+
+/** The first word of a full name. Display only: the stored `display_name` is never shortened. */
+export function firstName(name: string): string {
+  return name.split(" ")[0];
 }
 
 /** "4pm to 6pm", in the venue's zone, in the grid's own compact labels. */

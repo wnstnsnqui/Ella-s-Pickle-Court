@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import Link from "next/link";
 
+import { firstName } from "@/components/staff/format";
 import { Button } from "@/components/ui/button";
 import type { DayReservation } from "@/lib/report/queries";
 import { formatAtVenue, formatDayHeading } from "@/lib/time";
@@ -69,7 +70,7 @@ export function DaySection({
                         : ""}
                     </span>
                   ) : reservation.createdByName ? (
-                    <span>Booked by {reservation.createdByName}</span>
+                    <span>Booked by {firstName(reservation.createdByName)}</span>
                   ) : null}
                 </div>
               </li>
