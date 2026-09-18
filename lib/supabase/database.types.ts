@@ -301,7 +301,7 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      acknowledge_privacy_notice: { Args: { version: string }; Returns: string };
+      acknowledge_privacy_notice: { Args: { p_version: string }; Returns: string };
       court_usage: {
         Args: { for_court_id?: number; from_date: string; to_date: string };
         Returns: {
