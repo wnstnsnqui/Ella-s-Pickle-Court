@@ -82,6 +82,7 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - **A page whose value is being current renders per request.** No static or cached rendering on the boards.
 - **Prettier owns layout, ESLint owns real problems.** `eslint-config-prettier` stands down every formatting rule, so never add one back. Run `npm run check` before calling a slice finished: it is lint, format check, typecheck, and tests in that order.
 - **Every Server Action sends its analytics event only after a successful write, through `captureStaffEvent()`, and never awaits it.** See `lib/analytics/AGENTS.md`.
+- **A Client Component may never import from a module that starts `import "server-only"` (`lib/staff.ts`, `lib/actions.ts`), not even one named export.** The guard travels with the whole file, so Next refuses to bundle it, and because these modules sit on the path from the root layout the failure cascades to every route, not just the one screen that imported it. A shared pure helper both a Server Component and a Client Component need belongs in a plain module with no `server-only` import instead, e.g. `lib/schedule/constants.ts`. `lib/import-boundaries.test.ts` checks every `"use client"` file for this.
 
 ## Agent skills
 
@@ -103,5 +104,6 @@ Declined: prettier (the setup is done and the available skills are all scaffolde
 - [lib/supabase/AGENTS.md](lib/supabase/AGENTS.md): the three Supabase clients and which one to reach for
 - [supabase/AGENTS.md](supabase/AGENTS.md): migrations, row level security policies, and the broadcast trigger
 - [lib/analytics/AGENTS.md](lib/analytics/AGENTS.md): PostHog analytics and error tracking, the event allow list, and the off switch
+- [lib/staff/AGENTS.md](lib/staff/AGENTS.md): the Server Action behind `/staff/admin/users`, role and active status writes
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

@@ -23,6 +23,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 10 | Usage reporting | Slice 4 | in-progress |
 | 11 | Analytics & error alerts | Slice 5 | done |
 | 12 | Privacy, terms & cookie notice | Slice 5 | in-progress |
+| 13 | Staff roles & admin access | Slice 5 | in-progress |
 
 ## Foundations
 
@@ -190,6 +191,19 @@ spec [0010](../specs/0010-privacy-terms-cookie-notice/index.md) · code in `supa
 - [ ] Verify it: `/check verify privacy, terms & cookie notice`
 - [ ] Test it: `/test privacy, terms & cookie notice`
 
+### 13. Staff roles & admin access · in-progress
+Winston becomes superadmin and gets a screen to see every staff account and assign or change roles, closing the gap spec 0004 left as a database editor job. Admin stands equal to owner everywhere except this new screen.
+**Done when:** admin and superadmin roles exist alongside staff and owner, every owner gated surface treats owner, admin and superadmin alike, and a superadmin can see and change anyone's role or active status from `/staff/admin/users` with a confirm step and a written record of who changed what.
+spec [0012](../specs/0012-staff-roles-admin-superadmin/index.md) · code in `supabase/migrations/`, `lib/staff.ts`, `lib/staff/`, `app/staff/admin/users/`, `components/staff-menu.tsx`, `components/staff/`
+- [x] Design it (spec): `/architect staff roles & admin access`
+- [ ] Build it: `/develop staff roles & admin access`
+  - [x] The migration and the widened role model: the check constraint, `staff.version`, `staff_single_owner_idx`, `private.is_owner()` widened, `public.update_staff_role()`, `staff_audit`, and the TypeScript role type widened in `lib/staff.ts` (AC-6, AC-7, AC-8, AC-9, AC-10, AC-11, AC-12)
+  - [x] The thin thread: `getAllStaff()`, `/staff/admin/users` with its redirect, and the Users link in the staff menu (AC-1, AC-2)
+  - [x] The write path: the role and active controls, the confirm dialog, `updateStaffRole`, and the analytics event (AC-3, AC-4, AC-5, AC-14)
+  - [ ] Proof and tests: the owner transfer and audit trail proven live against the linked database, and the database and unit tests, are done (AC-9, AC-10); the one time SQL promoting Winston to superadmin is still owed (AC-13, Winston's own step)
+- [ ] Verify it: `/check verify staff roles & admin access`
+- [x] Test it: `/test staff roles & admin access` (test files already cover this feature's area: `lib/staff.test.ts`, `lib/staff/actions.test.ts`, `components/staff-menu.test.ts`, `components/staff/roles.test.ts`, `supabase/tests/update_staff_role.test.ts`, `lib/import-boundaries.test.ts`, all passing)
+
 ## Deferred
 Out of scope for the current build pass, kept so the plan stays honest.
 - **Takings & unpaid report**: what came in over a date range and which bookings are still unpaid. The data is already recorded from spec 0002, only the view is missing · needs a decision · from spec 0002
@@ -205,7 +219,6 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **More than one venue**: several locations under one system · needs a decision
 - **Renaming the venue without a deploy**: the venue name is a constant, because `venue_settings` has no name column. Adding one is a small change to spec 0002 plus an owner only field · from spec 0003
 - **Staff editing payments on a past booking**: today only an owner may touch a booking that has ended, so a payment settled the next day needs Ella · from spec 0002
-- **Staff management screen**: an owner changes a role, switches a leaver off, or clears a leaver's email in the app instead of the Supabase SQL editor. Likely wanted within the first weeks of real use · needs a decision · from spec 0004
 - **Grouping the rows of one multi court booking**: a class booked across two courts is two unrelated rows today, so cancelling it is two cancels. A `booking_group` column on `reservation` is a small forward only migration under spec 0002 · from spec 0005
 - **Changing a booking's end time in the edit form**: today a booking edit changes details only, while a closure edit may also move its end. The same free run select would let a booking grow or shrink without cancel and rebook · from spec 0005
 - **The staff board's now marker**: spec 0006 gives the public grid a `now` prop (dimmed past rows, a Now marker, scroll to the current hour). The staff board keeps its lock only dimming until it adopts the same prop, so the two boards read slightly differently on today until then · from spec 0006

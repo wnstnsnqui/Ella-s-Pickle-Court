@@ -80,4 +80,43 @@ describe("StaffMenu", () => {
     current = { kind: "error" };
     expect(await render()).toMatch(/<svg[^>]*aria-hidden="true"/);
   });
+
+  it("shows the Users link for an active superadmin (spec 0012, AC-12)", async () => {
+    current = {
+      kind: "ok",
+      staff: {
+        displayName: "Winston",
+        role: "superadmin",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
+    };
+    expect(await render()).toContain('href="/staff/admin/users"');
+  });
+
+  it("also shows the Users link for an active owner, who carries the same power (spec 0012, AC-12)", async () => {
+    current = {
+      kind: "ok",
+      staff: {
+        displayName: "Ella",
+        role: "owner",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
+    };
+    expect(await render()).toContain('href="/staff/admin/users"');
+  });
+
+  it("hides the Users link for an admin", async () => {
+    current = {
+      kind: "ok",
+      staff: {
+        displayName: "Sam",
+        role: "admin",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
+    };
+    expect(await render()).not.toContain('href="/staff/admin/users"');
+  });
 });

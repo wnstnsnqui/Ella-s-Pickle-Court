@@ -58,6 +58,14 @@ const privacyNoticeAcknowledgedSchema = z
   })
   .strict();
 
+const staffRoleChangedSchema = z
+  .object({
+    target_clerk_user_id: z.string(),
+    role: z.enum(["staff", "owner", "admin", "superadmin"]),
+    is_active: z.boolean(),
+  })
+  .strict();
+
 /**
  * Every event `captureStaffEvent()` or `captureDayViewed()` may send, and the
  * schema its properties must pass. Adding an event means adding a row here
@@ -74,6 +82,7 @@ export const eventSchemas = {
   hours_changed: hoursChangedSchema,
   board_day_viewed: boardDayViewedSchema,
   privacy_notice_acknowledged: privacyNoticeAcknowledgedSchema,
+  staff_role_changed: staffRoleChangedSchema,
 } satisfies Record<string, z.ZodType>;
 
 export type AnalyticsEvent = keyof typeof eventSchemas;

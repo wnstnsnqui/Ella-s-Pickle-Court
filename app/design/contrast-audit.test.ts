@@ -6,9 +6,9 @@ import { describe, expect, it } from "vitest";
 import { ContrastAudit } from "./contrast-audit";
 
 /**
- * Spec 0003, AC-4: every colour pair meets WCAG AA in both themes, measured in the
- * browser. The measuring needs a real stylesheet and `getComputedStyle`, so the
- * ratios themselves are `/check verify` work on `/design`. What can be pinned here
+ * Spec 0003, AC-4: every colour pair meets WCAG AA, measured in the browser. The
+ * measuring needs a real stylesheet and `getComputedStyle`, so the ratios
+ * themselves are `/check verify` work on `/design`. What can be pinned here
  * is that the component survives a server render, and that the pairs it measures
  * are tokens the stylesheet actually defines. A pair naming a missing token is
  * skipped silently by `measure`, so the table would say "all pairs pass" while
@@ -24,7 +24,7 @@ describe("ContrastAudit", () => {
   it("renders a polite status on the server while nothing has been measured yet (AC-4)", () => {
     const html = renderToStaticMarkup(createElement(ContrastAudit));
     expect(html).toMatch(/<p[^>]*role="status"/);
-    expect(html).toContain("Measuring every pair in both themes");
+    expect(html).toContain("Measuring every pair");
     expect(html).not.toContain("<table");
   });
 

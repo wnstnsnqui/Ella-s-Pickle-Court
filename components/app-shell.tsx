@@ -1,12 +1,9 @@
 import { Show } from "@clerk/nextjs";
-import { cookies } from "next/headers";
 import Link from "next/link";
 
 import { NavMenu } from "@/components/nav-menu";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Wordmark } from "@/components/wordmark";
 import { clerkConfigured } from "@/lib/env";
-import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,7 +18,7 @@ import { cn } from "@/lib/utils";
  * write; the row level security policies from spec 0002 do, and they would refuse
  * a write from a signed out visitor whatever this markup said.
  */
-export async function AppShell({
+export function AppShell({
   children,
   toolbar,
   staff,
@@ -34,40 +31,24 @@ export async function AppShell({
   staff?: React.ReactNode;
   className?: string;
 }) {
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
-  const themeToggle = <ThemeToggle initial={theme} />;
-
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-border sticky top-0 z-30 border-b shadow-sm">
-        {/* The brand band: golden in daylight, and the plain page colour at night. */}
+        {/* The brand band, golden. */}
         <div className="bg-brand text-brand-foreground">
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
             <Wordmark />
-            <div className="flex flex-wrap items-center gap-2">
-              {staff && clerkConfigured ? (
-                <>
-                  {/* Signed in: everything collapses behind one menu below
-                      1024px, where showing every item inline wraps and
-                      crowds the band; at 1024px and up they stay inline. */}
-                  <Show when="signed-in">
-                    <div className="hidden items-center gap-2 lg:flex">
-                      {staff}
-                      {themeToggle}
-                    </div>
-                    <NavMenu>
-                      {staff}
-                      {themeToggle}
-                    </NavMenu>
-                  </Show>
-                  {/* Signed out with a staff slot in play (the public board):
-                      nothing to collapse, the toggle just sits here as always. */}
-                  <Show when="signed-out">{themeToggle}</Show>
-                </>
-              ) : (
-                themeToggle
-              )}
-            </div>
+            {staff && clerkConfigured ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Signed in: everything collapses behind one menu below
+                    1024px, where showing every item inline wraps and
+                    crowds the band; at 1024px and up they stay inline. */}
+                <Show when="signed-in">
+                  <div className="hidden items-center gap-2 lg:flex">{staff}</div>
+                  <NavMenu>{staff}</NavMenu>
+                </Show>
+              </div>
+            ) : null}
           </div>
         </div>
         {toolbar ? (

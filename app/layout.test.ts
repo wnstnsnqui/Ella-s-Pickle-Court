@@ -1,23 +1,15 @@
 import { isValidElement, type ReactElement, type ReactNode } from "react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
 
 /**
- * Spec 0003, AC-1 (the theme is stamped on `<html>` before first paint, and the
- * default follows the device) and AC-15 (Inter, self hosted through `next/font`).
+ * Spec 0003, AC-15 (Inter, self hosted through `next/font`).
  *
- * The root layout is an async server component. Its element tree is inspected
+ * The root layout is a server component. Its element tree is inspected
  * rather than rendered: `<html>` and `<body>` are what matter, and the providers
  * around them are covered by their own module.
  */
-
-let cookieJar: Record<string, string> = {};
-vi.mock("next/headers", () => ({
-  cookies: async () => ({
-    get: (name: string) => (name in cookieJar ? { name, value: cookieJar[name] } : undefined),
-  }),
-}));
 
 // `next/font/google` is a build time transform. Outside `next build` it must be
 // stood in for; what matters here is that the layout asks for Inter and puts its
@@ -35,10 +27,6 @@ const Toaster = () => null;
 vi.mock("@/components/ui/sonner", () => ({ Toaster }));
 
 vi.mock("./globals.css", () => ({}));
-
-beforeEach(() => {
-  cookieJar = {};
-});
 
 /** Walk down a tree of elements until one has the given type. */
 function find(node: ReactNode, type: string): ReactElement<Record<string, unknown>> | null {
@@ -58,26 +46,11 @@ async function renderTree() {
 }
 
 describe("RootLayout", () => {
-  it("stamps nothing on <html> when no theme is pinned, so the device decides (AC-1)", async () => {
+  it("renders <html> with no theme attribute", async () => {
     const html = find(await renderTree(), "html");
     expect(html).not.toBeNull();
     expect(html!.props["data-theme"]).toBeUndefined();
     expect(html!.props.lang).toBe("en");
-  });
-
-  it.each(["light", "dark"] as const)(
-    "stamps data-theme=%s on <html> from the cookie before first paint (AC-1)",
-    async (theme) => {
-      cookieJar = { theme };
-      const html = find(await renderTree(), "html");
-      expect(html!.props["data-theme"]).toBe(theme);
-    },
-  );
-
-  it("treats a damaged cookie as following the device (AC-1)", async () => {
-    cookieJar = { theme: "neon" };
-    const html = find(await renderTree(), "html");
-    expect(html!.props["data-theme"]).toBeUndefined();
   });
 
   it("loads Inter through next/font, self hosted, and puts its variable on <html> (AC-15)", async () => {
@@ -104,19 +77,14 @@ describe("RootLayout", () => {
 });
 
 describe("viewport", () => {
-  it("declares both colour schemes so the browser paints the right ground before CSS (AC-1)", async () => {
+  it("declares light as the only colour scheme", async () => {
     const { viewport } = await import("./layout");
-    expect(viewport.colorScheme).toBe("light dark");
+    expect(viewport.colorScheme).toBe("light");
   });
 
-  it("gives each scheme its own theme colour", async () => {
+  it("gives the browser a theme colour", async () => {
     const { viewport } = await import("./layout");
-    const colors = viewport.themeColor as Array<{ media: string; color: string }>;
-    expect(colors.map((c) => c.media)).toEqual([
-      "(prefers-color-scheme: light)",
-      "(prefers-color-scheme: dark)",
-    ]);
-    expect(new Set(colors.map((c) => c.color)).size).toBe(2);
+    expect(viewport.themeColor).toBe("#fffbea");
   });
 });
 

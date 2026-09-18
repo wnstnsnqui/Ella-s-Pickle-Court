@@ -143,13 +143,17 @@ export function describeDatabaseError(
     }
   }
   // `reorder_courts` refusing a list whose versions no longer match (spec 0007,
-  // AC-5): the second way a version conflict surfaces, mapped to the same answer
-  // a zero row update gives.
+  // AC-5), and `update_staff_role` refusing a stale role or active change
+  // (spec 0012, AC-8): the same P0002 code, from either a mismatched version
+  // or a target row that no longer exists, mapped to the same named conflict.
   if (error.code === "P0002") {
     return {
       kind: "conflict",
       reason: "version_stale",
-      message: "Somebody else changed the courts first. The list has been reloaded.",
+      message:
+        context.action === "updateStaffRole"
+          ? "Somebody else changed that account first. The list has been reloaded."
+          : "Somebody else changed the courts first. The list has been reloaded.",
     };
   }
   if (error.code === "42501") {

@@ -12,7 +12,7 @@ import {
 } from "@/lib/design/contrast";
 
 /**
- * Every pair AC-4 covers, measured in the browser in both themes.
+ * Every pair AC-4 covers, measured in the browser.
  *
  * The list is the contract: body text at 4.5:1, and icons, large text, focus
  * rings and the boundaries of anything you can operate at 3:1. If a token is
@@ -113,12 +113,11 @@ const PAIRS: Array<{ fg: string; bg: string; need: ContrastNeed; what: string }>
   { fg: "--destructive", bg: "--card", need: "boundary", what: "Error text and icon on a card" },
 ];
 
-type Measured = { theme: "light" | "dark"; what: string; need: ContrastNeed; ratio: number };
+type Measured = { what: string; need: ContrastNeed; ratio: number };
 
-/** Read what a token resolves to inside a subtree that is forced to one theme. */
-function measure(theme: "light" | "dark"): Measured[] {
+/** Read what a token resolves to. */
+function measure(): Measured[] {
   const probe = document.createElement("div");
-  probe.setAttribute("data-theme", theme);
   probe.style.position = "absolute";
   probe.style.visibility = "hidden";
   document.body.append(probe);
@@ -129,7 +128,7 @@ function measure(theme: "light" | "dark"): Measured[] {
     const fg = resolveColor(style.getPropertyValue(pair.fg).trim());
     const bg = resolveColor(style.getPropertyValue(pair.bg).trim());
     if (!fg || !bg) continue;
-    out.push({ theme, what: pair.what, need: pair.need, ratio: contrastRatio(fg, bg) });
+    out.push({ what: pair.what, need: pair.need, ratio: contrastRatio(fg, bg) });
   }
   probe.remove();
   return out;
@@ -141,14 +140,14 @@ export function ContrastAudit() {
   useEffect(() => {
     // Measured after a paint, so the stylesheet is certainly in force by the time
     // the probe is asked what a token resolved to.
-    const frame = requestAnimationFrame(() => setRows([...measure("light"), ...measure("dark")]));
+    const frame = requestAnimationFrame(() => setRows(measure()));
     return () => cancelAnimationFrame(frame);
   }, []);
 
   if (!rows) {
     return (
       <p role="status" className="text-muted-foreground text-body">
-        Measuring every pair in both themes…
+        Measuring every pair…
       </p>
     );
   }
@@ -160,7 +159,7 @@ export function ContrastAudit() {
       <p className="text-body">
         {failing.length === 0 ? (
           <Badge className="bg-state-available text-state-available-fg border-state-available-border">
-            All {rows.length} pairs meet WCAG AA in both themes
+            All {rows.length} pairs meet WCAG AA
           </Badge>
         ) : (
           <Badge variant="destructive">
@@ -171,16 +170,11 @@ export function ContrastAudit() {
 
       <div className="border-border overflow-x-auto rounded-lg border">
         <table className="w-full text-left">
-          <caption className="sr-only">
-            Measured contrast ratio of every colour pair, in the light theme and the dark theme
-          </caption>
+          <caption className="sr-only">Measured contrast ratio of every colour pair</caption>
           <thead className="bg-muted text-caption text-muted-foreground">
             <tr>
               <th scope="col" className="px-3 py-2 font-medium">
                 Pair
-              </th>
-              <th scope="col" className="px-3 py-2 font-medium">
-                Theme
               </th>
               <th scope="col" className="px-3 py-2 font-medium">
                 Needs
@@ -194,11 +188,10 @@ export function ContrastAudit() {
             {rows.map((row) => {
               const ok = meets(row.ratio, row.need);
               return (
-                <tr key={`${row.theme}-${row.what}`} className="border-border border-t">
+                <tr key={row.what} className="border-border border-t">
                   <th scope="row" className="px-3 py-1.5 font-normal">
                     {row.what}
                   </th>
-                  <td className="text-muted-foreground px-3 py-1.5">{row.theme}</td>
                   <td className="text-muted-foreground px-3 py-1.5 tabular-nums">
                     {CONTRAST_MINIMUM[row.need].toFixed(1)}:1
                   </td>

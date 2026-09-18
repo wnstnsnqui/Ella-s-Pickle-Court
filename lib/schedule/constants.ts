@@ -20,9 +20,43 @@ export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
 export const PAYMENT_STATUSES = ["unpaid", "partial", "paid", "waived"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
-/** Who a staff row is. Only an owner may touch courts, settings, or the past. */
-export const STAFF_ROLES = ["staff", "owner"] as const;
+/**
+ * Who a staff row is. `owner`, `admin` and `superadmin` stand equal on every
+ * owner gated surface; `owner` and `superadmin` also stand equal on
+ * `/staff/admin/users`, which `admin` cannot reach. Spec 0012.
+ */
+export const STAFF_ROLES = ["staff", "owner", "admin", "superadmin"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
+
+/**
+ * `owner`, `admin` and `superadmin` stand equal everywhere except
+ * `/staff/admin/users`. Spec 0012.
+ *
+ * Lives here, not in `lib/staff.ts`, because this file carries no
+ * `server-only` import: `components/staff/staff-board.tsx` (a client
+ * component) needs it too, and importing anything from `lib/staff.ts` pulls
+ * its `server-only` guard into the client bundle and fails the build.
+ */
+export function isOwnerLevel(role: StaffRole): boolean {
+  return role === "owner" || role === "admin" || role === "superadmin";
+}
+
+/**
+ * Who may reach `/staff/admin/users` and change someone else's role or
+ * active flag: `owner` and `superadmin` stand equal here, `admin` does not.
+ * Spec 0012, revised so owner carries the same power as superadmin.
+ */
+export function canManageStaffRoles(role: StaffRole): boolean {
+  return role === "owner" || role === "superadmin";
+}
+
+/** Top to bottom order for the `/staff/admin/users` list, most privileged first. */
+export const STAFF_ROLE_DISPLAY_ORDER = [
+  "owner",
+  "superadmin",
+  "admin",
+  "staff",
+] as const satisfies readonly StaffRole[];
 
 /** The slot lengths Ella may choose between. */
 export const SLOT_MINUTES = [30, 60, 90] as const;

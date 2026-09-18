@@ -14,6 +14,7 @@ import { ReportToolbar } from "@/components/reports/report-toolbar";
 import { byDay, byHour, byWeekdayHour, datesInRange, hourAxis, totals } from "@/lib/report/buckets";
 import { getDayReservations, getUsageReport } from "@/lib/report/queries";
 import { reportQuerySchema } from "@/lib/report/schemas";
+import { isOwnerLevel } from "@/lib/schedule/constants";
 import { currentStaff } from "@/lib/staff";
 import { daysBetween } from "@/lib/time";
 import { VENUE_NAME } from "@/lib/venue";
@@ -22,10 +23,10 @@ import { VENUE_NAME } from "@/lib/venue";
  * The owner's usage report. Spec 0008, AC-1 and AC-2.
  *
  * `proxy.ts` has already sent a signed out visitor to `/sign-in`. Of the
- * signed in, only an active owner stays: anybody else is sent to `/staff`
- * before the report read happens, exactly as `/staff/settings` does. That
- * redirect is a courtesy; `court_usage` raising for a non owner is what
- * actually enforces AC-4.
+ * signed in, only an active owner, admin or superadmin stays (spec 0012,
+ * AC-12): anybody else is sent to `/staff` before the report read happens,
+ * exactly as `/staff/settings` does. That redirect is a courtesy;
+ * `court_usage` raising for anyone else is what actually enforces AC-4.
  */
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,7 @@ export default async function ReportsPage({
     );
   }
 
-  if (!current.staff.isActive || current.staff.role !== "owner") redirect("/staff");
+  if (!current.staff.isActive || !isOwnerLevel(current.staff.role)) redirect("/staff");
 
   const raw = await searchParams;
   const first = (value: string | string[] | undefined) =>

@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { buildUsageCsv } from "@/lib/report/csv";
 import { getUsageReport } from "@/lib/report/queries";
 import { reportQuerySchema } from "@/lib/report/schemas";
+import { isOwnerLevel } from "@/lib/schedule/constants";
 import { currentStaff } from "@/lib/staff";
 
 /**
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
   if (!isAuthenticated) return textResponse("Sign in to download this report.", 401);
 
   const current = await currentStaff();
-  if (current.kind !== "ok" || !current.staff.isActive || current.staff.role !== "owner") {
+  if (current.kind !== "ok" || !current.staff.isActive || !isOwnerLevel(current.staff.role)) {
     return textResponse("Your account is not allowed to read this report.", 403);
   }
 

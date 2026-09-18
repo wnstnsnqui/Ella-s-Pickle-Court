@@ -23,7 +23,8 @@ const CHANGED_HOLD_MS = 4_000;
 
 /** The views a public reader can meet: the browser only ones never appear here. */
 const PUBLIC_LEGEND: readonly CellView[] = CELL_VIEWS.filter(
-  (view) => view !== "selected" && view !== "saving" && view !== "failed" && view !== "out-of-hours",
+  (view) =>
+    view !== "selected" && view !== "saving" && view !== "failed" && view !== "out-of-hours",
 );
 
 export function PublicBoard() {

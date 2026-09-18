@@ -8,18 +8,9 @@ import { VENUE_NAME } from "@/lib/venue";
  * Spec 0003, AC-10: one shell for both boards, with the wordmark, a toolbar slot,
  * and a staff slot that renders only for a signed in staff member.
  *
- * The shell is an async server component that reads the theme cookie and asks
- * Clerk who is signed in. Both are boundaries, so both are mocked here and the
- * element it returns is rendered to static HTML.
+ * The shell is a server component that asks Clerk who is signed in, which is a
+ * boundary mocked here, and the element it returns is rendered to static HTML.
  */
-
-// What the request's cookie jar holds, set per test.
-let cookieJar: Record<string, string> = {};
-vi.mock("next/headers", () => ({
-  cookies: async () => ({
-    get: (name: string) => (name in cookieJar ? { name, value: cookieJar[name] } : undefined),
-  }),
-}));
 
 // Clerk's `<Show>` stands in for the real gate: it renders its children for
 // whichever side (`signed-in` or `signed-out`) matches the test's state.
@@ -40,7 +31,6 @@ vi.mock("@/lib/env", () => ({
 }));
 
 beforeEach(() => {
-  cookieJar = {};
   signedIn = false;
   configured = true;
 });
@@ -52,7 +42,7 @@ async function render(props: {
   className?: string;
 }) {
   const { AppShell } = await import("./app-shell");
-  const element = await AppShell({ children: props.children ?? "board", ...props });
+  const element = AppShell({ children: props.children ?? "board", ...props });
   return renderToStaticMarkup(element);
 }
 
@@ -95,32 +85,11 @@ describe("AppShell", () => {
     expect(html).toContain("Staff control");
   });
 
-  it("still shows the theme toggle to a signed out visitor even with a staff slot in play", async () => {
-    signedIn = false;
-    const html = await render({ staff: createElement("button", null, "Staff control") });
-    expect(html).toContain('aria-label="Theme: Follows your device. Switch to light"');
-  });
-
   it("never asks Clerk about the staff slot when Clerk is not configured (AC-10)", async () => {
     signedIn = true;
     configured = false;
     const html = await render({ staff: createElement("button", null, "Staff control") });
     expect(html).not.toContain("Staff control");
-  });
-
-  it("seeds the theme toggle from the cookie so the first paint is right (AC-1)", async () => {
-    cookieJar = { theme: "dark" };
-    const html = await render({});
-    expect(html).toContain('aria-label="Theme: Dark. Switch to follows your device"');
-  });
-
-  it("falls back to following the device when the cookie is missing or bad (AC-1)", async () => {
-    const missing = await render({});
-    expect(missing).toContain('aria-label="Theme: Follows your device. Switch to light"');
-
-    cookieJar = { theme: "purple" };
-    const bad = await render({});
-    expect(bad).toContain('aria-label="Theme: Follows your device. Switch to light"');
   });
 
   it("carries Privacy and Terms links in the footer on every page (spec 0010, AC-3)", async () => {

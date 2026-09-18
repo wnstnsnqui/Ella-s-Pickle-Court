@@ -13,26 +13,31 @@ export function HiddenDataTable({
   rows: readonly React.ReactNode[][];
 }) {
   return (
-    <table className="sr-only">
-      <caption>{caption}</caption>
-      <thead>
-        <tr>
-          {headers.map((header) => (
-            <th key={header} scope="col">
-              {header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, index) => (
-          <tr key={index}>
-            {row.map((cell, cellIndex) => (
-              <td key={cellIndex}>{cell}</td>
+    // The `sr-only` clip has to sit on this wrapper, not the `<table>` itself:
+    // a table's CSS height is a minimum, not a cap, so its rows still push the
+    // page height even under `height: 1px; overflow: hidden`.
+    <div className="sr-only">
+      <table>
+        <caption>{caption}</caption>
+        <thead>
+          <tr>
+            {headers.map((header) => (
+              <th key={header} scope="col">
+                {header}
+              </th>
             ))}
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map((row, index) => (
+            <tr key={index}>
+              {row.map((cell, cellIndex) => (
+                <td key={cellIndex}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }

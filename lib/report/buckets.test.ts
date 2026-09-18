@@ -108,25 +108,26 @@ describe("byWeekdayHour", () => {
 });
 
 describe("totals", () => {
-  it("sums booked and open minutes and finds the busiest hour and weekday, ties going earliest", () => {
-    const dates = [MONDAY];
+  it("sums booked and open minutes and finds the busiest hour and date, ties going earliest", () => {
+    const dates = [MONDAY, "2026-09-15"];
     const rows: UsageRow[] = [
       { courtId: 1, localDate: MONDAY, hour: 9, bookedMinutes: 60 },
       { courtId: 1, localDate: MONDAY, hour: 10, bookedMinutes: 60 },
     ];
     const result = totals(rows, dates, HOURS, 1);
     expect(result.bookedMinutes).toBe(120);
-    expect(result.openMinutes).toBe((22 - 8) * 60);
+    expect(result.openMinutes).toBe((22 - 8) * 60 * 2);
     // Both hour 9 and hour 10 tie at 60 minutes; the earliest wins.
     expect(result.busiestHour).toBe(9);
-    expect(result.busiestWeekday).toBe(1);
+    // Only MONDAY has any booked minutes, so it wins outright.
+    expect(result.busiestDate).toBe(MONDAY);
   });
 
-  it("reports no busiest hour or weekday, and zero utilisation, for an empty range", () => {
+  it("reports no busiest hour or date, and zero utilisation, for an empty range", () => {
     const result = totals([], [MONDAY], HOURS, 1);
     expect(result.bookedMinutes).toBe(0);
     expect(result.busiestHour).toBeNull();
-    expect(result.busiestWeekday).toBeNull();
+    expect(result.busiestDate).toBeNull();
     expect(result.utilisationPercent).toBe(0);
   });
 });

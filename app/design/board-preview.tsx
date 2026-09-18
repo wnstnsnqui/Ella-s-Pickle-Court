@@ -14,60 +14,53 @@ import { ThemePane } from "./theme-pane";
 /**
  * The seven cell views, and the grid in every state it can be. Spec 0003, AC-5
  * and AC-13.
- *
- * Both themes, side by side, because a state that reads clearly in one and
- * muddily in the other is exactly the failure this page exists to catch.
  */
 export function CellStateGallery() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {(["light", "dark"] as const).map((theme) => (
-        <ThemePane key={theme} theme={theme}>
-          <ul className="flex flex-col gap-2">
-            {CELL_VIEWS.map((view) => (
-              <li key={view} className="flex items-center gap-3">
-                <ScheduleCell view={view} label="Court 1 at 9am" className="w-court-col shrink-0" />
-                <span className="min-w-0">
-                  <span className="text-label block">{CELL_VIEW_NAME[view]}</span>
-                  <span className="text-caption text-muted-foreground block">
-                    {CELL_VIEW_HINT[view]}
-                  </span>
-                </span>
-              </li>
-            ))}
-            {/* The two layers spec 0005 adds over a view: a name, and the lock. */}
-            <li className="flex items-center gap-3">
-              <ScheduleCell
-                view="booked"
-                caption="Maria Santos"
-                label="Court 1 at 9am"
-                className="w-court-col shrink-0"
-              />
-              <span className="min-w-0">
-                <span className="text-label block">Booked, with the name</span>
-                <span className="text-caption text-muted-foreground block">
-                  What staff see on a taken hour
-                </span>
+    <ThemePane>
+      <ul className="flex flex-col gap-2">
+        {CELL_VIEWS.map((view) => (
+          <li key={view} className="flex items-center gap-3">
+            <ScheduleCell view={view} label="Court 1 at 9am" className="w-court-col shrink-0" />
+            <span className="min-w-0">
+              <span className="text-label block">{CELL_VIEW_NAME[view]}</span>
+              <span className="text-caption text-muted-foreground block">
+                {CELL_VIEW_HINT[view]}
               </span>
-            </li>
-            <li className="flex items-center gap-3">
-              <ScheduleCell
-                view="available"
-                locked
-                label="Court 1 at 9am"
-                className="w-court-col shrink-0"
-              />
-              <span className="min-w-0">
-                <span className="text-label block">Locked</span>
-                <span className="text-caption text-muted-foreground block">
-                  The hour has ended; only Ella may change it
-                </span>
-              </span>
-            </li>
-          </ul>
-        </ThemePane>
-      ))}
-    </div>
+            </span>
+          </li>
+        ))}
+        {/* The two layers spec 0005 adds over a view: a name, and the lock. */}
+        <li className="flex items-center gap-3">
+          <ScheduleCell
+            view="booked"
+            caption="Maria Santos"
+            label="Court 1 at 9am"
+            className="w-court-col shrink-0"
+          />
+          <span className="min-w-0">
+            <span className="text-label block">Booked, with the name</span>
+            <span className="text-caption text-muted-foreground block">
+              What staff see on a taken hour
+            </span>
+          </span>
+        </li>
+        <li className="flex items-center gap-3">
+          <ScheduleCell
+            view="available"
+            locked
+            label="Court 1 at 9am"
+            className="w-court-col shrink-0"
+          />
+          <span className="min-w-0">
+            <span className="text-label block">Locked</span>
+            <span className="text-caption text-muted-foreground block">
+              The hour has ended; only Ella may change it
+            </span>
+          </span>
+        </li>
+      </ul>
+    </ThemePane>
   );
 }
 
@@ -165,13 +158,9 @@ export function LiveIndicatorPreview() {
         A drop reads as reconnecting for three seconds first, then admits the board is stale and
         says how old it is. Recover inside the window and it never says not live at all.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {(["light", "dark"] as const).map((theme) => (
-          <ThemePane key={theme} theme={theme}>
-            <LiveIndicator channelStatus={status} lastUpdatedAt={since} className="self-start" />
-          </ThemePane>
-        ))}
-      </div>
+      <ThemePane>
+        <LiveIndicator channelStatus={status} lastUpdatedAt={since} className="self-start" />
+      </ThemePane>
     </div>
   );
 }

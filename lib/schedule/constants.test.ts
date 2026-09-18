@@ -30,11 +30,20 @@ function migrationSql(): string {
     .join("\n");
 }
 
-/** Pull the values out of `check (<column> in ('a', 'b'))`. */
+/**
+ * Pull the values out of `check (<column> in ('a', 'b'))`. Migrations are
+ * forward only, so a widened column (spec 0012 widens `role`) reappears as a
+ * later `drop constraint` / `add constraint` pair rather than an edit to the
+ * original; the last match across every migration, in file order, is the
+ * constraint actually live today.
+ */
 function checkedValues(sql: string, column: string): string[] {
-  const match = sql.match(new RegExp(`check\\s*\\(\\s*${column}\\s+in\\s*\\(([^)]*)\\)`, "i"));
-  if (!match) throw new Error(`No check constraint found for ${column}.`);
-  return match[1]
+  const matches = [
+    ...sql.matchAll(new RegExp(`check\\s*\\(\\s*${column}\\s+in\\s*\\(([^)]*)\\)`, "gi")),
+  ];
+  if (matches.length === 0) throw new Error(`No check constraint found for ${column}.`);
+  const [, values] = matches[matches.length - 1];
+  return values
     .split(",")
     .map((value) => value.trim().replace(/^'|'$/g, ""))
     .filter(Boolean);

@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 /**
  * Spec 0003, AC-1 and AC-14: the toast reads our tokens and never carries a
- * theme of its own, because the theme is `data-theme` on `<html>` or the device.
+ * theme of its own.
  *
  * Sonner itself is a boundary, so it is replaced with a spy that records what the
  * wrapper hands it.

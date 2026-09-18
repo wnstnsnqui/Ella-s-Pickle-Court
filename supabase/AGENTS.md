@@ -48,6 +48,7 @@ npx supabase gen types typescript --linked --schema public > lib/supabase/databa
 - A new table may not appear over the API until the roles are granted and the schema cache refreshes. `PGRST205` means the table is not there or not exposed.
 - Clerk third party auth must be enabled on both sides, in `config.toml` here and in the Supabase dashboard, before any policy keyed on `auth.jwt()` can work.
 - `migrations/20260903023010_realtime_smoke.sql` is a throwaway from the scaffold. Delete it and `app/smoke/` when the real court schema lands.
+- `create or replace function` keeps the function's existing grants as long as its signature (name plus argument types) is unchanged, confirmed by querying `information_schema.routine_privileges` after widening a function's body in a later migration. No need to re-run `grant execute` just because the body changed.
 
 ## Agent skills
 

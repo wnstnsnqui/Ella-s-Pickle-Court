@@ -188,6 +188,7 @@ export type Database = {
           privacy_acknowledged_at: string | null;
           privacy_acknowledged_version: string | null;
           role: string;
+          version: number;
         };
         Insert: {
           clerk_user_id: string;
@@ -199,6 +200,7 @@ export type Database = {
           privacy_acknowledged_at?: string | null;
           privacy_acknowledged_version?: string | null;
           role?: string;
+          version?: number;
         };
         Update: {
           clerk_user_id?: string;
@@ -210,6 +212,37 @@ export type Database = {
           privacy_acknowledged_at?: string | null;
           privacy_acknowledged_version?: string | null;
           role?: string;
+          version?: number;
+        };
+        Relationships: [];
+      };
+      staff_audit: {
+        Row: {
+          changed_at: string;
+          changed_by: string | null;
+          id: number;
+          new_row: Json | null;
+          old_row: Json | null;
+          op: string;
+          staff_id: string;
+        };
+        Insert: {
+          changed_at?: string;
+          changed_by?: string | null;
+          id?: never;
+          new_row?: Json | null;
+          old_row?: Json | null;
+          op: string;
+          staff_id: string;
+        };
+        Update: {
+          changed_at?: string;
+          changed_by?: string | null;
+          id?: never;
+          new_row?: Json | null;
+          old_row?: Json | null;
+          op?: string;
+          staff_id?: string;
         };
         Relationships: [];
       };
@@ -291,6 +324,32 @@ export type Database = {
       reorder_courts: {
         Args: { ids: number[]; versions: number[] };
         Returns: undefined;
+      };
+      update_staff_role: {
+        Args: {
+          p_clerk_user_id: string;
+          p_is_active: boolean;
+          p_role: string;
+          p_version: number;
+        };
+        Returns: {
+          clerk_user_id: string;
+          created_at: string;
+          display_name: string;
+          email: string | null;
+          is_active: boolean;
+          last_signed_in_at: string | null;
+          privacy_acknowledged_at: string | null;
+          privacy_acknowledged_version: string | null;
+          role: string;
+          version: number;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "staff";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
     };
     Enums: {

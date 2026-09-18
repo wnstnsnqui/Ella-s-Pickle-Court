@@ -12,113 +12,66 @@
  * same lightness number actually look equally light, which is what makes a
  * contrast pair predictable instead of a guess.
  *
- * Dark follows the device setting only: no toggle, no class, no script, so there
- * is nothing to run before the first paint and nothing to flash. That is also why
- * invariant 2 forbids `dark:` colour overrides in components. Both themes live in
- * the token, so a component never names a theme. The lint rule in
- * `eslint.config.mjs` enforces both halves of that.
+ * Light only: there is no toggle and no dark palette. Invariant 2 still forbids
+ * `dark:` colour overrides in components, enforced by the lint rule in
+ * `eslint.config.mjs`.
  */
 
 :root {
-  /*
-   * The palette. Every colour value in this project is written here, once per
-   * theme, and nowhere else. Nothing reads a `--light-*` or `--dark-*` name
-   * directly: the semantic layer below decides which half is in force, and that
-   * indirection is what lets the design page show both themes at once without a
-   * second copy of the palette to keep in step.
-   */
+  color-scheme: light;
 
   /* Surface. Direction "Sunbeam": white reads as white first, the warmth
    * comes from the brand band and state fills rather than a tinted page. */
-  --light-background: oklch(0.996 0.01 93);
-  --dark-background: oklch(0.208 0.011 73);
-  --light-foreground: oklch(0.216 0.006 56);
-  --dark-foreground: oklch(0.958 0.018 89);
-  --light-card: oklch(0.999 0.004 96);
-  --dark-card: oklch(0.234 0.014 72);
-  --light-card-foreground: oklch(0.216 0.006 56);
-  --dark-card-foreground: oklch(0.958 0.018 89);
-  --light-popover: oklch(0.999 0.004 96);
-  --dark-popover: oklch(0.234 0.014 72);
-  --light-popover-foreground: oklch(0.216 0.006 56);
-  --dark-popover-foreground: oklch(0.958 0.018 89);
-  --light-muted: oklch(0.965 0.022 94);
-  --dark-muted: oklch(0.265 0.014 67);
-  --light-muted-foreground: oklch(0.468 0.023 91);
-  --dark-muted-foreground: oklch(0.764 0.028 90);
-  --light-accent: oklch(0.975 0.03 95);
-  --dark-accent: oklch(0.285 0.015 71);
-  --light-accent-foreground: oklch(0.216 0.006 56);
-  --dark-accent-foreground: oklch(0.958 0.018 89);
-  --light-secondary: oklch(0.965 0.022 94);
-  --dark-secondary: oklch(0.265 0.014 67);
-  --light-secondary-foreground: oklch(0.216 0.006 56);
-  --dark-secondary-foreground: oklch(0.958 0.018 89);
-  --light-border: oklch(0.93 0.035 93);
-  --dark-border: oklch(0.325 0.02 77);
-  --light-input: oklch(0.657 0.032 92);
-  --dark-input: oklch(0.525 0.021 78);
-  --light-ring: oklch(0.511 0.086 186);
-  --dark-ring: oklch(0.785 0.133 182);
-  --light-overlay: oklch(0 0 0 / 0.5);
-  --dark-overlay: oklch(0 0 0 / 0.68);
+  --background: oklch(0.996 0.01 93);
+  --foreground: oklch(0.216 0.006 56);
+  --card: oklch(0.999 0.004 96);
+  --card-foreground: oklch(0.216 0.006 56);
+  --popover: oklch(0.999 0.004 96);
+  --popover-foreground: oklch(0.216 0.006 56);
+  --muted: oklch(0.965 0.022 94);
+  --muted-foreground: oklch(0.468 0.023 91);
+  --accent: oklch(0.975 0.03 95);
+  --accent-foreground: oklch(0.216 0.006 56);
+  --secondary: oklch(0.965 0.022 94);
+  --secondary-foreground: oklch(0.216 0.006 56);
+  --border: oklch(0.93 0.035 93);
+  --input: oklch(0.657 0.032 92);
+  --ring: oklch(0.511 0.086 186);
+  --overlay: oklch(0 0 0 / 0.5);
 
   /* Accent. Primary is deep teal, kept as-is: a yellow bright enough to read
    * as yellow can't clear 4.5:1 as link text on a white card, so the
    * livelier yellow lives in brand and mark, not in primary/ring.
    * Brand is the golden header band, pushed more vivid; mark is the letter
    * badge, its foreground matched to the same gold. */
-  --light-primary: oklch(0.511 0.086 186);
-  --dark-primary: oklch(0.785 0.133 182);
-  --light-primary-foreground: oklch(1 0 0);
-  --dark-primary-foreground: oklch(0.278 0.041 185);
-  --light-destructive: oklch(0.553 0.174 38);
-  --dark-destructive: oklch(0.758 0.159 56);
-  --light-destructive-foreground: oklch(1 0 0);
-  --light-mark-foreground: oklch(0.84 0.185 86.5);
-  --light-mark: oklch(0.216 0.006 56);
-  --light-brand-foreground: oklch(0.216 0.006 56);
-  --light-brand: oklch(0.84 0.185 86.5);
-  --dark-destructive-foreground: oklch(0.214 0.051 58);
-  --dark-mark-foreground: oklch(0.208 0.011 73);
-  --dark-mark: oklch(0.854 0.171 87);
-  --dark-brand-foreground: oklch(0.958 0.018 89);
-  --dark-brand: oklch(0.208 0.011 73);
+  --primary: oklch(0.511 0.086 186);
+  --primary-foreground: oklch(1 0 0);
+  --destructive: oklch(0.553 0.174 38);
+  --destructive-foreground: oklch(1 0 0);
+  --mark-foreground: oklch(0.84 0.185 86.5);
+  --mark: oklch(0.216 0.006 56);
+  --brand-foreground: oklch(0.216 0.006 56);
+  --brand: oklch(0.84 0.185 86.5);
 
   /* State: the five roles the grid owns. Saving reuses muted, Failed reuses destructive.
    * Available and booked carry more chroma than before, at the same lightness,
    * so the grid feels alive against the brighter background without moving
    * off any contrast pair AC-4 already measures. */
-  --light-state-available: oklch(0.937 0.06 182);
-  --dark-state-available: oklch(0.322 0.046 184);
-  --light-state-available-fg: oklch(0.434 0.075 183);
-  --dark-state-available-fg: oklch(0.877 0.093 184);
-  --light-state-available-border: oklch(0.6 0.14 183);
-  --dark-state-available-border: oklch(0.654 0.111 182);
-  --light-state-booked: oklch(0.923 0.085 74);
-  --dark-state-booked: oklch(0.32 0.064 60);
-  --light-state-booked-fg: oklch(0.445 0.121 48);
-  --dark-state-booked-fg: oklch(0.861 0.1 65);
-  --light-state-booked-border: oklch(0.67 0.19 56);
-  --dark-state-booked-border: oklch(0.669 0.149 54);
-  --light-state-unavailable: oklch(0.949 0.014 93);
-  --dark-state-unavailable: oklch(0.258 0.012 78);
-  --light-state-unavailable-fg: oklch(0.468 0.023 91);
-  --dark-state-unavailable-fg: oklch(0.764 0.028 90);
-  --light-state-unavailable-border: oklch(0.657 0.032 92);
-  --dark-state-unavailable-border: oklch(0.504 0.028 94);
-  --light-state-outofhours: oklch(0.935 0.036 298);
-  --dark-state-outofhours: oklch(0.276 0.075 288);
-  --light-state-outofhours-fg: oklch(0.436 0.147 291);
-  --dark-state-outofhours-fg: oklch(0.827 0.095 294);
-  --light-state-outofhours-border: oklch(0.668 0.126 295);
-  --dark-state-outofhours-border: oklch(0.544 0.156 288);
-  --light-state-selected: oklch(0.953 0.079 96);
-  --dark-state-selected: oklch(0.356 0.067 90);
-  --light-state-selected-fg: oklch(0.346 0.071 86);
-  --dark-state-selected-fg: oklch(0.918 0.112 92);
-  --light-state-selected-border: oklch(0.635 0.132 82);
-  --dark-state-selected-border: oklch(0.854 0.171 87);
+  --state-available: oklch(0.937 0.06 182);
+  --state-available-fg: oklch(0.434 0.075 183);
+  --state-available-border: oklch(0.6 0.14 183);
+  --state-booked: oklch(0.923 0.085 74);
+  --state-booked-fg: oklch(0.445 0.121 48);
+  --state-booked-border: oklch(0.67 0.19 56);
+  --state-unavailable: oklch(0.949 0.014 93);
+  --state-unavailable-fg: oklch(0.468 0.023 91);
+  --state-unavailable-border: oklch(0.657 0.032 92);
+  --state-outofhours: oklch(0.935 0.036 298);
+  --state-outofhours-fg: oklch(0.436 0.147 291);
+  --state-outofhours-border: oklch(0.668 0.126 295);
+  --state-selected: oklch(0.953 0.079 96);
+  --state-selected-fg: oklch(0.346 0.071 86);
+  --state-selected-border: oklch(0.635 0.132 82);
   /* Type */
   --font-inter-fallback:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -135,153 +88,6 @@
   --dur-fast: 120ms;
   --dur-slow: 1.2s;
 }
-
-/*
- * The semantic layer. A component only ever names one of these, never a
- * `--light-*` or `--dark-*` value and never a theme.
- */
-:root,
-[data-theme="light"] {
-  --background: var(--light-background);
-  --foreground: var(--light-foreground);
-  --card: var(--light-card);
-  --card-foreground: var(--light-card-foreground);
-  --popover: var(--light-popover);
-  --popover-foreground: var(--light-popover-foreground);
-  --muted: var(--light-muted);
-  --muted-foreground: var(--light-muted-foreground);
-  --accent: var(--light-accent);
-  --accent-foreground: var(--light-accent-foreground);
-  --secondary: var(--light-secondary);
-  --secondary-foreground: var(--light-secondary-foreground);
-  --border: var(--light-border);
-  --input: var(--light-input);
-  --ring: var(--light-ring);
-  --overlay: var(--light-overlay);
-  --primary: var(--light-primary);
-  --primary-foreground: var(--light-primary-foreground);
-  --destructive: var(--light-destructive);
-  --destructive-foreground: var(--light-destructive-foreground);
-  --brand: var(--light-brand);
-  --brand-foreground: var(--light-brand-foreground);
-  --mark: var(--light-mark);
-  --mark-foreground: var(--light-mark-foreground);
-  --state-available: var(--light-state-available);
-  --state-available-fg: var(--light-state-available-fg);
-  --state-available-border: var(--light-state-available-border);
-  --state-booked: var(--light-state-booked);
-  --state-booked-fg: var(--light-state-booked-fg);
-  --state-booked-border: var(--light-state-booked-border);
-  --state-unavailable: var(--light-state-unavailable);
-  --state-unavailable-fg: var(--light-state-unavailable-fg);
-  --state-unavailable-border: var(--light-state-unavailable-border);
-  --state-outofhours: var(--light-state-outofhours);
-  --state-outofhours-fg: var(--light-state-outofhours-fg);
-  --state-outofhours-border: var(--light-state-outofhours-border);
-  --state-selected: var(--light-state-selected);
-  --state-selected-fg: var(--light-state-selected-fg);
-  --state-selected-border: var(--light-state-selected-border);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --background: var(--dark-background);
-    --foreground: var(--dark-foreground);
-    --card: var(--dark-card);
-    --card-foreground: var(--dark-card-foreground);
-    --popover: var(--dark-popover);
-    --popover-foreground: var(--dark-popover-foreground);
-    --muted: var(--dark-muted);
-    --muted-foreground: var(--dark-muted-foreground);
-    --accent: var(--dark-accent);
-    --accent-foreground: var(--dark-accent-foreground);
-    --secondary: var(--dark-secondary);
-    --secondary-foreground: var(--dark-secondary-foreground);
-    --border: var(--dark-border);
-    --input: var(--dark-input);
-    --ring: var(--dark-ring);
-    --overlay: var(--dark-overlay);
-    --primary: var(--dark-primary);
-    --primary-foreground: var(--dark-primary-foreground);
-    --destructive: var(--dark-destructive);
-    --destructive-foreground: var(--dark-destructive-foreground);
-    --brand: var(--dark-brand);
-    --brand-foreground: var(--dark-brand-foreground);
-    --mark: var(--dark-mark);
-    --mark-foreground: var(--dark-mark-foreground);
-    --state-available: var(--dark-state-available);
-    --state-available-fg: var(--dark-state-available-fg);
-    --state-available-border: var(--dark-state-available-border);
-    --state-booked: var(--dark-state-booked);
-    --state-booked-fg: var(--dark-state-booked-fg);
-    --state-booked-border: var(--dark-state-booked-border);
-    --state-unavailable: var(--dark-state-unavailable);
-    --state-unavailable-fg: var(--dark-state-unavailable-fg);
-    --state-unavailable-border: var(--dark-state-unavailable-border);
-    --state-outofhours: var(--dark-state-outofhours);
-    --state-outofhours-fg: var(--dark-state-outofhours-fg);
-    --state-outofhours-border: var(--dark-state-outofhours-border);
-    --state-selected: var(--dark-state-selected);
-    --state-selected-fg: var(--dark-state-selected-fg);
-    --state-selected-border: var(--dark-state-selected-border);
-  }
-}
-
-/*
- * The two places a theme is named on purpose: the root layout stamps the
- * reader's pinned choice here from a cookie (the theme toggle), and `/design`
- * puts the two side by side so a contrast failure is something you can look at.
- * No component may set this attribute.
- */
-[data-theme="light"] {
-  color-scheme: light;
-}
-
-[data-theme="dark"] {
-  color-scheme: dark;
-
-  --background: var(--dark-background);
-  --foreground: var(--dark-foreground);
-  --card: var(--dark-card);
-  --card-foreground: var(--dark-card-foreground);
-  --popover: var(--dark-popover);
-  --popover-foreground: var(--dark-popover-foreground);
-  --muted: var(--dark-muted);
-  --muted-foreground: var(--dark-muted-foreground);
-  --accent: var(--dark-accent);
-  --accent-foreground: var(--dark-accent-foreground);
-  --secondary: var(--dark-secondary);
-  --secondary-foreground: var(--dark-secondary-foreground);
-  --border: var(--dark-border);
-  --input: var(--dark-input);
-  --ring: var(--dark-ring);
-  --overlay: var(--dark-overlay);
-  --primary: var(--dark-primary);
-  --primary-foreground: var(--dark-primary-foreground);
-  --destructive: var(--dark-destructive);
-  --destructive-foreground: var(--dark-destructive-foreground);
-  --brand: var(--dark-brand);
-  --brand-foreground: var(--dark-brand-foreground);
-  --mark: var(--dark-mark);
-  --mark-foreground: var(--dark-mark-foreground);
-  --state-available: var(--dark-state-available);
-  --state-available-fg: var(--dark-state-available-fg);
-  --state-available-border: var(--dark-state-available-border);
-  --state-booked: var(--dark-state-booked);
-  --state-booked-fg: var(--dark-state-booked-fg);
-  --state-booked-border: var(--dark-state-booked-border);
-  --state-unavailable: var(--dark-state-unavailable);
-  --state-unavailable-fg: var(--dark-state-unavailable-fg);
-  --state-unavailable-border: var(--dark-state-unavailable-border);
-  --state-outofhours: var(--dark-state-outofhours);
-  --state-outofhours-fg: var(--dark-state-outofhours-fg);
-  --state-outofhours-border: var(--dark-state-outofhours-border);
-  --state-selected: var(--dark-state-selected);
-  --state-selected-fg: var(--dark-state-selected-fg);
-  --state-selected-border: var(--dark-state-selected-border);
-}
-
-@custom-variant dark (@media (prefers-color-scheme: dark));
 
 @theme inline {
   --color-background: var(--background);

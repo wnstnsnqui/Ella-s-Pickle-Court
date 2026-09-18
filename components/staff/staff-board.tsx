@@ -10,6 +10,7 @@ import { useChangedCells } from "@/components/schedule/use-changed-cells";
 import type { ActionResult } from "@/lib/actions";
 import { cancelReservation, createReservations, updateReservation } from "@/lib/schedule/actions";
 import { closureEndOptions } from "@/lib/schedule/closure";
+import { isOwnerLevel } from "@/lib/schedule/constants";
 import type { Grid } from "@/lib/schedule/grid";
 import type { StaffReservation, StaffSchedule } from "@/lib/schedule/queries";
 import { withRetry } from "@/lib/schedule/retry";
@@ -104,7 +105,7 @@ export function StaffBoard() {
   const [now, setNow] = useState(() => Date.now());
 
   const lockedCells = useMemo(
-    () => (viewer.role === "owner" ? EMPTY_SELECTION : endedCells(grid, now)),
+    () => (isOwnerLevel(viewer.role) ? EMPTY_SELECTION : endedCells(grid, now)),
     [grid, now, viewer.role],
   );
 
@@ -137,7 +138,7 @@ export function StaffBoard() {
    */
   const reconcile = useCallback(
     (fresh: StaffSchedule, at: number) => {
-      const locked = viewer.role === "owner" ? EMPTY_SELECTION : endedCells(fresh.grid, at);
+      const locked = isOwnerLevel(viewer.role) ? EMPTY_SELECTION : endedCells(fresh.grid, at);
       const { kept, removed } = pruneSelection(selection, fresh.grid, locked);
       if (removed.length > 0) {
         setSelection(kept);
@@ -412,7 +413,7 @@ export function StaffBoard() {
         : { kind: "ready", grid };
 
   const canChangeOpenRow =
-    openRow !== null && (viewer.role === "owner" || Date.parse(openRow.endsAt) > now);
+    openRow !== null && (isOwnerLevel(viewer.role) || Date.parse(openRow.endsAt) > now);
 
   const endOptions = useMemo(
     () =>

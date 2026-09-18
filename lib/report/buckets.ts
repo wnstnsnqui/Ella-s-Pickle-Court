@@ -42,7 +42,7 @@ export type ReportTotals = {
   openMinutes: number;
   utilisationPercent: number;
   busiestHour: number | null;
-  busiestWeekday: number | null;
+  busiestDate: string | null;
 };
 
 /** Monday to Sunday, the order the weekday by hour heatmap reads in (spec 0008, Decision). */
@@ -170,9 +170,9 @@ export function byWeekdayHour(
 }
 
 /**
- * Booked minutes, open minutes, utilisation and the busiest hour and weekday.
- * Ties go to the earliest hour, and to the earliest weekday in the Monday
- * first order above.
+ * Booked minutes, open minutes, utilisation, the busiest hour, and the
+ * single busiest calendar date. Ties go to the earliest hour, and to the
+ * earliest date in `dates` order.
  */
 export function totals(
   rows: readonly UsageRow[],
@@ -197,18 +197,17 @@ export function totals(
     }
   });
 
-  const perWeekday = new Map<number, number>();
+  const perDate = new Map<string, number>();
   for (const row of rows) {
-    const weekday = weekdayOf(row.localDate);
-    perWeekday.set(weekday, (perWeekday.get(weekday) ?? 0) + row.bookedMinutes);
+    perDate.set(row.localDate, (perDate.get(row.localDate) ?? 0) + row.bookedMinutes);
   }
-  let busiestWeekday: number | null = null;
-  let busiestWeekdayMinutes = 0;
-  for (const weekday of WEEKDAY_ORDER) {
-    const minutes = perWeekday.get(weekday) ?? 0;
-    if (minutes > busiestWeekdayMinutes) {
-      busiestWeekdayMinutes = minutes;
-      busiestWeekday = weekday;
+  let busiestDate: string | null = null;
+  let busiestDateMinutes = 0;
+  for (const date of dates) {
+    const minutes = perDate.get(date) ?? 0;
+    if (minutes > busiestDateMinutes) {
+      busiestDateMinutes = minutes;
+      busiestDate = date;
     }
   }
 
@@ -217,7 +216,7 @@ export function totals(
     openMinutes,
     utilisationPercent: utilisationPercent(bookedMinutes, openMinutes),
     busiestHour,
-    busiestWeekday,
+    busiestDate,
   };
 }
 

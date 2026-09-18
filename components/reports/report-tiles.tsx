@@ -1,15 +1,5 @@
 import type { ReportTotals } from "@/lib/report/buckets";
-import { formatSlotLabel } from "@/lib/time";
-
-const WEEKDAY_LABEL: Record<number, string> = {
-  1: "Monday",
-  2: "Tuesday",
-  3: "Wednesday",
-  4: "Thursday",
-  5: "Friday",
-  6: "Saturday",
-  0: "Sunday",
-};
+import { formatDayHeading, formatSlotLabel } from "@/lib/time";
 
 /** The four summary tiles. Spec 0008, AC-6. */
 export function ReportTiles({ totals }: { totals: ReportTotals }) {
@@ -18,15 +8,14 @@ export function ReportTiles({ totals }: { totals: ReportTotals }) {
     totals.busiestHour === null
       ? "—"
       : formatSlotLabel(`${String(totals.busiestHour).padStart(2, "0")}:00`);
-  const busiestWeekday =
-    totals.busiestWeekday === null ? "—" : WEEKDAY_LABEL[totals.busiestWeekday];
+  const peakDay = totals.busiestDate === null ? "—" : formatDayHeading(totals.busiestDate);
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       <Tile label="Booked hours" value={bookedHours} />
       <Tile label="Utilisation" value={`${totals.utilisationPercent}%`} />
       <Tile label="Busiest hour" value={busiestHour} />
-      <Tile label="Busiest weekday" value={busiestWeekday} />
+      <Tile label="Peak day" value={peakDay} />
     </div>
   );
 }

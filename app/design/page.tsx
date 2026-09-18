@@ -16,14 +16,14 @@ import { ComponentGallery } from "./component-gallery";
 import { ContrastAudit } from "./contrast-audit";
 import { ColorTokens, SpaceAndRadius, TypeScale } from "./token-gallery";
 import { SAMPLE_HORIZON_DAYS, SAMPLE_TIMEZONE } from "./sample";
-import { ThemePair } from "./theme-pane";
+import { ThemePane } from "./theme-pane";
 
 /**
  * The proof surface for spec 0003, AC-3.
  *
- * Everything the design system is, on one page, in both themes, open to anybody
- * and closed to search engines. It exists so a contrast failure or a state that
- * stops being distinguishable is something you can look at, rather than something
+ * Everything the design system is, on one page, open to anybody and closed to
+ * search engines. It exists so a contrast failure or a state that stops being
+ * distinguishable is something you can look at, rather than something
  * everybody hopes is still true.
  */
 export const metadata: Metadata = {
@@ -70,17 +70,12 @@ export default function DesignPage() {
             from a token in <code>app/globals.css</code>, which is the source of truth. Nothing here
             is written twice.
           </p>
-          <p className="text-body text-muted-foreground max-w-prose">
-            Dark follows your device setting by default; the button in the header pins light or
-            dark, and the choice is read on the server so the first paint is already right. The
-            panes below force one theme each so you can see both at once.
-          </p>
         </header>
 
         <Section
           id="contrast"
           title="Contrast, measured"
-          blurb="Read out of the browser at load, in both themes. These are the numbers a reader actually gets, not numbers written down at design time."
+          blurb="Read out of the browser at load. These are the numbers a reader actually gets, not numbers written down at design time."
         >
           <ContrastAudit />
         </Section>
@@ -90,9 +85,9 @@ export default function DesignPage() {
           title="Colour"
           blurb="Ten surface tokens, eight accent tokens (primary, the brand band, the mark, destructive), and five state roles that each carry a fill, a text colour and a boundary."
         >
-          <ThemePair>
+          <ThemePane>
             <ColorTokens />
-          </ThemePair>
+          </ThemePane>
         </Section>
 
         <Section
@@ -100,9 +95,9 @@ export default function DesignPage() {
           title="Type"
           blurb="Inter, self hosted at build time, in six steps. Nothing in this project sets a font size any other way."
         >
-          <ThemePair>
+          <ThemePane>
             <TypeScale />
-          </ThemePair>
+          </ThemePane>
         </Section>
 
         <Section
@@ -110,9 +105,9 @@ export default function DesignPage() {
           title="Space, radius and geometry"
           blurb="Ordinary spacing is restricted to seven steps. The grid's own measurements are tokens, because two of them are load bearing for touch and for the pinned column."
         >
-          <ThemePair>
+          <ThemePane>
             <SpaceAndRadius />
-          </ThemePair>
+          </ThemePane>
         </Section>
 
         <Section
@@ -128,9 +123,9 @@ export default function DesignPage() {
           title="The legend"
           blurb="Present on both boards, never behind a tap, one compact row so it does not eat the hours."
         >
-          <ThemePair>
+          <ThemePane>
             <StateLegend views={CELL_VIEWS} />
-          </ThemePair>
+          </ThemePane>
         </Section>
 
         <Section
@@ -154,7 +149,7 @@ export default function DesignPage() {
           title="Pick a date"
           blurb="The calendar behind the toolbar's `Pick a date` button above (spec 0011), shown bare here since a sheet would portal outside this swatch. Days before today and past the booking horizon are disabled."
         >
-          <ThemePair>
+          <ThemePane>
             <Calendar
               mode="single"
               required
@@ -165,7 +160,7 @@ export default function DesignPage() {
               endMonth={lastBookableDayLocal}
               disabled={[{ before: dateLocal }, { after: lastBookableDayLocal }]}
             />
-          </ThemePair>
+          </ThemePane>
         </Section>
 
         <Section

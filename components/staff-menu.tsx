@@ -1,8 +1,9 @@
-import { CalendarDays, ChartColumn, CircleAlert, Settings2, UserRoundX } from "lucide-react";
+import { CalendarDays, ChartColumn, CircleAlert, Settings2, UserRoundX, Users } from "lucide-react";
 import Link from "next/link";
 
 import { AccountButton, SignOutButton } from "@/components/staff-controls";
 import { Button } from "@/components/ui/button";
+import { canManageStaffRoles, isOwnerLevel } from "@/lib/schedule/constants";
 import { currentStaff } from "@/lib/staff";
 
 /**
@@ -50,9 +51,9 @@ export async function StaffMenu() {
           <span>Schedule</span>
         </Link>
       </Button>
-      {/* Only an active owner sees the way to the reports and the settings
-          (spec 0008, AC-1; spec 0007, AC-1). */}
-      {current.staff.role === "owner" ? (
+      {/* Reports and Settings stand open to owner, admin and superadmin alike
+          (spec 0008, AC-1; spec 0007, AC-1; spec 0012, AC-12). */}
+      {isOwnerLevel(current.staff.role) ? (
         <>
           <Button asChild variant="ghost" size="sm" title="Reports">
             <Link href="/staff/reports">
@@ -67,6 +68,15 @@ export async function StaffMenu() {
             </Link>
           </Button>
         </>
+      ) : null}
+      {/* Owner and superadmin see the way to manage everyone's role. Spec 0012, AC-12. */}
+      {canManageStaffRoles(current.staff.role) ? (
+        <Button asChild variant="ghost" size="sm" title="Users">
+          <Link href="/staff/admin/users">
+            <Users aria-hidden="true" />
+            <span>Users</span>
+          </Link>
+        </Button>
       ) : null}
       <AccountButton name={current.staff.displayName} />
       {/* `order-last` (not source order) puts Sign out after the theme toggle,

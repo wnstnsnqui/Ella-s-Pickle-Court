@@ -3,6 +3,8 @@ import "server-only";
 import { auth } from "@clerk/nextjs/server";
 import { cache } from "react";
 
+import { describeDatabaseError, fail, ok, requireStaff, type ActionResult } from "@/lib/actions";
+import { STAFF_ROLE_DISPLAY_ORDER, type StaffRole } from "@/lib/schedule/constants";
 import { staffSupabase } from "@/lib/supabase/staff";
 
 /**
@@ -21,7 +23,7 @@ import { staffSupabase } from "@/lib/supabase/staff";
  * inactive account may write is still decided by row level security.
  */
 
-export type StaffRole = "staff" | "owner";
+export type { StaffRole };
 
 export type Staff = {
   displayName: string;
@@ -51,7 +53,9 @@ export const currentStaff = cache(async (): Promise<CurrentStaff> => {
       kind: "ok",
       staff: {
         displayName: data.display_name,
-        role: data.role === "owner" ? "owner" : "staff",
+        // The check constraint on staff.role is the only guard against a
+        // fifth value; this is a straight pass through, not a coercion.
+        role: data.role as StaffRole,
         isActive: data.is_active,
         privacyAcknowledgedVersion: data.privacy_acknowledged_version,
       },
@@ -64,6 +68,61 @@ export const currentStaff = cache(async (): Promise<CurrentStaff> => {
     return { kind: "error" };
   }
 });
+
+export type StaffAccount = {
+  clerkUserId: string;
+  displayName: string;
+  email: string | null;
+  role: StaffRole;
+  isActive: boolean;
+  lastSignedInAt: string | null;
+  version: number;
+};
+
+/**
+ * Every staff account, active and inactive alike, for the owner's and
+ * superadmin's user management screen. Spec 0012, AC-2.
+ *
+ * The read itself is not narrowed to owner or superadmin: "active staff may
+ * read the staff list" already lets any active staff member read every row,
+ * a spec 0004 decision this feature does not change. `/staff/admin/users`
+ * restricting itself to owner and superadmin is an application level gate on
+ * top of an already broad read, not a new database restriction.
+ *
+ * Sorted most privileged first (`STAFF_ROLE_DISPLAY_ORDER`), then by name
+ * within a role: a role isn't a column Postgres can order on meaningfully
+ * (it's a plain check constrained value, not a rank), so this is done here
+ * rather than with `.order()`.
+ */
+export async function getAllStaff(): Promise<ActionResult<StaffAccount[]>> {
+  const staff = await requireStaff();
+  if (!staff.ok) return fail(staff.error);
+
+  const { data, error } = await staff.supabase
+    .from("staff")
+    .select("clerk_user_id, display_name, email, role, is_active, last_signed_in_at, version")
+    .order("display_name");
+
+  if (error) {
+    return fail(describeDatabaseError(error, { action: "getAllStaff", distinctId: staff.staffId }));
+  }
+
+  const accounts = (data ?? []).map((row): StaffAccount => ({
+    clerkUserId: row.clerk_user_id,
+    displayName: row.display_name,
+    email: row.email,
+    role: row.role as StaffRole,
+    isActive: row.is_active,
+    lastSignedInAt: row.last_signed_in_at,
+    version: row.version,
+  }));
+  accounts.sort((a, b) => {
+    const byRole =
+      STAFF_ROLE_DISPLAY_ORDER.indexOf(a.role) - STAFF_ROLE_DISPLAY_ORDER.indexOf(b.role);
+    return byRole !== 0 ? byRole : a.displayName.localeCompare(b.displayName);
+  });
+  return ok(accounts);
+}
 
 /** The parts of an error worth a log line, whatever shape it arrived in. */
 function describeError(error: unknown): string {

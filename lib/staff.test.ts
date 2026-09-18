@@ -8,16 +8,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const auth = vi.hoisted(() => vi.fn());
 const rpc = vi.hoisted(() => vi.fn());
+const from = vi.hoisted(() => vi.fn());
 const cache = vi.hoisted(() => vi.fn(<F>(fn: F) => fn));
 
 vi.mock("@clerk/nextjs/server", () => ({ auth }));
-vi.mock("@/lib/supabase/staff", () => ({ staffSupabase: () => ({ rpc }) }));
+vi.mock("@/lib/supabase/staff", () => ({ staffSupabase: () => ({ rpc, from }) }));
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   cache,
 }));
 
-const { currentStaff, ENSURE_STAFF_TIMEOUT_MS } = await import("./staff");
+const { currentStaff, ENSURE_STAFF_TIMEOUT_MS, getAllStaff } = await import("./staff");
+
+/** A stand in for the PostgREST builder chain `from().select().order()`. */
+function fromSelecting(result: {
+  data: unknown[] | null;
+  error: { code?: string; message: string } | null;
+}) {
+  const order = vi.fn().mockResolvedValue(result);
+  const select = vi.fn(() => ({ order }));
+  from.mockReturnValue({ select });
+  return { select, order };
+}
 
 type Row = {
   display_name: string;
@@ -41,6 +53,7 @@ beforeEach(() => {
   // Not `clearAllMocks`: the `cache()` call happened once, at import time.
   auth.mockReset();
   rpc.mockReset();
+  from.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -126,12 +139,72 @@ describe("currentStaff", () => {
     expect(console.error).toHaveBeenCalled();
   });
 
-  it("never reports a role other than staff or owner", async () => {
+  it("passes the role column through unchanged, admin and superadmin included (spec 0012)", async () => {
     auth.mockResolvedValue({ isAuthenticated: true });
     rpcResolving({ data: { display_name: "X", role: "admin", is_active: true }, error: null });
 
     const result = await currentStaff();
-    if (result.kind === "ok") expect(result.staff.role).toBe("staff");
+    if (result.kind === "ok") expect(result.staff.role).toBe("admin");
     else expect.fail("expected an ok result");
+  });
+});
+
+describe("getAllStaff", () => {
+  /** Rows out of DB order on purpose, to prove the function does the sorting. */
+  const ROWS = [
+    {
+      clerk_user_id: "a",
+      display_name: "Amy",
+      email: null,
+      role: "staff",
+      is_active: true,
+      last_signed_in_at: null,
+      version: 1,
+    },
+    {
+      clerk_user_id: "b",
+      display_name: "Bo",
+      email: null,
+      role: "admin",
+      is_active: true,
+      last_signed_in_at: null,
+      version: 1,
+    },
+    {
+      clerk_user_id: "c",
+      display_name: "Cy",
+      email: null,
+      role: "owner",
+      is_active: true,
+      last_signed_in_at: null,
+      version: 1,
+    },
+    {
+      clerk_user_id: "d",
+      display_name: "Al",
+      email: null,
+      role: "superadmin",
+      is_active: true,
+      last_signed_in_at: null,
+      version: 1,
+    },
+    {
+      clerk_user_id: "e",
+      display_name: "Zed",
+      email: null,
+      role: "superadmin",
+      is_active: true,
+      last_signed_in_at: null,
+      version: 1,
+    },
+  ];
+
+  it("sorts owner, then superadmin, then admin, then staff, alphabetically within a role", async () => {
+    auth.mockResolvedValue({ isAuthenticated: true, userId: "caller_1" });
+    fromSelecting({ data: ROWS, error: null });
+
+    const result = await getAllStaff();
+    if (!result.ok) return expect.fail("expected an ok result");
+    expect(result.data.map((row) => row.displayName)).toEqual(["Cy", "Al", "Zed", "Bo", "Amy"]);
   });
 });
