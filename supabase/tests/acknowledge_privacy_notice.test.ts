@@ -31,6 +31,33 @@ describe.skipIf(!process.env.DB_TESTS)(
       });
     });
 
+    it("writes the acknowledgement without touching the optimistic-lock version column (AC-9)", async () => {
+      // Spec 0012 added `public.staff.version`, which shares its name with the
+      // function's version parameter. This case sets that column to a value
+      // other than its default, so a return to the ambiguous `version` would
+      // raise 42702 here. A passing run proves the acknowledgement writes
+      // `privacy_acknowledged_version` and leaves the lock column alone.
+      const result = await query(
+        rollback(
+          `insert into public.staff (clerk_user_id, display_name, role, version)
+             values ('ack_test_versioned', 'Ack Test Versioned', 'staff', 7)
+           on conflict do nothing;
+           ` +
+            asAuthenticated(
+              { sub: "ack_test_versioned" },
+              `select public.acknowledge_privacy_notice('2026-09-16') as returned;
+             reset role;
+             select privacy_acknowledged_version, version
+               from public.staff where clerk_user_id = 'ack_test_versioned';`,
+            ),
+        ),
+      );
+      expect(result).toEqual({
+        ok: true,
+        rows: [{ privacy_acknowledged_version: "2026-09-16", version: 7 }],
+      });
+    });
+
     it("refuses a signed out caller (AC-9)", async () => {
       const result = await query(
         rollback("select public.acknowledge_privacy_notice('2026-09-16');"),

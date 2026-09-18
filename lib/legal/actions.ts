@@ -37,7 +37,7 @@ export async function acknowledgePrivacyNotice(
   }
 
   const { data, error } = await staff.supabase.rpc("acknowledge_privacy_notice", {
-    version: parsed.data.version,
+    p_version: parsed.data.version,
   });
   if (error) {
     // Every RPC failure here, `no_data_found` included, is unexpected: a

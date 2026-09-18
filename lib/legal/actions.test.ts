@@ -50,7 +50,7 @@ describe("acknowledgePrivacyNotice", () => {
     rpc.mockResolvedValue({ data: PRIVACY_NOTICE_VERSION, error: null });
     const result = await acknowledgePrivacyNotice({ version: PRIVACY_NOTICE_VERSION });
     expect(rpc).toHaveBeenCalledWith("acknowledge_privacy_notice", {
-      version: PRIVACY_NOTICE_VERSION,
+      p_version: PRIVACY_NOTICE_VERSION,
     });
     expect(result).toEqual({ ok: true, data: { version: PRIVACY_NOTICE_VERSION } });
   });
