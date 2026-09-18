@@ -4,8 +4,12 @@
 
 The PostHog wiring for spec 0009: page views and staff activity for Ella, and error
 tracking for you. One vendor, cookieless on the public board, identified under
-`/staff`. With no `NEXT_PUBLIC_POSTHOG_KEY` set, every function in this folder is a
-no-op, so development and `next build` are unaffected.
+`/staff`. Everything here is gated on `posthogConfigured` in `lib/env.ts`, which is
+false unless a `NEXT_PUBLIC_POSTHOG_KEY` is set AND the runtime is not `next dev`
+(`NODE_ENV` `development`); a dev session opts in with
+`NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV=true`. So a `next dev` session never reports its
+transient compile errors into the production project, and every function in this
+folder is a no-op when the gate is false.
 
 ## Key files
 

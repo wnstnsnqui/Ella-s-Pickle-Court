@@ -31,14 +31,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Copy [.env.example](.env.example) to `.env.local` and fill it in:
 
-| Variable                            | Purpose                                                               |
-| ----------------------------------- | --------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`          | Supabase project URL                                                  |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Public key for the browser and server side public reads               |
-| `SUPABASE_SERVICE_ROLE_KEY`         | Migrations and admin tooling only. Never imported by application code |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key                                                 |
-| `CLERK_SECRET_KEY`                  | Clerk secret key, runtime only                                        |
-| `NEXT_PUBLIC_VENUE_TIMEZONE`        | The single display timezone for the venue (`Asia/Manila`)             |
+| Variable                            | Purpose                                                                        |
+| ----------------------------------- | ------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SUPABASE_URL`          | Supabase project URL                                                           |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Public key for the browser and server side public reads                        |
+| `SUPABASE_SERVICE_ROLE_KEY`         | Migrations and admin tooling only. Never imported by application code          |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key                                                          |
+| `CLERK_SECRET_KEY`                  | Clerk secret key, runtime only                                                 |
+| `NEXT_PUBLIC_VENUE_TIMEZONE`        | The single display timezone for the venue (`Asia/Manila`)                      |
+| `NEXT_PUBLIC_POSTHOG_KEY`           | PostHog project key. Empty in development, so `next dev` sends nothing         |
+| `NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV` | Set to `true` to send analytics from `next dev` with a key set. Off by default |
 
 ### Database
 
