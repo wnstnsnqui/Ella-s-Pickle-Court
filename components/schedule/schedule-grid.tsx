@@ -59,6 +59,8 @@ export type ScheduleGridProps = {
   markerRef?: React.Ref<HTMLDivElement>;
   onRetry?: () => void;
   className?: string;
+  /** True while a day switch is dimming this grid, so a screen reader knows it's stale, not broken. */
+  busy?: boolean;
 };
 
 /** How far Page Up and Page Down travel: roughly a phone screen of rows. */
@@ -78,6 +80,7 @@ export function ScheduleGrid({
   markerRef,
   onRetry,
   className,
+  busy,
 }: ScheduleGridProps) {
   const gridRef = useRef<HTMLDivElement>(null);
   // The roving tabindex: the whole grid is one tab stop, and this is the cell
@@ -152,7 +155,7 @@ export function ScheduleGrid({
 
   if (view.kind === "loading") {
     return (
-      <div className={className}>
+      <div className={className} aria-busy={busy}>
         <StateLegend views={legendViews} className="mb-3" />
         <p role="status" className="sr-only">
           Loading the schedule
@@ -164,7 +167,7 @@ export function ScheduleGrid({
 
   if (view.kind === "error") {
     return (
-      <div className={className}>
+      <div className={className} aria-busy={busy}>
         <ErrorState message={view.message} onRetry={onRetry} />
       </div>
     );
@@ -172,7 +175,7 @@ export function ScheduleGrid({
 
   if (view.kind === "empty") {
     return (
-      <div className={className}>
+      <div className={className} aria-busy={busy}>
         {view.reason === "no-courts" ? (
           <EmptyState
             icon={LandPlot}
@@ -198,7 +201,7 @@ export function ScheduleGrid({
   const markerBefore = nowMs === null ? -1 : grid.rows.findIndex((row) => !isPast(row));
 
   return (
-    <div className={className}>
+    <div className={className} aria-busy={busy}>
       <StateLegend views={legendViews} className="mb-3" />
 
       {/*

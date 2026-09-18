@@ -90,6 +90,21 @@ The first palette was deliberately near neutral: ink on white, with the cell sta
 
 Why it holds up as a decision and not only a taste: it keeps every structural rule of this spec (one token layer, no theme named in a component, icon plus name on every state, AA in both themes, measured), and it spends its energy in two places only, the header band and the cells, so the grid stays quiet enough to read in a hurry. The cost is two new colour roles (`--brand` and `--mark`) and a solid colour header that every screen now wears. The other two directions are kept on the canvas for reference.
 
+## Day switch loading revision, 2026-09-18
+
+`/check verify` on the running board found that AC-13's "a skeleton grid while switching day" never actually happened: `app/loading.tsx` (the `GridSkeleton` fallback) is a route level Suspense boundary, and Next's App Router only falls back to it on a hard navigation into a new route segment. `DayNav`'s prev/next arrows and the calendar pick only change the `?date=` search parameter on the page already mounted, a soft transition where the framework deliberately keeps the current tree on screen and swaps it once the new one is ready, so the skeleton never fired. The day switch had no loading feedback at all, which read as lag.
+
+**Options considered**
+
+1. **Force the skeleton to fire anyway**, by wrapping the schedule grid in its own client side `<Suspense key={date} fallback={<GridSkeleton />}>` so a date change remounts that boundary. Rejected: it fights the framework's default rather than working with it, and for a one day step the full grid blanking out reads as more broken than the lag it replaces, not less.
+2. **A global top of page progress bar** (the NProgress pattern), covering every navigation app wide. Rejected: too coarse for this. It says "something is happening" without saying what, and does not distinguish which control the reader just pressed.
+3. **`useLinkStatus()` alone**, Next's per link pending hook, spinning the pressed control with no other change. Considered seriously, since it is the framework's own intended answer to exactly this gap. Rejected alone (kept as half the answer, see below) because a spinner on a small icon button is easy to miss if the reader's eyes are already on the grid, not the toolbar, and it says nothing about whether the grid itself is now stale.
+4. **A control level spinner plus an optimistic heading plus a dimmed grid**, wrapping `DayNav`'s own `router.push` in `useTransition` instead of `useLinkStatus()` (so the same pending flag can drive both the button and, threaded up through a small `onNavigatingChange` callback, the grid's dimming). Chosen.
+
+**Rationale**
+
+Option 4 answers both gaps option 3 left open, spinner visibility and grid staleness, without the flash option 1 causes, and without option 2's loss of specificity. The heading is optimistic because it is safe to be: `today + 1` or a calendar pick's target date is pure client side arithmetic on a date already known, never a guess at what the day holds, which is a real distinction from the grid. The grid cannot be shown optimistically the same way: only the server knows tomorrow's actual bookings, and a booking board that briefly shows the wrong availability before correcting itself is worse than one that is honestly a beat slow, which is also why AGENTS.md insists these boards render per request rather than from cache. Scoping the spinner to only the control pressed (tracked as the specific target date inside `DayNav`, not a bare boolean) was a second, smaller fix within option 4: the first pass spun every control on any navigation, which made picking a date also spin the arrows and vice versa, confusing about what was actually happening. Disabling the other controls without spinning them keeps the "you cannot start a second navigation right now" signal without implying they are themselves doing something.
+
 ## Evidence: what the repo already fixes
 
 Read during this design, so the spec does not contradict what is built:

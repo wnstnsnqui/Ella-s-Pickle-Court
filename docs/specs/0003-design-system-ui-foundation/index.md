@@ -32,7 +32,7 @@ Every screen in this product is the same grid: time down the side, a column per 
 - **AC-10**: One shell carries the venue wordmark, the day navigation and the live indicator on both boards. Staff only controls render solely when Clerk reports a signed in user.
 - **AC-11**: A cell whose state changed under a reader holds a brief highlight. Under `prefers-reduced-motion: reduce` the animation is skipped and the highlight is still perceivable.
 - **AC-12**: When the realtime channel leaves `SUBSCRIBED` the indicator reads reconnecting, and after 3 seconds it reads not live and states how old the data is. A drop that recovers inside that window never shows as not live. The grid stays readable throughout and the indicator returns to live by itself.
-- **AC-13**: Loading, empty and error states exist and are used: server rendered first paint by default, a skeleton grid while switching day, an empty state for no courts and for a day the venue is closed, and an error state with a retry.
+- **AC-13**: Loading, empty and error states exist and are used: server rendered first paint by default, a route level skeleton grid on a hard load into the board, an empty state for no courts and for a day the venue is closed, and an error state with a retry. A same route day change, the `DayNav` arrows or the calendar pick, does not use that skeleton; it uses the day switch loading behaviour below instead. _Revised 2026-09-18, see Feature design, "Day switch loading" and the rationale file._
 - **AC-14**: The interactive components feature 6 needs exist and follow the system: button, input, select, sheet, dialog, toast, skeleton, badge, separator, alert and empty.
 - **AC-15**: Inter is the only typeface, self hosted at build time through `next/font`, so no request reaches a third party font host at runtime. Geist is removed from the project.
 - **AC-16**: The system ships no image assets. The wordmark is set in type, the favicon is a generated letter mark, and the social card is generated from text at request time.
@@ -112,8 +112,8 @@ Out of hours is a row flag layered over the three real states, not a fourth. Sel
 | `AppShell`        | server  | `children`, `toolbar`, `staff` slot                 | signed in, signed out                            | new             |
 | `ThemeToggle`     | client  | `initial: Theme` (from the cookie, on the server)   | device, light, dark                              | new             |
 | `LiveIndicator`   | client  | `channelStatus`, `lastUpdatedAt`                    | live, reconnecting, not live with age            | new             |
-| `DayNav`          | client  | `date` (from the URL), `timezone`, `horizonDays`    | today, past, at the booking horizon              | new             |
-| `ScheduleGrid`    | client  | one `view` input, the union below                   | ready, loading, empty, error, 200 percent zoom   | new             |
+| `DayNav`          | client  | `date` (from the URL), `timezone`, `horizonDays`, `onNavigatingChange` | today, past, at the booking horizon, navigating (per control) | new             |
+| `ScheduleGrid`    | client  | one `view` input, the union below, plus `className` | ready (optionally dimmed by `className`, never a new `GridView` kind), loading, empty, error, 200 percent zoom | new             |
 | `ScheduleCell`    | client  | `view: CellView`, `label`, `onSelect`               | the seven views above, focused, disabled          | new             |
 | `StateLegend`     | server  | none                                                | fixed                                            | new             |
 | `GridSkeleton`    | server  | `rows`, `courts`                                    | fixed                                            | `Skeleton`      |
@@ -121,7 +121,7 @@ Out of hours is a row flag layered over the three real states, not a fourth. Sel
 | `ErrorState`      | client  | `message`, `onRetry`                                | load failed                                      | `Alert`         |
 | Button, Input, Select, Sheet, Dialog, Toast, Badge, Separator | mixed | per shadcn | per shadcn | shadcn/ui |
 
-`ScheduleGrid` takes exactly one input, so it cannot be asked to render a state it has no data for:
+`ScheduleGrid` takes exactly one *state* input, so it cannot be asked to render a state it has no data for (its other props, `legendViews`, `onSelectCell`, `className` and the rest, are presentation and interaction wiring, not state):
 
 ```ts
 type GridView =
@@ -144,6 +144,16 @@ The age counts from the last successful server render or realtime message, and t
 
 **The selected day** travels as a `?date=YYYY-MM-DD` search parameter, read on the server. A day is then a shareable link, the page still renders per request with nothing cached, and `DayNav` only pushes the parameter. An absent or unparseable value means today at the venue.
 
+**Day switch loading** (revised 2026-09-18; replaces the original AC-13 reading of "a skeleton grid while switching day", see the rationale file for why). A day change from inside `DayNav`, an arrow tap or a calendar pick, is a search parameter change on the page already on screen, not a hard route load, so it never reaches the route level `loading.tsx` that shows `GridSkeleton`; that skeleton is for a hard load only (first visit, a pasted link, a full reload). The board still needs to say a day is on its way, so `DayNav` wraps its own `router.push` in `useTransition` and shows three things at once, each scoped to what actually changed:
+
+1. **The control pressed spins**, swapping its icon for a small `loader-circle` (the Saving icon from the cell state vocabulary above, reused here) with `motion-reduce:animate-none`, per key invariant 7, and carries `aria-disabled` rather than the native `disabled`, so it stays reachable by Tab and does not drop focus the instant it is pressed. The other two controls (the other arrow, the calendar trigger) go `aria-disabled` too, so a second tap cannot fire a second navigation mid flight, but stay on their resting icon rather than spinning, so only the control actually working animates.
+2. **The day heading updates immediately**, before the server confirms, using the same `addDays` and `Intl.DateTimeFormat` machinery this spec already names for the confirmed heading, applied to the target date instead of the confirmed one. That target can never be an unreachable day: an arrow's target is one step from an already valid date, and a calendar day beyond the horizon or before today is disabled and cannot be picked in the first place (spec 0011 AC-3), so no separate clamp is needed here.
+3. **The grid dims** (`opacity-50`, no pointer events, `motion-reduce:transition-none` per key invariant 7, no minimum delay before it starts and no minimum hold once started, so a very fast response can show a brief flash; accepted rather than adding a debounce that was never observed to be needed) and carries `aria-busy`, but keeps showing the previous day's real rows, never a skeleton and never fabricated content, until the transition settles.
+
+Nothing here can get stuck dimmed. `PublicScheduleProvider` and `StaffScheduleProvider` are keyed on the grid's date, so a successful read mounts a whole new tree already past its dim; a target date the server refuses (before today, beyond the horizon) mounts the existing "could not be shown" notice instead of a board at all, so there is no board left to be dimmed. Either outcome ends the transition and clears every one of the three signals together, never separately.
+
+`DayNav` reports its pending state upward through an optional `onNavigatingChange(pending: boolean)` prop, called from an effect on every change to its own pending flag (including the initial `false` on mount), so a listener sees it flip true the instant a transition starts and false the instant it settles, on any outcome. Each board's schedule context (`PublicScheduleProvider`, `StaffScheduleProvider`) holds it as `dayNavPending` and passes it down as the `className` on `ScheduleGrid` that drives point 3. `DayNav` itself needs no board context to do points 1 and 2, so it still renders standalone on `/design` with the prop simply unset. The live indicator is untouched by any of this: liveness describes the realtime channel, not which day is on screen, so it can keep reading live while the grid is momentarily dimmed underneath it.
+
 **Slot label rule** for AC-9: on the hour reads `9am`, noon reads `12nn`, midnight reads `12mn`; anything else carries its minutes, `4:30pm`. Always the venue timezone, never the reader's.
 
 **Value sourcing**
@@ -157,6 +167,7 @@ The age counts from the last successful server render or realtime message, and t
 | Court header   | court name and order               | `court.name` and `court.sort_order`, spec 0002                                                                          |
 | Day navigation | the day being shown                | The `?date=YYYY-MM-DD` search parameter, read on the server. Absent or unparseable means today at the venue             |
 | Day navigation | which days may be picked           | `venue_settings.booking_horizon_days` and `timezone`, spec 0002                                                         |
+| Day navigation | which control is mid navigation, and the label shown meanwhile | Client `useTransition` state inside `DayNav`, scoped to the control pressed; the label is date arithmetic on the known target date, never a server value |
 | Grid           | which cells just changed           | The `useChangedCells` hook comparing the previous grid to the new one on the client. Never a server or database value   |
 | Live indicator | live or not live                   | The Supabase realtime channel state on the client, spec 0001 rule 5                                                     |
 | Live indicator | how old the data is                | Client clock at the last successful server render or realtime message. Not a database value, so it is never trusted as one |
@@ -193,6 +204,7 @@ None. No new environment variable, secret or third party account.
 - Failure case: the realtime channel drops, the indicator reads not live with an age, the grid stays readable and recovers by itself, verifies **AC-12**
 - Reduced motion: with `prefers-reduced-motion: reduce`, a changed cell is still marked and nothing animates, verifies **AC-11**
 - Auth: signed out, the shell shows no staff control anywhere in the markup, verifies **AC-10**
+- Day switch: pressing the next day arrow spins only that arrow, leaves the previous arrow and the calendar trigger disabled but static, updates the heading immediately, and dims the grid until the new day lands; the same holds for a calendar pick, which spins the calendar trigger instead; a target the server refuses lands on the existing "could not be shown" notice with none of the three signals left stuck, verifies **AC-13** (revised)
 
 ## Standard definition
 
@@ -255,6 +267,7 @@ Ordered as a Tracer Bullet. Tasks 1 to 6 are the thin real thread: a token reach
 12. [x] Build `GridSkeleton`, `EmptyState` for no courts and for closed all day, and `ErrorState` with a retry, satisfies **AC-13**
 13. [x] Generate the favicon letter mark and the text based social card route, and remove any leftover starter asset, satisfies **AC-16**
 14. [x] Write `docs/design.md` covering type, color, spacing, the state vocabulary, the component inventory and the accessibility rules, pointing at `app/globals.css` as the source of truth, satisfies **AC-2**
+15. [x] Revision, 2026-09-18: found by using the board that a day switch through the arrows or the calendar showed no loading feedback at all, `GridSkeleton` included, because a same route search parameter change never reaches `loading.tsx`. Wrapped `DayNav`'s `router.push` in `useTransition`, scoped the resulting spinner to the control pressed, made the heading update optimistically, and dimmed the grid in `PublicBoard`/`StaffBoard` while a change is in flight, threaded through a new `dayNavPending` field on each board's schedule context, satisfies **AC-13** (revised)
 
 ## Consequences
 
@@ -273,6 +286,7 @@ Ordered as a Tracer Bullet. Tasks 1 to 6 are the thin real thread: a token reach
 - The ARIA grid pattern with a roving tabindex is the hardest thing in this spec and the easiest to get subtly wrong. Budget real time for task 8, and expect the interaction between keyboard focus and the pinned column to need fiddling even with the scroll margin mitigation.
 - A system built before the screens that consume it will need adjusting when features 6 and 7 land. Expect a second pass, not a finished artifact.
 - `/design` is another surface that can drift from the truth if nobody keeps it current.
+- `GridSkeleton` now covers fewer cases than AC-13 originally promised: it is a hard load surface only. A day switch relies on three smaller, separately scoped signals (a control's own spinner, the optimistic heading, the dimmed grid) instead of one component, which is more state to keep in sync across `DayNav` and each board's context, in exchange for feedback that actually appears at the moment the framework will show it.
 
 **Neutral**
 
@@ -287,3 +301,5 @@ Ordered as a Tracer Bullet. Tasks 1 to 6 are the thin real thread: a token reach
 - [ ] Once the components exist, consider an automated contrast check so AA is a test rather than a look. Route it through `/test`.
 - [ ] The venue name is a constant because `venue_settings` has no name column. If Ella ever wants to rename the venue without a deploy, that is a change to spec 0002, not to this one.
 - [ ] Player self booking, in the Deferred list, plugs into the Selected view defined here. Revisit whether Selected needs to survive a page load at that point.
+- [ ] Spec 0006's critical test scenario for its AC-12 states "navigating days shows the skeleton", which is now inaccurate per the 2026-09-18 revision above (a day switch dims the grid and spins the control pressed, it does not show `GridSkeleton`). A small wording touch there, pointing at this spec's "Day switch loading" section, would keep the two specs from disagreeing; left for the engineer to fold in with `/sync` or a future spec 0006 touch, since this revision was scoped to spec 0003 only.
+- [ ] Spec 0011 added `DatePicker` (the "Pick a date" calendar trigger) to `DayNav` but never added it to this spec's Component surface table or to AC-14's component list, a gap that predates this 2026-09-18 revision and is only now visible because the new "Day switch loading" text names the calendar trigger as one of the three controls. Worth a small `/sync` pass adding a `DatePicker` row (kind: client, key inputs `date`, `timezone`, `horizonDays`, `navigate`, `pending`, `disabled`; source: shadcn `Calendar` + `Popover`, per spec 0011) so the two specs agree on the full component inventory.

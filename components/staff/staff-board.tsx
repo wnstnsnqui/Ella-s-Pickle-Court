@@ -14,6 +14,7 @@ import { isOwnerLevel } from "@/lib/schedule/constants";
 import type { Grid } from "@/lib/schedule/grid";
 import type { StaffReservation, StaffSchedule } from "@/lib/schedule/queries";
 import { withRetry } from "@/lib/schedule/retry";
+import { cn } from "@/lib/utils";
 import {
   EMPTY_SELECTION,
   isSelectable,
@@ -69,7 +70,7 @@ type SheetState =
   | { kind: "edit"; id: number; version: number };
 
 export function StaffBoard() {
-  const { schedule, refetch, refetchError, subscribe, viewer } = useStaffBoard();
+  const { schedule, refetch, refetchError, subscribe, viewer, dayNavPending } = useStaffBoard();
   const { grid } = schedule;
 
   const [selection, setSelection] = useState<Selection>(EMPTY_SELECTION);
@@ -441,6 +442,11 @@ export function StaffBoard() {
         changedCells={changedCells}
         lockedCells={lockedCells}
         cellCaptions={cellCaptions}
+        className={cn(
+          dayNavPending &&
+            "pointer-events-none opacity-50 transition-opacity motion-reduce:transition-none",
+        )}
+        busy={dayNavPending}
       />
 
       {runs.length > 0 ? (

@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { Calendar } from "@/components/ui/calendar";
 import { calendarDateToLocalDate } from "@/lib/time";
@@ -16,11 +16,8 @@ function navButton(html: string, label: string): string {
 
 /**
  * The client side mirror of `resolveDate` (spec 0011): the calendar's bound
- * math, its two disabled reasons, and the month paging it produces. Rendered
- * with `next/navigation`'s `useRouter` stubbed, the same way `app/design/page.test.ts`
- * statically renders `DayNav` without a mounted app router.
+ * math, its two disabled reasons, and the month paging it produces.
  */
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: () => {} }) }));
 
 describe("pickerBounds", () => {
   it("derives the last bookable day from today plus the horizon", () => {
@@ -84,7 +81,7 @@ describe("<DatePicker> (spec 0011, AC-1, AC-5)", () => {
     timezone: "Asia/Manila",
     horizonDays: 14,
     now: "2026-09-17T04:00:00.000Z",
-    href: (to: string) => `/?date=${to}`,
+    navigate: () => {},
   };
 
   it("renders a real, accessibly named trigger button", () => {

@@ -6,7 +6,7 @@ import { useStaffBoard } from "./staff-schedule-context";
 
 /** The strip under the brand band: which day. */
 export function StaffToolbar() {
-  const { schedule, date } = useStaffBoard();
+  const { schedule, date, setDayNavPending } = useStaffBoard();
   return (
     <div className="flex items-center justify-between gap-3">
       <DayNav
@@ -16,6 +16,7 @@ export function StaffToolbar() {
         now={schedule.now}
         allowPastPick
         className="w-fit"
+        onNavigatingChange={setDayNavPending}
       />
     </div>
   );

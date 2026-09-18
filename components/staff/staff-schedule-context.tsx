@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 
 import type { StaffSchedule } from "@/lib/schedule/queries";
 import type { StaffRole } from "@/lib/staff";
@@ -26,6 +26,9 @@ export type StaffViewer = {
 type StaffBoardContext = StaffScheduleState & {
   date: string;
   viewer: StaffViewer;
+  /** A prev/next day tap is on its way, so the board can dim while it lands. */
+  dayNavPending: boolean;
+  setDayNavPending: (pending: boolean) => void;
 };
 
 const Context = createContext<StaffBoardContext | null>(null);
@@ -42,7 +45,12 @@ export function StaffScheduleProvider({
   children: React.ReactNode;
 }) {
   const state = useStaffSchedule(initial, date);
-  return <Context.Provider value={{ ...state, date, viewer }}>{children}</Context.Provider>;
+  const [dayNavPending, setDayNavPending] = useState(false);
+  return (
+    <Context.Provider value={{ ...state, date, viewer, dayNavPending, setDayNavPending }}>
+      {children}
+    </Context.Provider>
+  );
 }
 
 export function useStaffBoard(): StaffBoardContext {

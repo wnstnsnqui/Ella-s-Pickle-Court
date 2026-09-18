@@ -1,7 +1,6 @@
 "use client";
 
-import { CalendarDays } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { CalendarDays, LoaderCircle } from "lucide-react";
 import { useRef, useState } from "react";
 
 import { BoardSheet } from "@/components/board-sheet";
@@ -19,11 +18,13 @@ import { addDays, calendarDateToLocalDate, localDateToCalendarDate, todayInZone 
  * content; the same bottom sheet every other board control uses below that,
  * where an anchored popup has nowhere good to point on a touch screen.
  *
- * It only ever produces the same `?date=` link the arrows already build,
- * through the `href` builder `DayNav` passes in; the server still validates
- * every date exactly as it does today. The disabled bound and the two reasons
- * below are the client side mirror of `resolveDate` (`lib/schedule/queries.ts`),
- * so a day disabled here and a day `resolveDate` refuses never disagree.
+ * A pick hands the day straight to the `navigate` callback `DayNav` passes
+ * in, the same transition-wrapped push the prev/next arrows use, so a slow
+ * pick disables and spins the trigger and dims the board exactly like they
+ * do; the server still validates every date exactly as it does today. The
+ * disabled bound and the two reasons below are the client side mirror of
+ * `resolveDate` (`lib/schedule/queries.ts`), so a day disabled here and a day
+ * `resolveDate` refuses never disagree.
  */
 
 const PAST_REASON = "That day has passed. The board shows today onward.";
@@ -73,16 +74,22 @@ export function DatePicker({
   horizonDays,
   now,
   allowPastPick = false,
-  href,
+  navigate,
+  pending = false,
+  disabled = false,
 }: {
   date: string;
   timezone: string;
   horizonDays: number;
   now?: string;
   allowPastPick?: boolean;
-  href: (to: string) => string;
+  /** Pushes a day the same way the prev/next arrows do, transition and all. */
+  navigate: (to: string) => void;
+  /** A pick from this calendar is what's on its way: the trigger spins. */
+  pending?: boolean;
+  /** An arrow's trip is on its way instead: the trigger only greys out. */
+  disabled?: boolean;
 }) {
-  const router = useRouter();
   const wide = useMediaQuery(WIDE_QUERY);
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -118,16 +125,31 @@ export function DatePicker({
     },
     onSelect: (day: Date) => {
       setOpen(false);
-      router.push(href(localDateToCalendarDate(day)));
+      navigate(localDateToCalendarDate(day));
     },
   };
 
+  const busy = pending || disabled;
+  const icon = pending ? (
+    <LoaderCircle aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
+  ) : (
+    <CalendarDays aria-hidden="true" />
+  );
+
   if (wide) {
     return (
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={(next) => !busy && setOpen(next)}>
         <PopoverTrigger asChild>
-          <Button ref={triggerRef} variant="outline" size="icon" aria-label="Pick a date">
-            <CalendarDays aria-hidden="true" />
+          <Button
+            ref={triggerRef}
+            variant="outline"
+            size="icon"
+            aria-label="Pick a date"
+            aria-disabled={busy}
+            aria-busy={pending}
+            className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+          >
+            {icon}
           </Button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-fit p-2">
@@ -144,9 +166,12 @@ export function DatePicker({
         variant="outline"
         size="icon"
         aria-label="Pick a date"
-        onClick={() => setOpen(true)}
+        aria-disabled={busy}
+        aria-busy={pending}
+        className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+        onClick={() => !busy && setOpen(true)}
       >
-        <CalendarDays aria-hidden="true" />
+        {icon}
       </Button>
       <BoardSheet
         open={open}

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext, useContext, useState } from "react";
 
 import type { Schedule } from "@/lib/schedule/queries";
 
@@ -18,6 +18,9 @@ import { usePublicSchedule, type PublicScheduleState } from "./use-public-schedu
 type PublicBoardContext = PublicScheduleState & {
   /** The date in the URL, or undefined when the page means today (AC-10). */
   requestedDate?: string;
+  /** A prev/next day tap is on its way, so the board can dim while it lands. */
+  dayNavPending: boolean;
+  setDayNavPending: (pending: boolean) => void;
 };
 
 const Context = createContext<PublicBoardContext | null>(null);
@@ -32,7 +35,12 @@ export function PublicScheduleProvider({
   children: React.ReactNode;
 }) {
   const state = usePublicSchedule(initial, requestedDate);
-  return <Context.Provider value={{ ...state, requestedDate }}>{children}</Context.Provider>;
+  const [dayNavPending, setDayNavPending] = useState(false);
+  return (
+    <Context.Provider value={{ ...state, requestedDate, dayNavPending, setDayNavPending }}>
+      {children}
+    </Context.Provider>
+  );
 }
 
 export function usePublicBoard(): PublicBoardContext {

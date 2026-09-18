@@ -6,6 +6,7 @@ import { CELL_VIEWS, type CellView } from "@/components/schedule/cell-view";
 import { ScheduleGrid, type GridView } from "@/components/schedule/schedule-grid";
 import { useChangedCells } from "@/components/schedule/use-changed-cells";
 import { calendarDateInZone } from "@/lib/time";
+import { cn } from "@/lib/utils";
 
 import { usePublicBoard } from "./public-schedule-context";
 
@@ -28,7 +29,7 @@ const PUBLIC_LEGEND: readonly CellView[] = CELL_VIEWS.filter(
 );
 
 export function PublicBoard() {
-  const { schedule, refetchError, now, requestRead } = usePublicBoard();
+  const { schedule, refetchError, now, requestRead, dayNavPending } = usePublicBoard();
   const { grid } = schedule;
   const changedCells = useChangedCells(grid, CHANGED_HOLD_MS);
 
@@ -71,6 +72,11 @@ export function PublicBoard() {
         now={isToday ? new Date(now).toISOString() : undefined}
         markerRef={markerRef}
         onRetry={requestRead}
+        className={cn(
+          dayNavPending &&
+            "pointer-events-none opacity-50 transition-opacity motion-reduce:transition-none",
+        )}
+        busy={dayNavPending}
       />
     </div>
   );
