@@ -49,12 +49,21 @@ export const VENUE_TIMEZONE = process.env.NEXT_PUBLIC_VENUE_TIMEZONE || "Asia/Ma
 export const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
 
 /**
- * Whether a PostHog project key is present. Spec 0009, AC-9.
+ * Whether PostHog analytics is on. Spec 0009, AC-9.
  *
  * With this false, `instrumentation-client.ts` never calls `posthog.init`,
  * `captureStaffEvent()` and `reportFailure()` in `lib/analytics/server.ts`
  * return without contacting anything, and `onRequestError` in
- * `instrumentation.ts` is a no-op. Development stays silent by leaving the key
- * empty; there is no separate `NODE_ENV` gate.
+ * `instrumentation.ts` is a no-op.
+ *
+ * A project key alone is not enough. `next dev` (`NODE_ENV` is `development`)
+ * stays silent even when a key sits in `.env.local`, so a developer's transient
+ * compile errors never reach the production project. Set
+ * `NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV=true` to opt one dev session in. A
+ * production build (`npm run build && npm start`) with the key set still sends,
+ * so it stays the honest way to prove the wiring (spec 0009, Decision).
  */
-export const posthogConfigured = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
+export const posthogConfigured =
+  Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY) &&
+  (process.env.NODE_ENV !== "development" ||
+    process.env.NEXT_PUBLIC_POSTHOG_ENABLE_IN_DEV === "true");
