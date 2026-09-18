@@ -107,7 +107,10 @@ type DatabaseError = { code?: string; message: string };
  * It is never surfaced as a raw error and never swallowed. `23505` on one of
  * the two partial unique indexes on `court` is a named conflict too. `42501`
  * is row level security refusing the write, which is an authorization answer,
- * not a failure.
+ * not a failure. `PGRST301` and `PGRST303` are PostgREST turning away an
+ * expired or otherwise unusable Clerk token; `PGRST302` is a token that is not
+ * valid *yet*, a clock skew answer rather than an expired one. All three are a
+ * session answer, not a broken query.
  */
 /**
  * `action` names the Server Action that ran, for `reportFailure()`; `distinctId`
@@ -160,6 +163,23 @@ export function describeDatabaseError(
     return {
       kind: "forbidden",
       message: "Your account is not allowed to make that change.",
+    };
+  }
+  // PostgREST refusing the caller's Clerk token. It reads as `unauthenticated`
+  // so the desk sees a plain sentence rather than a database string, and it is
+  // never captured as an exception: an `unauthenticated` answer is expected,
+  // not a failure (spec 0009, AC-7). `PGRST302` gets its own message because
+  // re-authenticating does nothing for a clock skew that will pass on its own.
+  if (error.code === "PGRST301" || error.code === "PGRST303") {
+    return {
+      kind: "unauthenticated",
+      message: "Your session has expired. Sign in again.",
+    };
+  }
+  if (error.code === "PGRST302") {
+    return {
+      kind: "unauthenticated",
+      message: "Your session isn't valid yet. Try again in a moment.",
     };
   }
   reportFailure(error, context);

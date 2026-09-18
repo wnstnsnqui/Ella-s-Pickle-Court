@@ -2,7 +2,14 @@ import "server-only";
 
 import { cache } from "react";
 
-import { fail, ok, requireStaff, type ActionResult, type InvalidReason } from "@/lib/actions";
+import {
+  describeDatabaseError,
+  fail,
+  ok,
+  requireStaff,
+  type ActionResult,
+  type InvalidReason,
+} from "@/lib/actions";
 import { reportFailure } from "@/lib/analytics/server";
 import { publicSupabase } from "@/lib/supabase/public";
 import type { Database } from "@/lib/supabase/database.types";
@@ -137,8 +144,10 @@ async function loadSettings(supabase: ReturnType<typeof publicSupabase>, distinc
     .maybeSingle();
 
   if (error) {
-    reportFailure(error, { action: "loadSettings", distinctId });
-    return { ok: false as const, error: { kind: "failed" as const, message: error.message } };
+    return {
+      ok: false as const,
+      error: describeDatabaseError(error, { action: "loadSettings", distinctId }),
+    };
   }
   if (!data) {
     return {

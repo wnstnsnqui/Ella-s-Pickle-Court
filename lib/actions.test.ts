@@ -169,6 +169,33 @@ describe("describeDatabaseError", () => {
     expect(error).toMatchObject({ kind: "conflict", reason: "sort_order_taken" });
   });
 
+  it.each(["PGRST301", "PGRST303"])(
+    "maps the PostgREST token refusal %s to an expired session, never a raw failure",
+    (code) => {
+      const error = describeDatabaseError(
+        { code, message: "JWT expired" },
+        { action: "loadSettings", distinctId: "user_1" },
+      );
+      expect(error).toEqual({
+        kind: "unauthenticated",
+        message: "Your session has expired. Sign in again.",
+      });
+      expect(reportFailure).not.toHaveBeenCalled();
+    },
+  );
+
+  it("maps the PostgREST token refusal PGRST302 to a not-yet-valid session, never a raw failure", () => {
+    const error = describeDatabaseError(
+      { code: "PGRST302", message: "JWT not yet valid" },
+      { action: "loadSettings", distinctId: "user_1" },
+    );
+    expect(error).toEqual({
+      kind: "unauthenticated",
+      message: "Your session isn't valid yet. Try again in a moment.",
+    });
+    expect(reportFailure).not.toHaveBeenCalled();
+  });
+
   it("passes anything else through as failed with the database message", () => {
     expect(
       describeDatabaseError({ code: "XX000", message: "disk on fire" }, { action: "test" }),
