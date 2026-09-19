@@ -312,17 +312,32 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
     supabase.from("staff").select("clerk_user_id, display_name"),
   ]);
 
+  // The grid and the bookings are the board. If either fails, the page has
+  // nothing to show, so answer a typed error rather than a raw Postgres string.
   if (courts.error) {
-    reportFailure(courts.error, { action: "getStaffSchedule", distinctId: staff.staffId });
-    return fail({ kind: "failed", message: courts.error.message });
+    return fail(
+      describeDatabaseError(courts.error, {
+        action: "getStaffSchedule",
+        distinctId: staff.staffId,
+      }),
+    );
   }
   if (reservations.error) {
-    reportFailure(reservations.error, { action: "getStaffSchedule", distinctId: staff.staffId });
-    return fail({ kind: "failed", message: reservations.error.message });
+    return fail(
+      describeDatabaseError(reservations.error, {
+        action: "getStaffSchedule",
+        distinctId: staff.staffId,
+      }),
+    );
   }
+  // The staff name lookup is secondary: it only turns a writer's Clerk id into a
+  // display name. When it fails on its own (schema drift, a stale PostgREST
+  // schema cache) the grid and the bookings are already in hand, so degrade to
+  // an empty name map rather than take the whole board down. A booking then
+  // reads "a staff member" until the fault is fixed. The failure is still
+  // reported, so the drift stays visible once the page stops dying.
   if (staffRows.error) {
     reportFailure(staffRows.error, { action: "getStaffSchedule", distinctId: staff.staffId });
-    return fail({ kind: "failed", message: staffRows.error.message });
   }
 
   const rows = reservations.data ?? [];

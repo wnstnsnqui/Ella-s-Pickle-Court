@@ -11,8 +11,11 @@ const rpc = vi.hoisted(() => vi.fn());
 const from = vi.hoisted(() => vi.fn());
 const cache = vi.hoisted(() => vi.fn(<F>(fn: F) => fn));
 
+const reportFailure = vi.hoisted(() => vi.fn());
+
 vi.mock("@clerk/nextjs/server", () => ({ auth }));
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase: () => ({ rpc, from }) }));
+vi.mock("@/lib/analytics/server", () => ({ reportFailure }));
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
   cache,
@@ -54,6 +57,7 @@ beforeEach(() => {
   auth.mockReset();
   rpc.mockReset();
   from.mockReset();
+  reportFailure.mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -137,6 +141,29 @@ describe("currentStaff", () => {
 
     expect(await currentStaff()).toEqual({ kind: "error" });
     expect(console.error).toHaveBeenCalled();
+    // An abort has no string code, so it stays a log line rather than an exception.
+    expect(reportFailure).not.toHaveBeenCalled();
+  });
+
+  it("reports schema drift so it stops being invisible in the log alone", async () => {
+    auth.mockResolvedValue({ isAuthenticated: true });
+    rpcResolving({
+      data: null,
+      error: { code: "42703", message: "column staff.clerk_user_id does not exist" },
+    });
+
+    expect(await currentStaff()).toEqual({ kind: "error" });
+    expect(reportFailure).toHaveBeenCalledWith(expect.objectContaining({ code: "42703" }), {
+      action: "currentStaff",
+    });
+  });
+
+  it("does not report an expired token: a session answer is expected, not a failure", async () => {
+    auth.mockResolvedValue({ isAuthenticated: true });
+    rpcResolving({ data: null, error: { code: "PGRST301", message: "JWT expired" } });
+
+    expect(await currentStaff()).toEqual({ kind: "error" });
+    expect(reportFailure).not.toHaveBeenCalled();
   });
 
   it("passes the role column through unchanged, admin and superadmin included (spec 0012)", async () => {

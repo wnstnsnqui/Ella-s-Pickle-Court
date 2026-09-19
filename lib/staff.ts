@@ -65,6 +65,15 @@ export const currentStaff = cache(async (): Promise<CurrentStaff> => {
     // One string on purpose: the dev log flattens an object argument to `{}`,
     // which hides the one line that says what went wrong.
     console.error(`currentStaff: could not create or read the staff row: ${describeError(error)}`);
+    // A Postgres error here — a dropped column, a stale PostgREST schema cache —
+    // is drift, not an expected session answer, and used to stay invisible in
+    // the log alone. Route it through describeDatabaseError, which reports only
+    // the unexpected `failed` branch, so an expired token or a policy refusal is
+    // still swallowed while real drift becomes visible. An abort has no string
+    // code and is left to the log.
+    if (isPostgresError(error)) {
+      describeDatabaseError(error, { action: "currentStaff" });
+    }
     return { kind: "error" };
   }
 });
@@ -122,6 +131,20 @@ export async function getAllStaff(): Promise<ActionResult<StaffAccount[]>> {
     return byRole !== 0 ? byRole : a.displayName.localeCompare(b.displayName);
   });
   return ok(accounts);
+}
+
+/**
+ * A PostgREST or Postgres error carries a string code (a SQLSTATE like `42703`,
+ * or a `PGRST...` code) and a message. An aborted request does not — a
+ * `DOMException` has a numeric `code` — so this tells drift from a timeout.
+ */
+function isPostgresError(error: unknown): error is { code: string; message: string } {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    typeof (error as { code?: unknown }).code === "string" &&
+    typeof (error as { message?: unknown }).message === "string"
+  );
 }
 
 /** The parts of an error worth a log line, whatever shape it arrived in. */
