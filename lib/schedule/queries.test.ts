@@ -33,6 +33,8 @@ const staffSupabase = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
 const publicSupabase = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/supabase/public", () => ({ publicSupabase }));
+const reportFailure = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/analytics/server", () => ({ reportFailure }));
 
 const { getSchedule, getStaffSchedule } = await import("./queries");
 
@@ -177,15 +179,41 @@ describe("getStaffSchedule", () => {
     });
   });
 
-  it("passes a staff list read error through rather than showing a grid with no names", async () => {
-    queue("reservation", { data: [], error: null });
-    queue("staff", { data: null, error: { message: "permission denied for table staff" } });
+  it("degrades to an empty name map when only the staff read fails, and still reports it", async () => {
+    queue("reservation", { data: [reservationRow({})], error: null });
+    queue("staff", {
+      data: null,
+      error: { code: "42703", message: "column staff.clerk_user_id does not exist" },
+    });
+
+    const result = await getStaffSchedule("2026-09-15");
+
+    // The board still renders: the grid and the bookings arrived, so a failed
+    // name lookup drops to an empty list rather than taking the page down.
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.staff).toEqual([]);
+    expect(result.data.reservations).toHaveLength(1);
+    expect(result.data.grid.rows.length).toBeGreaterThan(0);
+    // The drift is still captured so it stays visible once the page stops dying.
+    expect(reportFailure).toHaveBeenCalledWith(
+      { code: "42703", message: "column staff.clerk_user_id does not exist" },
+      { action: "getStaffSchedule", distinctId: "user_a" },
+    );
+  });
+
+  it("maps a token refusal on the reservation read to unauthenticated, not the raw JWT text", async () => {
+    queue("reservation", {
+      data: null,
+      error: { code: "PGRST301", message: "JWT expired" },
+    });
+    queue("staff", { data: [], error: null });
 
     const result = await getStaffSchedule("2026-09-15");
 
     expect(result).toMatchObject({
       ok: false,
-      error: { kind: "failed", message: "permission denied for table staff" },
+      error: { kind: "unauthenticated", message: "Your session has expired. Sign in again." },
     });
   });
 });
