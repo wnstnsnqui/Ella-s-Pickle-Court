@@ -1,9 +1,9 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
 import { z } from "zod";
 
 import { reportFailure } from "@/lib/analytics/server";
+import { currentSession } from "@/lib/auth/session";
 import { staffSupabase } from "@/lib/supabase/staff";
 
 /**
@@ -55,13 +55,16 @@ export function fail<T>(error: ActionError): ActionResult<T> {
 }
 
 /**
- * Confirm there is a Clerk session and hand back a Supabase client carrying that
- * person's token. Call this at the top of every Server Action, before touching
- * the database.
+ * Confirm there is a Better Auth session and hand back a Supabase client
+ * carrying a token minted for that person. Call this at the top of every
+ * Server Action, before touching the database. The three pre authentication
+ * actions in `lib/auth/actions.ts` are the one named exception (spec 0004,
+ * invariant 7a): the person has no session yet, and a link claimed in
+ * Postgres is their gate.
  */
 export async function requireStaff() {
-  const { isAuthenticated, userId } = await auth();
-  if (!isAuthenticated || !userId) {
+  const session = await currentSession();
+  if (!session) {
     return {
       ok: false as const,
       error: {
@@ -70,7 +73,7 @@ export async function requireStaff() {
       },
     };
   }
-  return { ok: true as const, staffId: userId, supabase: staffSupabase() };
+  return { ok: true as const, staffId: session.user.id, supabase: staffSupabase() };
 }
 
 /**
@@ -108,13 +111,13 @@ type DatabaseError = { code?: string; message: string };
  * the two partial unique indexes on `court` is a named conflict too. `42501`
  * is row level security refusing the write, which is an authorization answer,
  * not a failure. `PGRST301` and `PGRST303` are PostgREST turning away an
- * expired or otherwise unusable Clerk token; `PGRST302` is a token that is not
+ * expired or otherwise unusable minted token; `PGRST302` is a token that is not
  * valid *yet*, a clock skew answer rather than an expired one. All three are a
  * session answer, not a broken query.
  */
 /**
  * `action` names the Server Action that ran, for `reportFailure()`; `distinctId`
- * is the staff member's Clerk id, when one is known. Only the final, unnamed
+ * is the staff member's user id, when one is known. Only the final, unnamed
  * `failed` branch is ever reported: `slot_taken` and the other named
  * conflicts are expected outcomes and are never captured (spec 0009, AC-7).
  */
@@ -156,7 +159,9 @@ export function describeDatabaseError(
       message:
         context.action === "updateStaffRole"
           ? "Somebody else changed that account first. The list has been reloaded."
-          : "Somebody else changed the courts first. The list has been reloaded.",
+          : context.action === "revokeStaffInvite"
+            ? "That link was already used or revoked. The list has been reloaded."
+            : "Somebody else changed the courts first. The list has been reloaded.",
     };
   }
   if (error.code === "42501") {
@@ -165,7 +170,7 @@ export function describeDatabaseError(
       message: "Your account is not allowed to make that change.",
     };
   }
-  // PostgREST refusing the caller's Clerk token. It reads as `unauthenticated`
+  // PostgREST refusing the caller's minted token. It reads as `unauthenticated`
   // so the desk sees a plain sentence rather than a database string, and it is
   // never captured as an exception: an `unauthenticated` answer is expected,
   // not a failure (spec 0009, AC-7). `PGRST302` gets its own message because

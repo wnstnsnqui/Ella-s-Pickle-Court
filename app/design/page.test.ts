@@ -10,13 +10,13 @@ import DesignPage, { dynamic, metadata } from "./page";
  * Spec 0003, AC-3: `/design` renders for anybody, is closed to search engines, and
  * shows every token, component and cell state.
  *
- * The page is a server component whose shell asks Clerk who is signed in, a
+ * The page is a server component whose shell reads the session, a
  * boundary: the shell has its own suite, so here the page's element tree is
  * inspected for what it hands the shell, and everything inside the shell is
  * rendered to static HTML.
  */
 
-vi.mock("@clerk/nextjs", () => ({ Show: () => null }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: async () => null }));
 // `DayNav`'s calendar picker (spec 0011) reads `useRouter` to navigate on pick; that
 // hook throws outside a mounted app router, unlike `usePathname`/`useSearchParams`,
 // which this static render already relies on degrading gracefully.

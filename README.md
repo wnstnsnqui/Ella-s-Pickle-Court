@@ -8,7 +8,7 @@ Pick a day and see time down the side and a column per court, with every cell re
 
 - **Next.js 16** (App Router), **React 19**, **TypeScript 5** (strict), **Tailwind CSS 4**
 - **Supabase** for Postgres, row level security and realtime broadcast
-- **Clerk 7** for staff identity
+- **Better Auth** for staff identity, in the project's own Postgres
 - **Zod** at every Server Action boundary
 - **Vitest** for tests, **ESLint** + **Prettier** for lint and layout
 - Self hosted as a **Docker** container (`output: "standalone"`)
@@ -31,14 +31,17 @@ Open [http://localhost:3000](http://localhost:3000).
 
 Copy [.env.example](.env.example) to `.env.local` and fill it in:
 
-| Variable                            | Purpose                                                               |
-| ----------------------------------- | --------------------------------------------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`          | Supabase project URL                                                  |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`     | Public key for the browser and server side public reads               |
-| `SUPABASE_SERVICE_ROLE_KEY`         | Migrations and admin tooling only. Never imported by application code |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key                                                 |
-| `CLERK_SECRET_KEY`                  | Clerk secret key, runtime only                                        |
-| `NEXT_PUBLIC_VENUE_TIMEZONE`        | The single display timezone for the venue (`Asia/Manila`)             |
+| Variable                        | Purpose                                                               |
+| ------------------------------- | --------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL                                                  |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public key for the browser and server side public reads               |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Migrations and admin tooling only. Never imported by application code |
+| `BETTER_AUTH_SECRET`            | Signs sessions and invite cookies. `openssl rand -base64 32`          |
+| `BETTER_AUTH_URL`               | The site origin, the base of every invite and reset link              |
+| `BETTER_AUTH_DATABASE_URL`      | The `better_auth_app` role's pooler URL, runtime only                 |
+| `SUPABASE_JWT_SECRET`           | The project's legacy JWT secret, read by one module, runtime only     |
+| `BOOTSTRAP_OWNER_USERNAME`      | The one username that may create the first account                    |
+| `NEXT_PUBLIC_VENUE_TIMEZONE`    | The single display timezone for the venue (`Asia/Manila`)             |
 
 ### Database
 
@@ -47,6 +50,18 @@ Migrations are forward only SQL files in [supabase/migrations/](supabase/migrati
 ```bash
 npx supabase db push
 ```
+
+Two one time steps after the first push of the Better Auth migrations (spec 0004): set the
+`better_auth_app` role's password in the SQL editor (`alter role better_auth_app password '...'`)
+and put it in `BETTER_AUTH_DATABASE_URL`; and copy the legacy JWT secret from the dashboard's JWT
+settings into `SUPABASE_JWT_SECRET`. Leave that legacy HS256 key active when rotating to
+asymmetric keys, or every staff write fails.
+
+### The first account
+
+While no account exists, `/sign-up` shows a form that only `BOOTSTRAP_OWNER_USERNAME` can complete.
+That account is the owner. Every later account comes from a link an owner or superadmin makes on
+`/staff/admin/users`; the same screen makes password reset links.
 
 No schema changes are made by hand in the dashboard.
 
@@ -80,7 +95,7 @@ lib/
   env.ts              Validated environment
   time.ts             Asia/Manila helpers over UTC timestamps
 supabase/migrations/  Forward only SQL migrations
-proxy.ts              Request interception (Clerk), Next.js 16's replacement for middleware.ts
+proxy.ts              Request interception (the staff door), Next.js 16's replacement for middleware.ts
 docs/
   scope/              Living scope, what is built and what is next
   specs/              Numbered build specs, the source of truth for each decision
@@ -90,7 +105,7 @@ Dockerfile            Multi stage standalone build
 
 ## Architecture rules
 
-- **Two Supabase clients, never merged.** `publicSupabase()` is anon and read only; `staffSupabase()` carries the signed in staff member's Clerk token and is built fresh per request.
+- **Two Supabase clients, never merged.** `publicSupabase()` is anon and read only; `staffSupabase()` carries a token minted for the signed in staff member and is built fresh per request.
 - **The service role key never reaches application code.** Migrations and admin tooling only.
 - **Authorization is a row level security policy**, never an `if` in a Server Action. Postgres is the enforcement point.
 - **Every Server Action calls `requireStaff()` first, then validates with Zod, then writes.**
@@ -102,16 +117,18 @@ See [AGENTS.md](AGENTS.md) for the full set, and the nested context files in [li
 
 ## Deployment
 
-The app ships as a Docker image built from the [Dockerfile](Dockerfile). `NEXT_PUBLIC_*` values are inlined at build time, so pass them as build arguments; `CLERK_SECRET_KEY` is passed at runtime and never baked into the image.
+The app ships as a Docker image built from the [Dockerfile](Dockerfile). `NEXT_PUBLIC_*` values are inlined at build time, so pass them as build arguments; the secrets (`BETTER_AUTH_SECRET`, `BETTER_AUTH_DATABASE_URL`, `SUPABASE_JWT_SECRET`, `BOOTSTRAP_OWNER_USERNAME`) are passed at runtime and never baked into the image.
 
 ```bash
 docker build \
   --build-arg NEXT_PUBLIC_SUPABASE_URL=... \
   --build-arg NEXT_PUBLIC_SUPABASE_ANON_KEY=... \
-  --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=... \
   -t ellas-picklecourt .
 
-docker run -p 3000:3000 -e CLERK_SECRET_KEY=... ellas-picklecourt
+docker run -p 3000:3000 \
+  -e BETTER_AUTH_SECRET=... -e BETTER_AUTH_URL=... -e BETTER_AUTH_DATABASE_URL=... \
+  -e SUPABASE_JWT_SECRET=... -e BOOTSTRAP_OWNER_USERNAME=... \
+  ellas-picklecourt
 ```
 
 The container exposes port 3000 and health checks `GET /api/health`.

@@ -1,6 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
+import { currentSession } from "@/lib/auth/session";
 import { buildUsageCsv } from "@/lib/report/csv";
 import { getUsageReport } from "@/lib/report/queries";
 import { reportQuerySchema } from "@/lib/report/schemas";
@@ -25,8 +25,8 @@ function textResponse(message: string, status: number): NextResponse {
 }
 
 export async function GET(request: NextRequest) {
-  const { isAuthenticated } = await auth();
-  if (!isAuthenticated) return textResponse("Sign in to download this report.", 401);
+  const session = await currentSession();
+  if (!session) return textResponse("Sign in to download this report.", 401);
 
   const current = await currentStaff();
   if (current.kind !== "ok" || !current.staff.isActive || !isOwnerLevel(current.staff.role)) {

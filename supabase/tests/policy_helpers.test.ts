@@ -10,7 +10,7 @@ import { asAuthenticated, query, rollback } from "./db";
  * everyone and every signed in read failed with `42501`; this pins the grant.
  */
 
-const STAFF_SUB_QUERY = "select clerk_user_id from public.staff where is_active limit 1;";
+const STAFF_SUB_QUERY = "select user_id from public.staff where is_active limit 1;";
 
 describe.skipIf(!process.env.DB_TESTS)(
   "policy helpers on the linked database",
@@ -20,7 +20,7 @@ describe.skipIf(!process.env.DB_TESTS)(
       const who = await query(STAFF_SUB_QUERY);
       if (!who.ok || who.rows.length === 0)
         throw new Error("the linked project has no active staff row");
-      const sub = String(who.rows[0].clerk_user_id);
+      const sub = String(who.rows[0].user_id);
 
       const result = await query(
         rollback(

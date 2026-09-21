@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Architecture rules 1, 2 and 10: the staff client carries the signed in staff
- * member's Clerk token so row level security can decide what they may do, and it
- * is built fresh per request because it belongs to one particular person.
+ * Architecture rules 1, 2 and 10, and spec 0004 (revised) AC-6: the staff
+ * client carries a token minted for the signed in staff member so row level
+ * security can decide what they may do, and it is built fresh per request
+ * because it belongs to one particular person.
  */
 
 type ClientOptions = {
@@ -16,10 +17,12 @@ const createClient = vi.hoisted(() =>
     marker: "client",
   })),
 );
-const auth = vi.hoisted(() => vi.fn());
+const currentSubject = vi.hoisted(() => vi.fn());
+const mintStaffToken = vi.hoisted(() => vi.fn());
 
 vi.mock("@supabase/supabase-js", () => ({ createClient }));
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSubject }));
+vi.mock("./staff-token", () => ({ mintStaffToken }));
 
 const { staffSupabase } = await import("./staff");
 
@@ -47,28 +50,24 @@ describe("staffSupabase", () => {
     );
   });
 
-  it("supplies the caller's Clerk token through the accessToken callback", async () => {
-    const getToken = vi.fn().mockResolvedValue("clerk-session-token");
-    auth.mockResolvedValue({ getToken });
+  it("supplies a token minted for the session's user through the accessToken callback (AC-6)", async () => {
+    const subject = { id: "user_1", username: "ella", name: "Ella" };
+    currentSubject.mockResolvedValue(subject);
+    mintStaffToken.mockResolvedValue("minted-token");
 
     staffSupabase();
 
-    expect(await accessTokenFromCall()()).toBe("clerk-session-token");
-    expect(getToken).toHaveBeenCalled();
+    expect(await accessTokenFromCall()()).toBe("minted-token");
+    expect(mintStaffToken).toHaveBeenCalledWith(subject);
   });
 
-  it("reads the token per call, so a refreshed Clerk token is picked up (rule 12)", async () => {
-    const getToken = vi
-      .fn()
-      .mockResolvedValueOnce("first-token")
-      .mockResolvedValueOnce("second-token");
-    auth.mockResolvedValue({ getToken });
+  it("hands over no token at all when nobody is signed in", async () => {
+    currentSubject.mockResolvedValue(null);
 
     staffSupabase();
-    const accessToken = accessTokenFromCall();
 
-    expect(await accessToken()).toBe("first-token");
-    expect(await accessToken()).toBe("second-token");
+    expect(await accessTokenFromCall()()).toBeNull();
+    expect(mintStaffToken).not.toHaveBeenCalled();
   });
 
   it("builds a new client on every call, never a module level singleton", () => {

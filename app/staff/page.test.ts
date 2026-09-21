@@ -13,9 +13,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const currentStaff = vi.hoisted(() => vi.fn());
 const getStaffSchedule = vi.hoisted(() => vi.fn());
-const auth = vi.hoisted(() => vi.fn(async () => ({ userId: "user_owner" })));
+const currentSession = vi.hoisted(() => vi.fn(async () => ({ user: { id: "user_owner" } })));
 
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession }));
 vi.mock("@/lib/staff", () => ({ currentStaff }));
 vi.mock("@/lib/schedule/queries", () => ({ getStaffSchedule }));
 vi.mock("@/components/app-shell", () => ({

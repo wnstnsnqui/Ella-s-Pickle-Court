@@ -11,10 +11,11 @@ import { currentStaff } from "@/lib/staff";
  * AC-5 and AC-8.
  *
  * A server component with one input, `currentStaff()`, and a rendering for each
- * of its answers: the name and a sign out button; the switched off notice and a
- * sign out button; or the could not load notice and a sign out button. Sign out
- * is always there, because a person stuck on a shared tablet must always be able
- * to leave.
+ * of its answers: the page links and the name, which leads to the account page
+ * where Sign out lives; the switched off notice and a sign out button; or the
+ * could not load notice and a sign out button. Those two keep Sign out in the
+ * header because they cannot reach the account page, and a person stuck on a
+ * shared tablet must always be able to leave.
  *
  * The page wraps this in `<Suspense fallback={null}>` so the board streams
  * while the staff row is being created or refreshed (invariant 3a).
@@ -78,10 +79,8 @@ export async function StaffMenu() {
           </Link>
         </Button>
       ) : null}
+      {/* Sign out is on the account page (spec 0004, AC-9), behind this. */}
       <AccountButton name={current.staff.displayName} />
-      {/* `order-last` (not source order) puts Sign out after the theme toggle,
-          which this component's caller renders straight after it. */}
-      <SignOutButton className="order-last" />
     </>
   );
 }

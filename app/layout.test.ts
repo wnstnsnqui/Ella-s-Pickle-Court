@@ -7,8 +7,7 @@ import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
  * Spec 0003, AC-15 (Inter, self hosted through `next/font`).
  *
  * The root layout is a server component. Its element tree is inspected
- * rather than rendered: `<html>` and `<body>` are what matter, and the providers
- * around them are covered by their own module.
+ * rather than rendered: `<html>` and `<body>` are what matter.
  */
 
 // `next/font/google` is a build time transform. Outside `next build` it must be
@@ -19,9 +18,6 @@ const inter = vi.fn<(opts: unknown) => { variable: string; className: string }>(
   className: "inter",
 }));
 vi.mock("next/font/google", () => ({ Inter: (opts: unknown) => inter(opts) }));
-
-const Providers = ({ children }: { children: ReactNode }) => children;
-vi.mock("./providers", () => ({ Providers }));
 
 const Toaster = () => null;
 vi.mock("@/components/ui/sonner", () => ({ Toaster }));
@@ -66,11 +62,10 @@ describe("RootLayout", () => {
     expect(body).not.toBeNull();
     expect(body!.props.className).toContain("bg-background");
     expect(body!.props.className).toContain("text-foreground");
-    // Clerk's provider sits inside body (spec 0004), holding the page and the
-    // one toaster the whole app shares.
-    const providers = body!.props.children as ReactElement<{ children: ReactNode[] }>;
-    expect(providers.type).toBe(Providers);
-    const [page, toaster] = providers.props.children;
+    // The page and the one toaster the whole app shares sit straight inside
+    // body; spec 0004 (revised) removed the identity provider that once
+    // wrapped them.
+    const [page, toaster] = body!.props.children as ReactNode[];
     expect(page).toBe("page");
     expect(isValidElement(toaster) && toaster.type).toBe(Toaster);
   });

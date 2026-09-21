@@ -1,5 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,7 +16,8 @@ export function SettingsSection({
   className,
 }: {
   id: string;
-  icon: LucideIcon;
+  /** A Lucide icon, or anything else that takes the size class. */
+  icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
   action?: React.ReactNode;

@@ -20,10 +20,10 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 7 | Public schedule board | Slice 1 | in-progress |
 | 8 | Courts & opening hours | Slice 2 | done |
 | 9 | Session history | Slice 3 | dropped |
-| 10 | Usage reporting | Slice 4 | in-progress |
+| 10 | Usage reporting | Slice 4 | done |
 | 11 | Analytics & error alerts | Slice 5 | done |
 | 12 | Privacy, terms & cookie notice | Slice 5 | in-progress |
-| 13 | Staff roles & admin access | Slice 5 | in-progress |
+| 13 | Staff roles & admin access | Slice 5 | done |
 
 ## Foundations
 
@@ -84,15 +84,15 @@ This slice is the walking skeleton. One real thread: a staff member signs in, bo
 
 ### 5. Staff sign in · in-progress · GA
 Only staff can change the schedule. Accounts also mean you can tell who booked or changed what, which is what makes the schedule trustworthy.
-**Done when:** a staff member can sign in and out, sessions survive a refresh, signing in creates their `staff` row carrying a role of staff or owner and an active flag (every policy in spec 0002 depends on it), and no signed out visitor can change anything.
-spec [0004](../specs/0004-staff-sign-in/index.md) · code in `app/sign-in/`, `app/sign-up/`, `lib/staff.ts`, `components/staff-menu.tsx`, `components/staff-controls.tsx`, `components/auth-surface.tsx`, `supabase/migrations/20260913013822_staff_sign_in.sql`, `supabase/tests/ensure_staff.test.ts`
+**Done when:** a staff member can sign in and out, sessions survive a refresh, signing in creates their `staff` row carrying a role and an active flag (every policy in spec 0002 depends on it), accounts exist only through a one time link an owner made, and no signed out visitor can change anything.
+spec [0004](../specs/0004-staff-sign-in/index.md) (revised 2026-09-19: Clerk replaced by Better Auth; every build step is coded as of 2026-09-19 and `npm run check` is green, but migrations 20260919064807 and 20260919064809 are not yet pushed and nothing is proven live) · code in `app/sign-in/`, `app/sign-up/`, `app/reset/`, `app/api/auth/`, `lib/auth.ts`, `lib/auth/`, `lib/supabase/staff-token.ts`, `lib/staff.ts`, `components/staff-menu.tsx`, `components/auth-surface.tsx`, `supabase/migrations/`
 - [x] Design it (spec): `/architect staff sign in`
 - [ ] Build it: `/develop staff sign in`
-  - [ ] Dashboard setup and the migration: the Clerk and Supabase settings, the env values, the two new `staff` columns and `ensure_staff()` applied and checked with `db advisors` (AC-1, AC-2, AC-3, AC-6)
-  - [x] The thin thread proven live: `/sign-in`, `currentStaff()`, the staff menu with sign out, and the first person to sign in reads back as `owner` (AC-3, AC-4, AC-8)
-  - [ ] Invitations and every state: `/sign-up` from an invitation, the switched off and could not load notices, the footer link, the signed in redirect, and the staff only line (AC-1, AC-4, AC-5, AC-8)
-  - [x] Presentation: the Clerk cards themed to the tokens inside the shell, `noindex`, contrast and keyboard checked (AC-10)
-  - [ ] The proof the other features wait on, and the tests: a first booking with `changed_by` set, a long idle tab still writing, and the unit and database tests (AC-3, AC-5, AC-6, AC-7, AC-9) · tests done and green (`npm run check`, `npm run test:db`); feature 6 is done, so the first booking with `changed_by` is covered there, and only the long idle tab proof is still open
+  - [ ] Better Auth in place of Clerk: the packages, `lib/auth.ts` with the invite gate, the `better_auth` schema and role, the `staff` re key and `staff_invite` migration, env and dashboard steps (AC-1, AC-3, AC-5, AC-10, AC-11, AC-14)
+  - [ ] The thin thread proven live: bootstrap the owner at `/sign-up`, the minted Supabase token behind `staffSupabase()`, `currentStaff()` and `requireStaff()` on Better Auth, `proxy.ts`, sign in and sign out, one booking with `changed_by` set (AC-2, AC-4, AC-5, AC-6, AC-10)
+  - [ ] Invite links end to end: make, show once, list, revoke on the users screen; `/sign-up/[token]` by username and password; a raw sign up request refused (AC-1, AC-3, AC-4, AC-5)
+  - [ ] Reset links, deactivation ending sessions, and the account sheet (AC-7, AC-8, AC-9)
+  - [ ] Finish: the staff listener as anon, analytics events and identify, the four forms polished with `noindex` and contrast, Clerk fully removed, unit and database tests green (AC-11, AC-12, AC-13, AC-15, AC-16)
 - [ ] Verify it: `/check verify staff sign in`
 - [ ] Test it: `/test staff sign in`
 - [ ] Review it (fresh model): `/check review staff sign in`
@@ -191,7 +191,7 @@ spec [0010](../specs/0010-privacy-terms-cookie-notice/index.md) · code in `supa
 - [ ] Verify it: `/check verify privacy, terms & cookie notice`
 - [ ] Test it: `/test privacy, terms & cookie notice`
 
-### 13. Staff roles & admin access · in-progress
+### 13. Staff roles & admin access · done
 Winston becomes superadmin and gets a screen to see every staff account and assign or change roles, closing the gap spec 0004 left as a database editor job. Admin stands equal to owner everywhere except this new screen.
 **Done when:** admin and superadmin roles exist alongside staff and owner, every owner gated surface treats owner, admin and superadmin alike, and a superadmin can see and change anyone's role or active status from `/staff/admin/users` with a confirm step and a written record of who changed what.
 spec [0012](../specs/0012-staff-roles-admin-superadmin/index.md) · code in `supabase/migrations/`, `lib/staff.ts`, `lib/staff/`, `app/staff/admin/users/`, `components/staff-menu.tsx`, `components/staff/`
@@ -201,7 +201,7 @@ spec [0012](../specs/0012-staff-roles-admin-superadmin/index.md) · code in `sup
   - [x] The thin thread: `getAllStaff()`, `/staff/admin/users` with its redirect, and the Users link in the staff menu (AC-1, AC-2)
   - [x] The write path: the role and active controls, the confirm dialog, `updateStaffRole`, and the analytics event (AC-3, AC-4, AC-5, AC-14)
   - [ ] Proof and tests: the owner transfer and audit trail proven live against the linked database, and the database and unit tests, are done (AC-9, AC-10); the one time SQL promoting Winston to superadmin is still owed (AC-13, Winston's own step)
-- [ ] Verify it: `/check verify staff roles & admin access`
+- [x] Verify it: `/check verify staff roles & admin access`
 - [x] Test it: `/test staff roles & admin access` (test files already cover this feature's area: `lib/staff.test.ts`, `lib/staff/actions.test.ts`, `components/staff-menu.test.ts`, `components/staff/roles.test.ts`, `supabase/tests/update_staff_role.test.ts`, `lib/import-boundaries.test.ts`, all passing)
 
 ## Deferred
@@ -232,6 +232,8 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Purging the booking note too**: only the phone is cleared after 90 days. If notes turn out to carry personal details, the same function clears one more column · from spec 0010
 - **Retention hint in the Book sheet**: one line under the phone field ("Kept 90 days after the booking") if staff want a script for what to tell customers · from spec 0010
 - **A check that the purge ran**: `pg_cron` failures are invisible from the app. When uptime monitoring lands, add a check that `cron.job_run_details` shows a successful `purge_customer_phones` run in the last two days · from spec 0010
+- **Direct Postgres for the staff path**: spec 0004 mints a Supabase token from the Better Auth session so every policy keeps working, which puts `SUPABASE_JWT_SECRET` in the app. Reading and writing over the same `pg` pool with `set local role authenticated` and the claims set per transaction removes that secret and the PostgREST hop, at the cost of moving six query and action modules off supabase-js. Worth doing with the Docker move · needs a decision · from spec 0004
+- **Self service password reset by email**: today a forgotten password waits for an owner to make a reset link. Adding an email service (Resend or similar) would let Better Auth's own reset and emailed invites take over · needs a decision · from spec 0004
 
 ## Legend
 

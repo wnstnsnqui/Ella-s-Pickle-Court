@@ -186,8 +186,8 @@ function reservationRow(partial: Record<string, unknown>) {
 
 const STAFF_ROWS = {
   data: [
-    { clerk_user_id: "user_a", display_name: "Ella" },
-    { clerk_user_id: "user_b", display_name: "Sean" },
+    { user_id: "user_a", display_name: "Ella" },
+    { user_id: "user_b", display_name: "Sean" },
   ],
   error: null,
 };

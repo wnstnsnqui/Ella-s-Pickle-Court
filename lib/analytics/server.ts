@@ -109,26 +109,3 @@ export function reportFailure(
     warnOnce(`analytics: reportFailure for "${context.action}" failed.`);
   }
 }
-
-/**
- * The unverified `sub` claim of Clerk's `__session` cookie, for attribution
- * only. `onRequestError` in `instrumentation.ts` runs outside any request
- * store, so Clerk's `auth()` cannot be called there; a forged value here only
- * misattributes an exception, it grants nothing, so signature verification
- * would cost a request for no security benefit. Spec 0009, AC-6.
- */
-export function clerkSubjectFromCookie(cookieHeader: string | undefined): string | undefined {
-  if (!cookieHeader) return undefined;
-  const match = cookieHeader.match(/(?:^|;\s*)__session=([^;]+)/);
-  if (!match) return undefined;
-  try {
-    const token = decodeURIComponent(match[1]);
-    const payload = token.split(".")[1];
-    if (!payload) return undefined;
-    const json = Buffer.from(payload, "base64url").toString("utf8");
-    const claims = JSON.parse(json) as { sub?: string };
-    return typeof claims.sub === "string" ? claims.sub : undefined;
-  } catch {
-    return undefined;
-  }
-}

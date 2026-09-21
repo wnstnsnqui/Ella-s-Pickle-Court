@@ -38,7 +38,8 @@ export function ConfirmDialog({
   onOpenChange: (open: boolean) => void;
   title: string;
   description: string;
-  confirmLabel: string;
+  /** Omit it to show only the keep button, when there is nothing to confirm. */
+  confirmLabel?: string;
   keepLabel?: string;
   confirmVariant?: "destructive" | "default";
   /** A refusal from the action, shown in the dialog so it stays open. */
@@ -69,9 +70,11 @@ export function ConfirmDialog({
           >
             {keepLabel}
           </Button>
-          <Button type="button" variant={confirmVariant} disabled={pending} onClick={onConfirm}>
-            {confirmLabel}
-          </Button>
+          {confirmLabel ? (
+            <Button type="button" variant={confirmVariant} disabled={pending} onClick={onConfirm}>
+              {confirmLabel}
+            </Button>
+          ) : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

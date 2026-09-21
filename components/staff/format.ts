@@ -26,10 +26,10 @@ export function telHref(phone: string): string {
   return `tel:${trimmed.startsWith("+") ? "+" : ""}${digits}`;
 }
 
-/** Who a Clerk id is. The foreign key means a miss should not happen; it still reads sensibly. */
-export function staffDisplayName(staff: readonly StaffName[], clerkUserId: string | null): string {
-  if (!clerkUserId) return "a staff member";
-  const match = staff.find((row) => row.clerkUserId === clerkUserId);
+/** Who a user id is. The foreign key means a miss should not happen; it still reads sensibly. */
+export function staffDisplayName(staff: readonly StaffName[], userId: string | null): string {
+  if (!userId) return "a staff member";
+  const match = staff.find((row) => row.userId === userId);
   return match ? firstName(match.displayName) : "a staff member";
 }
 

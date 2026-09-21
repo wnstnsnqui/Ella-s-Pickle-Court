@@ -98,19 +98,3 @@ describe("reportFailure (AC-7)", () => {
     expect(properties).toEqual({ action: "getSchedule", code: "XX000" });
   });
 });
-
-describe("clerkSubjectFromCookie (AC-6)", () => {
-  it("reads the sub claim out of the __session cookie without verifying it", async () => {
-    const { clerkSubjectFromCookie } = await import("./server");
-    const payload = Buffer.from(JSON.stringify({ sub: "user_42" })).toString("base64url");
-    const cookie = `other=1; __session=header.${payload}.signature`;
-    expect(clerkSubjectFromCookie(cookie)).toBe("user_42");
-  });
-
-  it("returns undefined for a missing or malformed cookie", async () => {
-    const { clerkSubjectFromCookie } = await import("./server");
-    expect(clerkSubjectFromCookie(undefined)).toBeUndefined();
-    expect(clerkSubjectFromCookie("unrelated=1")).toBeUndefined();
-    expect(clerkSubjectFromCookie("__session=not-a-jwt")).toBeUndefined();
-  });
-});

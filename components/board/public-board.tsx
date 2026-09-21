@@ -29,7 +29,7 @@ const PUBLIC_LEGEND: readonly CellView[] = CELL_VIEWS.filter(
 );
 
 export function PublicBoard() {
-  const { schedule, refetchError, now, requestRead, dayNavPending } = usePublicBoard();
+  const { schedule, now, requestRead, dayNavPending } = usePublicBoard();
   const { grid } = schedule;
   const changedCells = useChangedCells(grid, CHANGED_HOLD_MS);
 
@@ -59,12 +59,6 @@ export function PublicBoard() {
 
   return (
     <div className="flex flex-col gap-4">
-      {refetchError ? (
-        <p role="alert" className="text-caption text-destructive">
-          The last reload failed: {refetchError}. The board shows the day as it was before.
-        </p>
-      ) : null}
-
       <ScheduleGrid
         view={view}
         legendViews={legendViews}

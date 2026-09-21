@@ -18,8 +18,8 @@ import { useStaffSchedule, type StaffScheduleState } from "./use-staff-schedule"
  */
 
 export type StaffViewer = {
-  /** The Clerk id, so the board can tell its own rows from everybody else's. */
-  clerkUserId: string;
+  /** The user id, so the board can tell its own rows from everybody else's. */
+  userId: string;
   role: StaffRole;
 };
 

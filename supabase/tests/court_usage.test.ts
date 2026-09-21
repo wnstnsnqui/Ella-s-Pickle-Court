@@ -10,48 +10,43 @@ import { asAuthenticated, query, rollback } from "./db";
  * owner included, with `permission denied for schema private` before the
  * owner check ever ran (found live by `/check verify`, fixed in
  * `20260915130000_court_usage_security_definer.sql`). This pins both halves:
- * an owner gets rows, a non owner gets the function's own `42501`, not a raw
- * schema permission error.
+ * an owner grade caller gets rows, a non owner gets the function's own
+ * `42501`, not a raw schema permission error.
+ *
+ * Each case seeds its own caller inside the rolled back batch rather than
+ * reading whatever rows the linked project holds: the Better Auth migration
+ * emptied the table, and `staff_single_owner_idx` (spec 0012) allows one
+ * owner, so the positive case seeds `admin`, which `private.is_owner()`
+ * treats the same as `owner` (spec 0012 parity).
  */
-
-const OWNER_SUB_QUERY =
-  "select clerk_user_id from public.staff where role = 'owner' and is_active limit 1;";
-const STAFF_SUB_QUERY =
-  "select clerk_user_id from public.staff where role = 'staff' and is_active limit 1;";
 
 describe.skipIf(!process.env.DB_TESTS)(
   "court_usage on the linked database",
   { timeout: 60_000 },
   () => {
-    it("lets an active owner read usage rows", async () => {
-      const who = await query(OWNER_SUB_QUERY);
-      if (!who.ok || who.rows.length === 0)
-        throw new Error("the linked project has no active owner row");
-      const sub = String(who.rows[0].clerk_user_id);
-
+    it("lets an active owner grade caller read usage rows", async () => {
       const result = await query(
         rollback(
-          asAuthenticated(
-            { sub },
-            "select count(*)::int as n from public.court_usage('2020-01-01', '2020-01-01', null);",
-          ),
+          `insert into public.staff (user_id, display_name, role) values ('usage_test_admin', 'Usage Test Admin', 'admin');
+           ` +
+            asAuthenticated(
+              { sub: "usage_test_admin" },
+              "select count(*)::int as n from public.court_usage('2020-01-01', '2020-01-01', null);",
+            ),
         ),
       );
       expect(result).toMatchObject({ ok: true });
     });
 
     it("refuses a non owner with the function's own 42501, not a schema permission error", async () => {
-      const who = await query(STAFF_SUB_QUERY);
-      if (!who.ok || who.rows.length === 0)
-        throw new Error("the linked project has no active staff row");
-      const sub = String(who.rows[0].clerk_user_id);
-
       const result = await query(
         rollback(
-          asAuthenticated(
-            { sub },
-            "select * from public.court_usage('2020-01-01', '2020-01-01', null);",
-          ),
+          `insert into public.staff (user_id, display_name, role) values ('usage_test_staff', 'Usage Test Staff', 'staff');
+           ` +
+            asAuthenticated(
+              { sub: "usage_test_staff" },
+              "select * from public.court_usage('2020-01-01', '2020-01-01', null);",
+            ),
         ),
       );
       expect(result).toMatchObject({ ok: false, sqlstate: "42501" });

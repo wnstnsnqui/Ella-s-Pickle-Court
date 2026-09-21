@@ -16,9 +16,10 @@ import { cn } from "@/lib/utils";
  * breakpoint (1024px), where showing every item inline wraps and crowds the
  * brand band. Opens a dropdown with the same items, stacked and fully labelled.
  *
- * Closing on any click inside covers Account and Sign out, which do not
- * navigate away on their own; a page link closes it anyway, since choosing
- * one unmounts this header and remounts the next page's.
+ * Closing on any click inside covers the theme toggle and the Sign out a
+ * switched off account still gets here, which do not navigate away on their
+ * own; a page link closes it anyway, since choosing one unmounts this header
+ * and remounts the next page's.
  */
 export function NavMenu({
   children,

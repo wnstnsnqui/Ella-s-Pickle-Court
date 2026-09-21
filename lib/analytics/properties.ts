@@ -60,9 +60,34 @@ const privacyNoticeAcknowledgedSchema = z
 
 const staffRoleChangedSchema = z
   .object({
-    target_clerk_user_id: z.string(),
+    target_user_id: z.string(),
     role: z.enum(["staff", "owner", "admin", "superadmin"]),
     is_active: z.boolean(),
+  })
+  .strict();
+
+/** The four link events of spec 0004 (revised), AC-13. */
+const linkKindSchema = z.enum(["invite", "reset"]);
+
+const staffInviteCreatedSchema = z
+  .object({
+    kind: linkKindSchema,
+    role: z.enum(["staff", "admin", "superadmin"]).nullable(),
+  })
+  .strict();
+
+const staffInviteRevokedSchema = z.object({ kind: linkKindSchema }).strict();
+
+const staffInviteRedeemedSchema = z
+  .object({
+    kind: linkKindSchema,
+    method: z.literal("password"),
+  })
+  .strict();
+
+const staffPasswordChangedSchema = z
+  .object({
+    source: z.enum(["reset", "account"]),
   })
   .strict();
 
@@ -83,6 +108,10 @@ export const eventSchemas = {
   board_day_viewed: boardDayViewedSchema,
   privacy_notice_acknowledged: privacyNoticeAcknowledgedSchema,
   staff_role_changed: staffRoleChangedSchema,
+  staff_invite_created: staffInviteCreatedSchema,
+  staff_invite_revoked: staffInviteRevokedSchema,
+  staff_invite_redeemed: staffInviteRedeemedSchema,
+  staff_password_changed: staffPasswordChangedSchema,
 } satisfies Record<string, z.ZodType>;
 
 export type AnalyticsEvent = keyof typeof eventSchemas;

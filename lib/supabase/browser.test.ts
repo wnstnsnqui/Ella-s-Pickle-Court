@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * The browser client listens for court broadcasts. Anon key, no Clerk token, and
+ * The browser client listens for court broadcasts. Anon key, no session token, and
  * one instance per tab: a second client would open a second websocket for nothing.
  */
 
@@ -47,7 +47,7 @@ describe("browserSupabase", () => {
     expect(createClient).toHaveBeenCalledTimes(1);
   });
 
-  it("carries no Clerk token, so it is read only like the public client", async () => {
+  it("carries no session token, so it is read only like the public client", async () => {
     const { browserSupabase } = await import("./browser");
 
     browserSupabase();

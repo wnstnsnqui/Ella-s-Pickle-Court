@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * Spec 0008, AC-9: a signed out caller gets 401, a signed in non owner gets
  * 403, and `court_usage`'s own `insufficient_privilege` (surfaced by
- * `getUsageReport` as a `forbidden` result) is also mapped to 403. Clerk and
+ * `getUsageReport` as a `forbidden` result) is also mapped to 403. Better Auth and
  * the report read are the boundaries here and are faked.
  */
 
 const auth = vi.hoisted(() => vi.fn());
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: auth }));
 
 const currentStaff = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/staff", () => ({ currentStaff }));
@@ -60,14 +60,14 @@ const REPORT = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.mockResolvedValue({ isAuthenticated: true });
+  auth.mockResolvedValue({ user: { id: "user_1" } });
   currentStaff.mockResolvedValue(OWNER);
   getUsageReport.mockResolvedValue(REPORT);
 });
 
 describe("GET /staff/reports/usage.csv", () => {
   it("answers 401 for a signed out caller, before reading current staff or the report", async () => {
-    auth.mockResolvedValue({ isAuthenticated: false });
+    auth.mockResolvedValue(null);
     const response = await GET(requestFor());
     expect(response.status).toBe(401);
     expect(await response.text()).toBe("Sign in to download this report.");

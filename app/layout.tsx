@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
 
 import "./globals.css";
-import { Providers } from "./providers";
 
 /**
  * Inter, self hosted at build time (spec 0003, AC-15). `next/font` downloads the
@@ -38,11 +37,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} h-full antialiased`}>
       <body className="bg-background text-foreground flex min-h-full flex-col">
-        {/* Clerk 7 wants its provider inside body, so its modals mount there. */}
-        <Providers>
-          {children}
-          <Toaster />
-        </Providers>
+        {children}
+        <Toaster />
       </body>
     </html>
   );

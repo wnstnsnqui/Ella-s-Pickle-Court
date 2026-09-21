@@ -70,7 +70,7 @@ type SheetState =
   | { kind: "edit"; id: number; version: number };
 
 export function StaffBoard() {
-  const { schedule, refetch, refetchError, subscribe, viewer, dayNavPending } = useStaffBoard();
+  const { schedule, refetch, subscribe, viewer, dayNavPending } = useStaffBoard();
   const { grid } = schedule;
 
   const [selection, setSelection] = useState<Selection>(EMPTY_SELECTION);
@@ -298,7 +298,7 @@ export function StaffBoard() {
         error.kind === "conflict" &&
         error.reason === "slot_taken" &&
         fresh &&
-        keys.every((key) => ownRowAt(fresh, key, viewer.clerkUserId, kind))
+        keys.every((key) => ownRowAt(fresh, key, viewer.userId, kind))
       ) {
         setSelection(EMPTY_SELECTION);
         setSheet({ kind: "none" });
@@ -312,7 +312,7 @@ export function StaffBoard() {
         toast.error(error.message);
       }
     },
-    [runs, refetch, setPending, viewer.clerkUserId],
+    [runs, refetch, setPending, viewer.userId],
   );
 
   /** An edit against the version of the row the board holds right now. */
@@ -426,12 +426,6 @@ export function StaffBoard() {
 
   return (
     <div className="flex flex-col">
-      {refetchError ? (
-        <p role="alert" className="text-caption text-destructive mb-3">
-          The last reload failed: {refetchError}. The board shows the day as it was before.
-        </p>
-      ) : null}
-
       <ScheduleGrid
         view={view}
         legendViews={CELL_VIEWS}
@@ -571,12 +565,7 @@ function reservationAt(
 }
 
 /** Whether a cell is now held by a row this person wrote, of the kind they just tried. */
-function ownRowAt(
-  schedule: StaffSchedule,
-  key: string,
-  clerkUserId: string,
-  kind: string,
-): boolean {
+function ownRowAt(schedule: StaffSchedule, key: string, userId: string, kind: string): boolean {
   const at = key.indexOf("@");
   const courtId = Number(key.slice(0, at));
   const rowStartsAt = key.slice(at + 1);
@@ -588,5 +577,5 @@ function ownRowAt(
     row.startsAt,
     row.endsAt,
   );
-  return found !== null && found.createdBy === clerkUserId && found.kind === kind;
+  return found !== null && found.createdBy === userId && found.kind === kind;
 }

@@ -8,31 +8,18 @@ import { VENUE_NAME } from "@/lib/venue";
  * Spec 0003, AC-10: one shell for both boards, with the wordmark, a toolbar slot,
  * and a staff slot that renders only for a signed in staff member.
  *
- * The shell is a server component that asks Clerk who is signed in, which is a
- * boundary mocked here, and the element it returns is rendered to static HTML.
+ * The shell is a server component that reads the session once through
+ * `currentSession()` (spec 0004, revised), a boundary mocked here, and the
+ * element it returns is rendered to static HTML.
  */
 
-// Clerk's `<Show>` stands in for the real gate: it renders its children for
-// whichever side (`signed-in` or `signed-out`) matches the test's state.
 let signedIn = false;
-vi.mock("@clerk/nextjs", () => ({
-  Show: ({ when, children }: { when: string; children: ReactNode }) => {
-    const matches = when === "signed-in" ? signedIn : when === "signed-out" ? !signedIn : false;
-    return matches ? children : null;
-  },
-}));
-
-// Whether Clerk keys exist, set per test.
-let configured = true;
-vi.mock("@/lib/env", () => ({
-  get clerkConfigured() {
-    return configured;
-  },
+vi.mock("@/lib/auth/session", () => ({
+  currentSession: async () => (signedIn ? { user: { id: "user_1" } } : null),
 }));
 
 beforeEach(() => {
   signedIn = false;
-  configured = true;
 });
 
 async function render(props: {
@@ -42,7 +29,7 @@ async function render(props: {
   className?: string;
 }) {
   const { AppShell } = await import("./app-shell");
-  const element = AppShell({ children: props.children ?? "board", ...props });
+  const element = await AppShell({ children: props.children ?? "board", ...props });
   return renderToStaticMarkup(element);
 }
 
@@ -85,11 +72,12 @@ describe("AppShell", () => {
     expect(html).toContain("Staff control");
   });
 
-  it("never asks Clerk about the staff slot when Clerk is not configured (AC-10)", async () => {
+  it("offers the staff sign in link only to a signed out visitor", async () => {
+    const out = await render({});
+    expect(out).toMatch(/<a[^>]*href="\/sign-in"[^>]*>Staff sign in<\/a>/);
     signedIn = true;
-    configured = false;
-    const html = await render({ staff: createElement("button", null, "Staff control") });
-    expect(html).not.toContain("Staff control");
+    const inside = await render({});
+    expect(inside).not.toContain("Staff sign in");
   });
 
   it("carries Privacy and Terms links in the footer on every page (spec 0010, AC-3)", async () => {

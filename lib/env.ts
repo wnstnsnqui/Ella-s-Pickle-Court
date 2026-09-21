@@ -38,15 +38,51 @@ export function publicEnv(): PublicEnv {
 export const VENUE_TIMEZONE = process.env.NEXT_PUBLIC_VENUE_TIMEZONE || "Asia/Manila";
 
 /**
- * Whether Clerk keys are present.
+ * The server side values spec 0004 (revised) needs for Better Auth and the
+ * Supabase bridge. Validated lazily like `publicEnv()`: `next build` on a
+ * machine with no secrets still succeeds, and a missing value fails at the
+ * moment something needs it, with its own name in the message.
  *
- * With no keys the app still boots and the public path still works, so you can
- * look at the scaffold before signing up to anything. Anything needing a signed in
- * staff member is hidden or refused instead of crashing the page. `proxy.ts`
- * refuses to run at all in production without the key, so this can only ever be
- * false in development.
+ * `SUPABASE_JWT_SECRET` is deliberately not here. Invariant 6 in spec 0004:
+ * only `lib/supabase/staff-token.ts` reads it, and a test pins that.
  */
-export const clerkConfigured = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+const serverEnvSchema = z.object({
+  BETTER_AUTH_SECRET: z
+    .string()
+    .min(32, "BETTER_AUTH_SECRET must be at least 32 characters (openssl rand -base64 32)."),
+  BETTER_AUTH_URL: z.url({ error: "BETTER_AUTH_URL must be the site origin." }),
+  BETTER_AUTH_DATABASE_URL: z
+    .string()
+    .min(1, "BETTER_AUTH_DATABASE_URL is missing (the better_auth_app pooler URL)."),
+  BOOTSTRAP_OWNER_USERNAME: z
+    .string()
+    .min(
+      1,
+      "BOOTSTRAP_OWNER_USERNAME must be the one username allowed to create the first account.",
+    ),
+});
+
+export type ServerEnv = z.infer<typeof serverEnvSchema>;
+
+export function serverEnv(): ServerEnv {
+  return serverEnvSchema.parse({
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    BETTER_AUTH_DATABASE_URL: process.env.BETTER_AUTH_DATABASE_URL,
+    BOOTSTRAP_OWNER_USERNAME: process.env.BOOTSTRAP_OWNER_USERNAME,
+  });
+}
+
+/**
+ * Whether Better Auth is set up.
+ *
+ * With no secret the app still boots and the public board still works, so you
+ * can look at the scaffold before filling `.env.local`. Anything needing a
+ * signed in staff member is hidden or refused instead of crashing the page.
+ * `lib/auth.ts` refuses to load at all in production without the secret
+ * (spec 0004, AC-11), so this can only ever be false in development.
+ */
+export const authConfigured = Boolean(process.env.BETTER_AUTH_SECRET);
 
 /**
  * Whether a PostHog project key is present. Spec 0009, AC-9.

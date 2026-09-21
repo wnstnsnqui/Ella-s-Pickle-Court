@@ -8,7 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const auth = vi.hoisted(() => vi.fn());
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: auth }));
 
 type Call = { table: string; method: string; args: unknown[] };
 const calls: Call[] = [];
@@ -73,7 +73,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   calls.length = 0;
   answers.clear();
-  auth.mockResolvedValue({ isAuthenticated: true, userId: "user_a" });
+  auth.mockResolvedValue({ user: { id: "user_a" } });
   staffSupabase.mockReturnValue({ from: (table: string) => builder(table) });
   publicSupabase.mockReturnValue({ from: (table: string) => builder(table) });
   queue("venue_settings", { data: SETTINGS_ROW, error: null });
@@ -88,7 +88,7 @@ beforeEach(() => {
 
 describe("getStaffSchedule", () => {
   it("refuses a signed out caller (AC-12 enforcement point stays the policy, this is the typed answer)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+    auth.mockResolvedValue(null);
     const result = await getStaffSchedule("2026-09-15");
     expect(result).toMatchObject({ ok: false, error: { kind: "unauthenticated" } });
   });
@@ -97,8 +97,8 @@ describe("getStaffSchedule", () => {
     queue("reservation", { data: [], error: null });
     queue("staff", {
       data: [
-        { clerk_user_id: "user_a", display_name: "Ella" },
-        { clerk_user_id: "user_leaver", display_name: "Old Staff" },
+        { user_id: "user_a", display_name: "Ella" },
+        { user_id: "user_leaver", display_name: "Old Staff" },
       ],
       error: null,
     });
@@ -108,12 +108,12 @@ describe("getStaffSchedule", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.staff).toEqual([
-      { clerkUserId: "user_a", displayName: "Ella" },
-      { clerkUserId: "user_leaver", displayName: "Old Staff" },
+      { userId: "user_a", displayName: "Ella" },
+      { userId: "user_leaver", displayName: "Old Staff" },
     ]);
     expect(result.data.horizonDays).toBe(30);
     const staffSelect = calls.find((call) => call.table === "staff" && call.method === "select");
-    expect(staffSelect?.args[0]).toBe("clerk_user_id, display_name");
+    expect(staffSelect?.args[0]).toBe("user_id, display_name");
     expect(calls.some((call) => call.table === "staff" && call.method === "eq")).toBe(false);
   });
 

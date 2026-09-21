@@ -3,9 +3,9 @@
  *
  * `register()` and `onRequestError` are Next.js convention exports
  * (`node_modules/next/dist/docs`); Next calls both, nothing here is imported
- * directly. `onRequestError` runs outside any request store, so Clerk's
- * `auth()` is not callable here; `clerkSubjectFromCookie()` reads the Clerk
- * id straight off the raw cookie header instead, for attribution only.
+ * directly. `onRequestError` runs outside any request store, so the session
+ * is read from the raw request headers with `auth.api.getSession()` rather
+ * than through `currentSession()`, for attribution only (spec 0004, AC-13).
  */
 
 export async function register() {
@@ -25,16 +25,28 @@ export async function onRequestError(
 ) {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
 
-  const { posthogConfigured } = await import("@/lib/env");
+  const { posthogConfigured, authConfigured } = await import("@/lib/env");
   if (!posthogConfigured) return;
 
-  const { analyticsServer, clerkSubjectFromCookie } = await import("@/lib/analytics/server");
+  const { analyticsServer } = await import("@/lib/analytics/server");
   const posthog = analyticsServer();
   if (!posthog) return;
 
-  const cookieHeader = request.headers?.cookie;
-  const cookieString = Array.isArray(cookieHeader) ? cookieHeader.join("; ") : cookieHeader;
-  const distinctId = clerkSubjectFromCookie(cookieString);
+  let distinctId: string | undefined;
+  if (authConfigured) {
+    try {
+      const { auth } = await import("@/lib/auth");
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(request.headers ?? {})) {
+        if (typeof value === "string") headers.set(name, value);
+        else if (Array.isArray(value)) headers.set(name, value.join(", "));
+      }
+      const session = await auth.api.getSession({ headers });
+      distinctId = session?.user.id;
+    } catch {
+      // Attribution only: an unreadable session never stops the capture.
+    }
+  }
 
   try {
     posthog.captureException(err, distinctId, {

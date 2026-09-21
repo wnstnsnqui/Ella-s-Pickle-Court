@@ -30,8 +30,8 @@ describe("formatPeso and telHref", () => {
 
 describe("staffDisplayName", () => {
   const staff = [
-    { clerkUserId: "user_a", displayName: "Ella" },
-    { clerkUserId: "user_leaver", displayName: "Old Staff" },
+    { userId: "user_a", displayName: "Ella" },
+    { userId: "user_leaver", displayName: "Old Staff" },
   ];
 
   it("resolves an id from the list, a leaver included (AC-7), to their first name", () => {

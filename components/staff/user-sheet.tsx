@@ -26,12 +26,11 @@ import { roleLabel, superadminOptionDisabled } from "./roles";
  * Spec 0012, AC-3 and AC-4. Mirrors `CourtSheet`'s shape, the same side sheet
  * editing courts already uses.
  *
- * Save applies the change directly, no separate confirm step: the sheet
- * itself, opened deliberately from a row's edit button rather than a
- * directly clickable control, is judged enough of a deliberate act on its
- * own (a revision from the two step flow this feature first shipped with).
+ * Continue hands the chosen role and active flag back to `UsersPanel`, which
+ * asks once more in a `ConfirmDialog` before writing. The sheet stays open
+ * underneath, so backing out of the dialog keeps the edits.
  * The role and active flag start from the account passed in; the form is
- * keyed on its Clerk id and version, so a different account, or the same one
+ * keyed on its user id and version, so a different account, or the same one
  * refreshed after a write, always opens with its own current values.
  */
 export function UserSheet({
@@ -58,17 +57,17 @@ export function UserSheet({
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}
       title={account ? `Edit ${firstName(account.displayName)}` : "Edit account"}
-      description="Change their role or active flag, then save."
+      description="Change their role or active flag, then continue to confirm."
       footer={
         <Button type="submit" form="user-form" disabled={pending} className="w-full">
           {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
-          {pending ? "Saving" : "Save"}
+          {pending ? "Saving" : "Continue"}
         </Button>
       }
     >
       {account ? (
         <UserForm
-          key={`${account.clerkUserId}:${account.version}`}
+          key={`${account.userId}:${account.version}`}
           account={account}
           superadminCount={superadminCount}
           onSubmit={onSubmit}
@@ -101,8 +100,10 @@ function UserForm({
       }}
     >
       <div className="flex flex-col gap-2">
-        <Label>Email</Label>
-        <p className="text-body text-muted-foreground">{account.email ?? "No email on file"}</p>
+        <Label>Username</Label>
+        <p className="text-body text-muted-foreground">
+          {account.username ?? "No username on file"}
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">

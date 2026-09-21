@@ -48,7 +48,7 @@ export type Database = {
             columns: ["changed_by"];
             isOneToOne: false;
             referencedRelation: "staff";
-            referencedColumns: ["clerk_user_id"];
+            referencedColumns: ["user_id"];
           },
         ];
       };
@@ -122,14 +122,14 @@ export type Database = {
             columns: ["cancelled_by"];
             isOneToOne: false;
             referencedRelation: "staff";
-            referencedColumns: ["clerk_user_id"];
+            referencedColumns: ["user_id"];
           },
           {
             foreignKeyName: "reservation_changed_by_fkey";
             columns: ["changed_by"];
             isOneToOne: false;
             referencedRelation: "staff";
-            referencedColumns: ["clerk_user_id"];
+            referencedColumns: ["user_id"];
           },
           {
             foreignKeyName: "reservation_court_id_fkey";
@@ -143,7 +143,7 @@ export type Database = {
             columns: ["created_by"];
             isOneToOne: false;
             referencedRelation: "staff";
-            referencedColumns: ["clerk_user_id"];
+            referencedColumns: ["user_id"];
           },
         ];
       };
@@ -179,39 +179,39 @@ export type Database = {
       };
       staff: {
         Row: {
-          clerk_user_id: string;
           created_at: string;
           display_name: string;
-          email: string | null;
           is_active: boolean;
           last_signed_in_at: string | null;
           privacy_acknowledged_at: string | null;
           privacy_acknowledged_version: string | null;
           role: string;
+          user_id: string;
+          username: string | null;
           version: number;
         };
         Insert: {
-          clerk_user_id: string;
           created_at?: string;
           display_name: string;
-          email?: string | null;
           is_active?: boolean;
           last_signed_in_at?: string | null;
           privacy_acknowledged_at?: string | null;
           privacy_acknowledged_version?: string | null;
           role?: string;
+          user_id: string;
+          username?: string | null;
           version?: number;
         };
         Update: {
-          clerk_user_id?: string;
           created_at?: string;
           display_name?: string;
-          email?: string | null;
           is_active?: boolean;
           last_signed_in_at?: string | null;
           privacy_acknowledged_at?: string | null;
           privacy_acknowledged_version?: string | null;
           role?: string;
+          user_id?: string;
+          username?: string | null;
           version?: number;
         };
         Relationships: [];
@@ -245,6 +245,66 @@ export type Database = {
           staff_id?: string;
         };
         Relationships: [];
+      };
+      staff_invite: {
+        Row: {
+          claimed_at: string | null;
+          claimed_by: string | null;
+          claimed_username: string | null;
+          created_at: string;
+          created_by: string;
+          expires_at: string;
+          id: string;
+          kind: string;
+          revoked_at: string | null;
+          role: string | null;
+          target_user_id: string | null;
+          token_hash: string;
+        };
+        Insert: {
+          claimed_at?: string | null;
+          claimed_by?: string | null;
+          claimed_username?: string | null;
+          created_at?: string;
+          created_by: string;
+          expires_at: string;
+          id?: string;
+          kind: string;
+          revoked_at?: string | null;
+          role?: string | null;
+          target_user_id?: string | null;
+          token_hash: string;
+        };
+        Update: {
+          claimed_at?: string | null;
+          claimed_by?: string | null;
+          claimed_username?: string | null;
+          created_at?: string;
+          created_by?: string;
+          expires_at?: string;
+          id?: string;
+          kind?: string;
+          revoked_at?: string | null;
+          role?: string | null;
+          target_user_id?: string | null;
+          token_hash?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "staff_invite_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["user_id"];
+          },
+          {
+            foreignKeyName: "staff_invite_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["user_id"];
+          },
+        ];
       };
       venue_settings: {
         Row: {
@@ -292,7 +352,7 @@ export type Database = {
             columns: ["changed_by"];
             isOneToOne: false;
             referencedRelation: "staff";
-            referencedColumns: ["clerk_user_id"];
+            referencedColumns: ["user_id"];
           },
         ];
       };
@@ -301,7 +361,15 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      acknowledge_privacy_notice: { Args: { version: string }; Returns: string };
+      acknowledge_privacy_notice: {
+        Args: { p_version: string };
+        Returns: string;
+      };
+      claim_staff_invite: {
+        Args: { p_token_hash: string; p_username: string };
+        Returns: string;
+      };
+      claim_staff_reset: { Args: { p_token_hash: string }; Returns: string };
       court_usage: {
         Args: { for_court_id?: number; from_date: string; to_date: string };
         Returns: {
@@ -310,6 +378,34 @@ export type Database = {
           hour: number;
           local_date: string;
         }[];
+      };
+      create_staff_invite: {
+        Args: {
+          p_kind: string;
+          p_role?: string;
+          p_target_user_id?: string;
+          p_token_hash?: string;
+        };
+        Returns: {
+          claimed_at: string | null;
+          claimed_by: string | null;
+          claimed_username: string | null;
+          created_at: string;
+          created_by: string;
+          expires_at: string;
+          id: string;
+          kind: string;
+          revoked_at: string | null;
+          role: string | null;
+          target_user_id: string | null;
+          token_hash: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "staff_invite";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       ensure_staff: {
         Args: never;
@@ -320,28 +416,36 @@ export type Database = {
           role: string;
         }[];
       };
+      peek_staff_invite: {
+        Args: { p_token_hash: string };
+        Returns: {
+          kind: string;
+          target_username: string;
+        }[];
+      };
       purge_customer_phones: { Args: never; Returns: number };
       reorder_courts: {
         Args: { ids: number[]; versions: number[] };
         Returns: undefined;
       };
+      revoke_staff_invite: { Args: { p_id: string }; Returns: undefined };
       update_staff_role: {
         Args: {
-          p_clerk_user_id: string;
           p_is_active: boolean;
           p_role: string;
+          p_user_id: string;
           p_version: number;
         };
         Returns: {
-          clerk_user_id: string;
           created_at: string;
           display_name: string;
-          email: string | null;
           is_active: boolean;
           last_signed_in_at: string | null;
           privacy_acknowledged_at: string | null;
           privacy_acknowledged_version: string | null;
           role: string;
+          user_id: string;
+          username: string | null;
           version: number;
         };
         SetofOptions: {

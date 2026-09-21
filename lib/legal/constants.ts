@@ -18,4 +18,4 @@ export const PHONE_RETENTION_DAYS = 90;
  * Bumping this makes every staff member see the acknowledgement dialog again,
  * on their next visit to `/staff` (spec 0010, AC-12). ISO date string.
  */
-export const PRIVACY_NOTICE_VERSION = "2026-09-16";
+export const PRIVACY_NOTICE_VERSION = "2026-09-21";

@@ -1,9 +1,8 @@
-import { Show } from "@clerk/nextjs";
 import Link from "next/link";
 
 import { NavMenu } from "@/components/nav-menu";
 import { Wordmark } from "@/components/wordmark";
-import { clerkConfigured } from "@/lib/env";
+import { currentSession } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,12 +12,13 @@ import { cn } from "@/lib/utils";
  * the real page rather than a shrug that fills in later (invariant 6).
  *
  * `staff` is a slot rather than a prop bag: the shell knows nothing about what a
- * staff control does, only that it renders solely when Clerk reports a signed in
- * user. That gate is a convenience, not a control. Nothing here decides who may
- * write; the row level security policies from spec 0002 do, and they would refuse
- * a write from a signed out visitor whatever this markup said.
+ * staff control does, only that it renders solely when there is a Better Auth
+ * session (spec 0004, read once per request through `currentSession()`). That
+ * gate is a convenience, not a control. Nothing here decides who may write; the
+ * row level security policies from spec 0002 do, and they would refuse a write
+ * from a signed out visitor whatever this markup said.
  */
-export function AppShell({
+export async function AppShell({
   children,
   toolbar,
   staff,
@@ -31,6 +31,7 @@ export function AppShell({
   staff?: React.ReactNode;
   className?: string;
 }) {
+  const signedIn = (await currentSession()) !== null;
   return (
     <div className="flex min-h-full flex-col">
       <header className="border-border sticky top-0 z-30 border-b shadow-sm">
@@ -38,15 +39,13 @@ export function AppShell({
         <div className="bg-brand text-brand-foreground">
           <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
             <Wordmark />
-            {staff && clerkConfigured ? (
+            {staff && signedIn ? (
               <div className="flex flex-wrap items-center gap-2">
                 {/* Signed in: everything collapses behind one menu below
                     1024px, where showing every item inline wraps and
                     crowds the band; at 1024px and up they stay inline. */}
-                <Show when="signed-in">
-                  <div className="hidden items-center gap-2 lg:flex">{staff}</div>
-                  <NavMenu>{staff}</NavMenu>
-                </Show>
+                <div className="hidden items-center gap-2 lg:flex">{staff}</div>
+                <NavMenu>{staff}</NavMenu>
               </div>
             ) : null}
           </div>
@@ -77,16 +76,14 @@ export function AppShell({
               Terms
             </Link>
             {/* The one quiet door for staff. A signed in person already has the menu above. */}
-            {clerkConfigured ? (
-              <Show when="signed-out">
-                <Link
-                  href="/sign-in"
-                  className="text-foreground rounded-sm underline-offset-4 hover:underline"
-                >
-                  Staff sign in
-                </Link>
-              </Show>
-            ) : null}
+            {signedIn ? null : (
+              <Link
+                href="/sign-in"
+                className="text-foreground rounded-sm underline-offset-4 hover:underline"
+              >
+                Staff sign in
+              </Link>
+            )}
           </div>
         </div>
       </footer>

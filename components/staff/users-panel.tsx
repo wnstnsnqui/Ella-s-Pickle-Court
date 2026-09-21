@@ -13,6 +13,7 @@ import type { StaffAccount } from "@/lib/staff";
 import { refreshAllStaff, updateStaffRole } from "@/lib/staff/actions";
 import { formatAtVenue } from "@/lib/time";
 
+import { ConfirmDialog } from "./confirm-dialog";
 import { roleLabel } from "./roles";
 import { UserSheet } from "./user-sheet";
 
@@ -25,28 +26,65 @@ import { UserSheet } from "./user-sheet";
  * write it refetches, and a `version_stale` answer replaces the rows and says
  * so, mirroring `SettingsPanel`.
  *
- * `UserSheet`, opened deliberately from a row's edit button rather than a
- * directly clickable control, is the whole flow: Save applies the change,
- * no separate confirm step (a revision from the two step flow this feature
- * first shipped with).
+ * Editing is two steps: `UserSheet` collects the new role and active flag
+ * behind a Continue button, then `ConfirmDialog` spells the change out and
+ * asks before the write. Backing out of the dialog returns to the sheet
+ * with the edits intact; a refusal shows inside the dialog for the same
+ * reason.
  */
 
 const STALE_MESSAGE = "Somebody else changed that account. Showing the fresh list.";
 const DROPPED_MESSAGE = "The change did not go through. Check the connection.";
 
+type ProposedChange = { role: StaffRole; isActive: boolean };
+
+function hasChanged(target: StaffAccount, change: ProposedChange): boolean {
+  return change.role !== target.role || change.isActive !== target.isActive;
+}
+
+/**
+ * The lines the confirm dialog reads out: one per field that changed. With
+ * nothing changed the dialog says so and offers only Go back.
+ */
+function describeChange(
+  target: StaffAccount,
+  change: ProposedChange,
+  currentOwner: StaffAccount | null,
+): string {
+  const lines: string[] = [];
+  if (change.role !== target.role) {
+    lines.push(`Role: ${roleLabel(target.role)} → ${roleLabel(change.role)}.`);
+    if (change.role === "owner" && currentOwner && currentOwner.userId !== target.userId) {
+      lines.push(`${firstName(currentOwner.displayName)} will become Admin at the same time.`);
+    }
+  }
+  if (change.isActive !== target.isActive) {
+    lines.push(
+      change.isActive
+        ? "They will be able to sign in again."
+        : "They will keep their account but will not be able to sign in.",
+    );
+  }
+  if (lines.length === 0) return "Nothing has changed.";
+  return lines.join(" ");
+}
+
 export function UsersPanel({
   initial,
-  viewerClerkUserId,
+  viewerUserId,
 }: {
   initial: StaffAccount[];
-  viewerClerkUserId: string;
+  viewerUserId: string;
 }) {
   const [staff, setStaff] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [sheetAccount, setSheetAccount] = useState<StaffAccount | null>(null);
+  const [proposed, setProposed] = useState<ProposedChange | null>(null);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
   const openerRef = useRef<HTMLElement | null>(null);
 
   const superadminCount = staff.filter((row) => row.role === "superadmin").length;
+  const currentOwner = staff.find((row) => row.role === "owner") ?? null;
 
   const refetch = useCallback(async () => {
     const result = await refreshAllStaff();
@@ -62,30 +100,38 @@ export function UsersPanel({
     setSheetAccount(target);
   };
 
-  const saveChange = async (newRole: StaffRole, newIsActive: boolean) => {
+  const closeSheet = () => {
+    setProposed(null);
+    setConfirmError(null);
+    setSheetAccount(null);
+  };
+
+  const saveChange = async () => {
     const target = sheetAccount;
-    if (!target) return;
+    const change = proposed;
+    if (!target || !change) return;
     setBusy(true);
+    setConfirmError(null);
     let result: Awaited<ReturnType<typeof updateStaffRole>>;
     try {
       result = await withRetry(() =>
         updateStaffRole({
-          clerkUserId: target.clerkUserId,
-          role: newRole,
-          isActive: newIsActive,
+          userId: target.userId,
+          role: change.role,
+          isActive: change.isActive,
           version: target.version,
         }),
       );
     } catch {
       setBusy(false);
-      toast.error(DROPPED_MESSAGE);
+      setConfirmError(DROPPED_MESSAGE);
       return;
     }
 
     if (result.ok) {
       await refetch();
       setBusy(false);
-      setSheetAccount(null);
+      closeSheet();
       toast.success(`${firstName(target.displayName)} updated.`);
       return;
     }
@@ -94,14 +140,14 @@ export function UsersPanel({
     const { error } = result;
     if (error.kind === "conflict" && error.reason === "version_stale") {
       await refetch();
-      setSheetAccount(null);
+      closeSheet();
       toast.info(STALE_MESSAGE);
       return;
     }
     // A rare race (someone else changed this account, or a role changed
-    // under an open tab): the sheet stays open so the attempted values
-    // are not lost, and the refusal is said plainly.
-    toast.error(error.message);
+    // under an open tab): the dialog stays open with the refusal inside it,
+    // and the sheet underneath keeps the attempted values.
+    setConfirmError(error.message);
   };
 
   if (staff.length === 0) {
@@ -114,16 +160,16 @@ export function UsersPanel({
     <div className="border-border bg-card rounded-lg border p-4 sm:p-6">
       <ol className="divide-border divide-y">
         {staff.map((row) => {
-          const isSelf = row.clerkUserId === viewerClerkUserId;
+          const isSelf = row.userId === viewerUserId;
           return (
             <li
-              key={row.clerkUserId}
+              key={row.userId}
               className="flex flex-wrap items-center gap-3 py-3 first:pt-0 last:pb-0"
             >
               <div className="min-w-0 flex-1">
                 <p className="text-label truncate">{firstName(row.displayName)}</p>
                 <p className="text-caption text-muted-foreground truncate">
-                  {row.email ?? "No email on file"}
+                  {row.username ?? "No username on file"}
                   {row.lastSignedInAt
                     ? ` · Last signed in ${formatAtVenue(row.lastSignedInAt, { dateStyle: "medium", timeStyle: "short" })}`
                     : " · Never signed in"}
@@ -158,13 +204,37 @@ export function UsersPanel({
       <UserSheet
         open={sheetAccount !== null}
         onOpenChange={(open) => {
-          if (!open) setSheetAccount(null);
+          if (!open) closeSheet();
         }}
         account={sheetAccount}
         superadminCount={superadminCount}
         pending={busy}
-        onSubmit={(role, isActive) => void saveChange(role, isActive)}
+        onSubmit={(role, isActive) => setProposed({ role, isActive })}
         returnFocusTo={openerRef}
+      />
+
+      <ConfirmDialog
+        open={proposed !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setProposed(null);
+            setConfirmError(null);
+          }
+        }}
+        title={sheetAccount ? `Save changes to ${firstName(sheetAccount.displayName)}?` : ""}
+        description={
+          sheetAccount && proposed ? describeChange(sheetAccount, proposed, currentOwner) : ""
+        }
+        keepLabel="Go back"
+        confirmLabel={
+          sheetAccount && proposed && hasChanged(sheetAccount, proposed) ? "Save" : undefined
+        }
+        confirmVariant={
+          sheetAccount?.isActive && proposed && !proposed.isActive ? "destructive" : "default"
+        }
+        error={confirmError}
+        pending={busy}
+        onConfirm={() => void saveChange()}
       />
     </div>
   );

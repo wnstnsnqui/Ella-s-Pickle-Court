@@ -70,15 +70,16 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 
 ## Rules
 
-- **Two Supabase clients, never merged.** `publicSupabase()` is anon and read only; `staffSupabase()` carries the signed in staff member's Clerk token and is built fresh per request. Merging them into a shared singleton breaks the read only guarantee on the public board.
+- **Two Supabase clients, never merged.** `publicSupabase()` is anon and read only; `staffSupabase()` carries a five minute Supabase token minted from the signed in staff member's Better Auth session and is built fresh per request. Merging them into a shared singleton breaks the read only guarantee on the public board.
 - **The service role key never reaches application code.** It is for migrations and admin tooling only. Nothing under `app/` or `lib/` may read it.
 - **Authorization is a row level security policy, never an `if` in a Server Action.** An app level check is fine for a friendlier error, but Postgres is the enforcement point.
-- **Every Server Action calls `requireStaff()` first, then validates with Zod, then writes.** Server Actions accept whatever the network sends.
+- **Every Server Action calls `requireStaff()` first, then validates with Zod, then writes.** Server Actions accept whatever the network sends. The one named exception is `lib/auth/actions.ts` (`redeemInvite`, `resetPassword`): no session exists yet, and a link claimed in Postgres is their gate.
+- **`SUPABASE_JWT_SECRET` is read by `lib/supabase/staff-token.ts` and nowhere else, and `lib/auth/pool.ts` is imported only by the auth core.** The secret can sign a `service_role` token and the pool runs as the `better_auth_app` role, so both are confined; `lib/import-boundaries.test.ts` pins each.
 - **Every write that changes state is conditional on the row's `version` and records `changed_by`.** A zero row result means somebody else got there first; refetch and show the fresh state rather than swallowing it.
 - **All timestamps are `timestamptz` in UTC.** Local time exists only when showing something to a person, and it is always `Asia/Manila`, never the reader's device.
 - **`24:00` is a valid time only as an end: a closing time, or where a booking or closure stops.** Validate an end with `closeTimeSchema`, a start or open with `localTimeSchema`, and read an end back from an instant with `localEndTimeInZone()` so the stroke of midnight comes out as `24:00`, never `00:00`.
 - **Migrations are forward only SQL files in `supabase/migrations/`, applied by the CLI.** No schema changes by hand in the dashboard.
-- **This is Next.js 16 and Clerk 7.** Request interception is `proxy.ts`, not `middleware.ts`. Clerk 7 is Core 3, so `<SignedIn>` and `<SignedOut>` do not exist; use `<Show when="signed-in">`. Read `node_modules/next/dist/docs/` before writing framework code.
+- **This is Next.js 16 and Better Auth 1.7.** Request interception is `proxy.ts`, not `middleware.ts`, and it checks only for the session cookie (`getSessionCookie`); `currentStaff()` verifies the session on the page. Read `node_modules/next/dist/docs/` before writing framework code, and `lib/auth/AGENTS.md` before touching sign in.
 - **A page whose value is being current renders per request.** No static or cached rendering on the boards.
 - **Prettier owns layout, ESLint owns real problems.** `eslint-config-prettier` stands down every formatting rule, so never add one back. Run `npm run check` before calling a slice finished: it is lint, format check, typecheck, and tests in that order.
 - **Every Server Action sends its analytics event only after a successful write, through `captureStaffEvent()`, and never awaits it.** See `lib/analytics/AGENTS.md`.
@@ -90,6 +91,9 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - [supabase-postgres-best-practices](.agents/skills/supabase-postgres-best-practices/): `supabase/agent-skills`, read BEFORE writing any schema, migration, RLS policy, index or trigger
 - [clerk-setup](.agents/skills/clerk-setup/): `clerk/skills`, adding and configuring Clerk
 - [clerk-nextjs-patterns](.agents/skills/clerk-nextjs-patterns/): `clerk/skills`, Clerk in proxy, Server Actions and caching
+- [better-auth-best-practices](.agents/skills/better-auth-best-practices/): `better-auth/skills`, Better Auth server and client config, adapters, sessions, plugins
+- [better-auth-security-best-practices](.agents/skills/better-auth-security-best-practices/): `better-auth/skills`, rate limiting, secrets, trusted origins, cookies
+- [email-and-password-best-practices](.agents/skills/email-and-password-best-practices/): `better-auth/skills`, the credential provider, password policy and reset
 - [tailwind-4-docs](.agents/skills/tailwind-4-docs/): `lombiq/tailwind-agent-skills`, Tailwind 4 utilities and config (v3 patterns are wrong here)
 - [zod](.agents/skills/zod/): `pproenca/dot-skills`, schema validation and inferred types
 - [vitest](.agents/skills/vitest/): `antfu/skills`, writing tests, mocking with `vi.*`, coverage and test filtering
@@ -104,6 +108,7 @@ Declined: prettier (the setup is done and the available skills are all scaffolde
 - [lib/supabase/AGENTS.md](lib/supabase/AGENTS.md): the three Supabase clients and which one to reach for
 - [supabase/AGENTS.md](supabase/AGENTS.md): migrations, row level security policies, and the broadcast trigger
 - [lib/analytics/AGENTS.md](lib/analytics/AGENTS.md): PostHog analytics and error tracking, the event allow list, and the off switch
-- [lib/staff/AGENTS.md](lib/staff/AGENTS.md): the Server Action behind `/staff/admin/users`, role and active status writes
+- [lib/staff/AGENTS.md](lib/staff/AGENTS.md): the Server Actions behind `/staff/admin/users`, role and active status writes and invite links
+- [lib/auth/AGENTS.md](lib/auth/AGENTS.md): Better Auth, the invite gate, the session read, and the `pg` pool boundary
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

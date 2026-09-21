@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Spec 0004, AC-3 and AC-8: `currentStaff()` turns Clerk's answer and the
+ * Spec 0004, AC-3 and AC-8: `currentStaff()` turns the session's answer and the
  * `ensure_staff()` call into one of three typed results, never throws, and
  * never lets a slow database hold the board.
  */
@@ -11,7 +11,7 @@ const rpc = vi.hoisted(() => vi.fn());
 const from = vi.hoisted(() => vi.fn());
 const cache = vi.hoisted(() => vi.fn(<F>(fn: F) => fn));
 
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: auth }));
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase: () => ({ rpc, from }) }));
 vi.mock("react", async (importOriginal) => ({
   ...(await importOriginal<typeof import("react")>()),
@@ -64,14 +64,14 @@ describe("currentStaff", () => {
   });
 
   it("answers signed_out without touching the database (AC-6)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: false });
+    auth.mockResolvedValue(null);
 
     expect(await currentStaff()).toEqual({ kind: "signed_out" });
     expect(rpc).not.toHaveBeenCalled();
   });
 
   it("calls ensure_staff with no arguments and returns the row it made (AC-3)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     rpcResolving({
       data: {
         display_name: "Ella",
@@ -96,7 +96,7 @@ describe("currentStaff", () => {
   });
 
   it("carries an inactive account through as ok with isActive false (AC-5)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     rpcResolving({ data: { display_name: "Sam", role: "staff", is_active: false }, error: null });
 
     const result = await currentStaff();
@@ -105,7 +105,7 @@ describe("currentStaff", () => {
   });
 
   it("gives the call a 3 second abort so a slow database never holds the board (AC-8)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     const { abortSignal } = rpcResolving({
       data: { display_name: "Ella", role: "owner", is_active: true },
       error: null,
@@ -118,20 +118,20 @@ describe("currentStaff", () => {
   });
 
   it("turns a Postgres error result into error and logs it (AC-8)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     rpcResolving({
       data: null,
-      error: { code: "23514", message: "the session token carries no name or email" },
+      error: { code: "23514", message: "the session token carries no name or username" },
     });
 
     expect(await currentStaff()).toEqual({ kind: "error" });
     expect(console.error).toHaveBeenCalledWith(
-      expect.stringMatching(/currentStaff.*23514.*no name or email/),
+      expect.stringMatching(/currentStaff.*23514.*no name or username/),
     );
   });
 
   it("turns a thrown call, such as the abort firing, into error (AC-8)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     const single = vi.fn().mockRejectedValue(new DOMException("timed out", "TimeoutError"));
     rpc.mockReturnValue({ abortSignal: () => ({ single }) });
 
@@ -140,7 +140,7 @@ describe("currentStaff", () => {
   });
 
   it("passes the role column through unchanged, admin and superadmin included (spec 0012)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     rpcResolving({ data: { display_name: "X", role: "admin", is_active: true }, error: null });
 
     const result = await currentStaff();
@@ -153,45 +153,45 @@ describe("getAllStaff", () => {
   /** Rows out of DB order on purpose, to prove the function does the sorting. */
   const ROWS = [
     {
-      clerk_user_id: "a",
+      user_id: "a",
       display_name: "Amy",
-      email: null,
+      username: null,
       role: "staff",
       is_active: true,
       last_signed_in_at: null,
       version: 1,
     },
     {
-      clerk_user_id: "b",
+      user_id: "b",
       display_name: "Bo",
-      email: null,
+      username: null,
       role: "admin",
       is_active: true,
       last_signed_in_at: null,
       version: 1,
     },
     {
-      clerk_user_id: "c",
+      user_id: "c",
       display_name: "Cy",
-      email: null,
+      username: null,
       role: "owner",
       is_active: true,
       last_signed_in_at: null,
       version: 1,
     },
     {
-      clerk_user_id: "d",
+      user_id: "d",
       display_name: "Al",
-      email: null,
+      username: null,
       role: "superadmin",
       is_active: true,
       last_signed_in_at: null,
       version: 1,
     },
     {
-      clerk_user_id: "e",
+      user_id: "e",
       display_name: "Zed",
-      email: null,
+      username: null,
       role: "superadmin",
       is_active: true,
       last_signed_in_at: null,
@@ -200,7 +200,7 @@ describe("getAllStaff", () => {
   ];
 
   it("sorts owner, then superadmin, then admin, then staff, alphabetically within a role", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true, userId: "caller_1" });
+    auth.mockResolvedValue({ user: { id: "caller_1" } });
     fromSelecting({ data: ROWS, error: null });
 
     const result = await getAllStaff();

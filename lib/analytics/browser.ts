@@ -20,7 +20,7 @@ export function identifyStaff(staff: { id: string; displayName: string; role: St
   posthog.identify(staff.id, { display_name: staff.displayName, role: staff.role });
 }
 
-/** Clears the browser's identity before Clerk signs the person out (AC-3). */
+/** Clears the browser's identity as the person signs out (AC-3). */
 export function resetIdentity(): void {
   if (!posthogConfigured) return;
   posthog.reset();

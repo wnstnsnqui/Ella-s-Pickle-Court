@@ -136,7 +136,7 @@ export async function getDayReservations(day: string): Promise<ActionResult<DayR
 
   const [courts, staffRows, reservations] = await Promise.all([
     staff.supabase.from("court").select("id, name, sort_order"),
-    staff.supabase.from("staff").select("clerk_user_id, display_name"),
+    staff.supabase.from("staff").select("user_id, display_name"),
     staff.supabase
       .from("reservation")
       .select(
@@ -152,7 +152,7 @@ export async function getDayReservations(day: string): Promise<ActionResult<DayR
 
   const courtById = new Map((courts.data ?? []).map((court) => [court.id, court]));
   const nameByStaffId = new Map(
-    (staffRows.data ?? []).map((row) => [row.clerk_user_id, row.display_name]),
+    (staffRows.data ?? []).map((row) => [row.user_id, row.display_name]),
   );
 
   // The naive UTC window above is wide on purpose (it may pull in a

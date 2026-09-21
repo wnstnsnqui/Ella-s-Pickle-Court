@@ -7,7 +7,7 @@ import { POSTHOG_INGEST_PREFIX, POSTHOG_UI_HOST } from "@/lib/analytics/hosts";
  * Client side PostHog init. Spec 0009.
  *
  * Read once at page load: under `/staff` or `/sign-in` the browser is
- * identified (a Clerk id follows), everywhere else, starting with the public
+ * identified (a user id follows), everywhere else, starting with the public
  * board, it is cookieless (AC-1). A staff member navigating from `/staff` to
  * `/` by client side routing stays in the mode this page load started in;
  * that is accepted (spec 0009, Decision).

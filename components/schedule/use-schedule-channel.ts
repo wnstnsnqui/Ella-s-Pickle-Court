@@ -21,7 +21,7 @@ import { ReadGate } from "./read-gate";
  * that missed a message still corrects itself on the next one.
  *
  * What differs between the boards is handed in: which Supabase client, the
- * `prepare` step run before subscribing (the Clerk token for staff, a bare
+ * `prepare` step run before subscribing (a bare
  * `realtime.setAuth()` for the public), and the transport that fetches the day.
  *
  * Three events arrive on the `schedule` topic: a reservation, a court, or the
@@ -40,6 +40,22 @@ export const SCHEDULE_EVENTS = [
 
 /** What the board says when its day is no longer reachable. */
 export const OUT_OF_RANGE_MESSAGE = "That day is no longer open for booking. Showing today.";
+
+/**
+ * One toast id for every failed reload, so the slow poll retrying against the
+ * same fault updates a single notice instead of stacking a new one each time.
+ * It is dismissed the moment a reload lands.
+ */
+export const RELOAD_FAILED_TOAST_ID = "schedule-reload-failed";
+
+function reportReloadFailure(message: string) {
+  // Our own messages end in a full stop; a raw database message does not.
+  const sentence = /[.!?]$/.test(message) ? message : `${message}.`;
+  toast.error("The board could not reload", {
+    id: RELOAD_FAILED_TOAST_ID,
+    description: `${sentence} It still shows the day as it was before.`,
+  });
+}
 
 /** How long to gather broadcasts before one read. */
 export const COALESCE_MS = 300;
@@ -137,6 +153,7 @@ export function useScheduleChannel<T extends Schedule>({
           return null;
         }
         setRefetchError(result.message);
+        reportReloadFailure(result.message);
         if (result.retryAfterMs !== undefined) {
           gate.current?.wait(result.retryAfterMs);
           setWaiting(true);
@@ -145,12 +162,15 @@ export function useScheduleChannel<T extends Schedule>({
       }
       setSchedule(result.data);
       setRefetchError(null);
+      toast.dismiss(RELOAD_FAILED_TOAST_ID);
       setLastUpdatedAt(Date.now());
       for (const listener of listeners.current) listener(result.data);
       return result.data;
     } catch (error) {
       if (mine === generation.current) {
-        setRefetchError(error instanceof Error ? error.message : "The schedule did not reload.");
+        const message = error instanceof Error ? error.message : "The schedule did not reload.";
+        setRefetchError(message);
+        reportReloadFailure(message);
       }
       return null;
     }

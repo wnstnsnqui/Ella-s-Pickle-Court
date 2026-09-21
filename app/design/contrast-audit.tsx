@@ -106,7 +106,7 @@ const PAIRS: Array<{ fg: string; bg: string; need: ContrastNeed; what: string }>
     what: "Selected cell boundary",
   },
   { fg: "--destructive", bg: "--background", need: "boundary", what: "Error text and icon" },
-  // The Clerk sign in card (spec 0004, AC-10) puts these on `--card`.
+  // The auth forms (spec 0004, AC-16) put these on `--card`.
   { fg: "--muted-foreground", bg: "--card", need: "body", what: "Quiet text on a card" },
   { fg: "--primary", bg: "--card", need: "body", what: "Link on a card" },
   { fg: "--input", bg: "--card", need: "boundary", what: "Input boundary on a card" },

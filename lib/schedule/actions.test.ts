@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Spec 0005 Server Actions: the batch insert (AC-4, AC-5, AC-6), the closure
- * end edit (AC-8), and the refetch the board calls (AC-10). Clerk and Supabase
+ * end edit (AC-8), and the refetch the board calls (AC-10). Better Auth and Supabase
  * are the boundaries and are faked here; what is under test is the order every
  * action keeps (`requireStaff()`, then Zod, then the write), the shape of the
  * write it sends, and the typed answer it hands back.
  */
 
 const auth = vi.hoisted(() => vi.fn());
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: auth }));
 
 /**
  * A chainable stand in for a supabase-js query. Every builder method returns
@@ -90,13 +90,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   calls.length = 0;
   answers.clear();
-  auth.mockResolvedValue({ isAuthenticated: true, userId: "user_staff" });
+  auth.mockResolvedValue({ user: { id: "user_staff" } });
   staffSupabase.mockReturnValue({ from: (table: string) => builder(table) });
 });
 
 describe("createReservations", () => {
   it("refuses a signed out caller before touching the database", async () => {
-    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+    auth.mockResolvedValue(null);
     const result = await createReservations({ runs: [], kind: "closed" });
     expect(result).toMatchObject({ ok: false, error: { kind: "unauthenticated" } });
     expect(staffSupabase).not.toHaveBeenCalled();

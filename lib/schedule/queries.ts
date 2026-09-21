@@ -29,7 +29,7 @@ import { calendarDateSchema } from "./schemas";
 /**
  * The read paths for spec 0002, plus the owner's settings read for spec 0007.
  *
- * `getSchedule` is the public grid: anon key, no Clerk token, and it names the
+ * `getSchedule` is the public grid: anon key, no session token, and it names the
  * four columns anon is granted on `reservation`. It cannot ask for a customer's
  * name even by accident, because Postgres would refuse the column (AC-4).
  *
@@ -85,9 +85,9 @@ export type StaffReservation = {
   updatedAt: string;
 };
 
-/** A name for every Clerk id that ever wrote a row, active or not. Spec 0005, AC-7. */
+/** A name for every user id that ever wrote a row, active or not. Spec 0005, AC-7. */
 export type StaffName = {
-  clerkUserId: string;
+  userId: string;
   displayName: string;
 };
 
@@ -309,7 +309,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
       .order("starts_at"),
     // The whole table, no `is_active` filter, so a leaver's name still resolves
     // on the bookings they made (spec 0005, AC-7).
-    supabase.from("staff").select("clerk_user_id, display_name"),
+    supabase.from("staff").select("user_id, display_name"),
   ]);
 
   if (courts.error) {
@@ -367,7 +367,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
       updatedAt: row.updated_at,
     })),
     staff: (staffRows.data ?? []).map((row) => ({
-      clerkUserId: row.clerk_user_id,
+      userId: row.user_id,
       displayName: row.display_name,
     })),
   });

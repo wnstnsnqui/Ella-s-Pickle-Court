@@ -1,4 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
 import { CircleAlert, UserRoundX } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -11,6 +10,7 @@ import { StaffScheduleProvider } from "@/components/staff/staff-schedule-context
 import { StaffToolbar } from "@/components/staff/staff-toolbar";
 import { StaffMenu } from "@/components/staff-menu";
 import { Button } from "@/components/ui/button";
+import { currentSession } from "@/lib/auth/session";
 import { getStaffSchedule } from "@/lib/schedule/queries";
 import { currentStaff } from "@/lib/staff";
 import { VENUE_NAME } from "@/lib/venue";
@@ -69,7 +69,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
     );
   }
 
-  const [{ userId }, result] = await Promise.all([auth(), getStaffSchedule(date)]);
+  const [session, result] = await Promise.all([currentSession(), getStaffSchedule(date)]);
 
   if (!result.ok) {
     return (
@@ -88,7 +88,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
       key={result.data.grid.date}
       initial={result.data}
       date={result.data.grid.date}
-      viewer={{ clerkUserId: userId ?? "", role: current.staff.role }}
+      viewer={{ userId: session?.user.id ?? "", role: current.staff.role }}
     >
       <AppShell
         toolbar={<StaffToolbar />}

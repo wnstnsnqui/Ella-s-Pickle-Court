@@ -1,7 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-/* Clerk's sign in card on our tokens (spec 0004, AC-10). The theme itself is set on the provider. */
-@import "@clerk/ui/themes/shadcn.css";
 
 /*
  * The one token layer. Spec 0003, AC-1 and invariant 1.

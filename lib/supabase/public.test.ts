@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Architecture rules 4 and 10: the public board reads with the anon key and no
- * Clerk token. If this client ever gains a token, the read only guarantee on the
+ * session token. If this client ever gains a token, the read only guarantee on the
  * public board quietly disappears, which is exactly the kind of regression a
  * passing feature test would not notice.
  */
@@ -43,7 +43,7 @@ describe("publicSupabase", () => {
     );
   });
 
-  it("carries no Clerk token, so Postgres sees an anonymous caller", () => {
+  it("carries no session token, so Postgres sees an anonymous caller", () => {
     publicSupabase();
 
     expect(optionsFromCall()).not.toHaveProperty("accessToken");

@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 
 /**
- * Architecture rules 3 and 11: every Server Action checks Clerk first, then puts
+ * Architecture rules 3 and 11: every Server Action checks the session first, then puts
  * its payload through a schema, before anything reaches the database. These
  * helpers are the shared front door, so every court write inherits whatever they
  * guarantee.
@@ -12,7 +12,7 @@ const auth = vi.hoisted(() => vi.fn());
 const staffSupabase = vi.hoisted(() => vi.fn(() => ({ marker: "staff client" })));
 const reportFailure = vi.hoisted(() => vi.fn());
 
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: auth }));
 vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
 vi.mock("@/lib/analytics/server", () => ({ reportFailure }));
 
@@ -36,7 +36,7 @@ describe("ok / fail", () => {
 
 describe("requireStaff", () => {
   it("hands back the staff id and a per request Supabase client when signed in", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true, userId: "user_abc" });
+    auth.mockResolvedValue({ user: { id: "user_abc" } });
 
     const result = await requireStaff();
 
@@ -46,8 +46,8 @@ describe("requireStaff", () => {
     expect(result.supabase).toEqual({ marker: "staff client" });
   });
 
-  it("refuses when there is no Clerk session", async () => {
-    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+  it("refuses when there is no session", async () => {
+    auth.mockResolvedValue(null);
 
     const result = await requireStaff();
 
@@ -57,26 +57,18 @@ describe("requireStaff", () => {
     expect(result.error.message).toBe("Sign in to change a court.");
   });
 
-  it("refuses when Clerk reports authenticated but gives no user id", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true, userId: null });
-
-    const result = await requireStaff();
-
-    expect(result.ok).toBe(false);
-  });
-
   it("never builds a Supabase client for a signed out caller", async () => {
-    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+    auth.mockResolvedValue(null);
 
     await requireStaff();
 
-    // Rule 11: check Clerk BEFORE touching Supabase, so an expired session reads
+    // Rule 11: check the session BEFORE touching Supabase, so an expired session reads
     // as a typed error instead of an opaque policy denial.
     expect(staffSupabase).not.toHaveBeenCalled();
   });
 
   it("builds a fresh client on each call, never a shared singleton (rule 10)", async () => {
-    auth.mockResolvedValue({ isAuthenticated: true, userId: "user_abc" });
+    auth.mockResolvedValue({ user: { id: "user_abc" } });
 
     await requireStaff();
     await requireStaff();

@@ -355,19 +355,13 @@ enabled = false
 # user_pool_id = "my-user-pool-id"
 # user_pool_region = "us-east-1"
 
-# Use Clerk as a third-party provider alongside Supabase Auth.
-# Spec 0001: Clerk is the third party auth provider Supabase trusts, so row level
-# security can read the Clerk user id as auth.jwt()->>'sub'. This stays off until
-# you have a Clerk instance: flip enabled to true and paste your Frontend API
-# domain below, then do the matching step in the Supabase dashboard. Nothing that
-# depends on a signed in staff member works until both sides are set.
+# Third party auth is off. Spec 0004 (revised): Better Auth runs inside the app
+# and the server mints a Supabase token itself (lib/supabase/staff-token.ts),
+# so Supabase no longer trusts an outside identity provider. Also remove Clerk
+# under Authentication > Third party in the dashboard.
 [auth.third_party.clerk]
-enabled = true
-# Obtain from https://clerk.com/setup/supabase. This is the development instance's
-# Frontend API domain, read out of NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY. This setting
-# only configures a local `supabase start` stack; the hosted development project
-# needs the same provider added in its dashboard.
-domain = "better-mammal-264.clerk.accounts.dev"
+enabled = false
+# domain = ""
 
 # OAuth server configuration
 [auth.oauth_server]

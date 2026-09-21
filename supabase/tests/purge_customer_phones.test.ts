@@ -9,6 +9,11 @@ import { query, rollback } from "./db";
  *
  * Opt in, like every test in this folder: needs the Supabase CLI logged in
  * and linked. Every case rolls back, including the ones that seed a booking.
+ *
+ * The seeded staff row is `staff`, not `owner`: `staff_single_owner_idx`
+ * (spec 0012) allows one owner, so an `owner` seed under `on conflict do
+ * nothing` silently vanishes whenever the project already has one, and the
+ * booking's foreign key then fails. The purge itself never looks at the role.
  */
 
 describe.skipIf(!process.env.DB_TESTS)(
@@ -18,7 +23,7 @@ describe.skipIf(!process.env.DB_TESTS)(
     it("clears the phone from the reservation and its newest audit row, bumps version once, and is idempotent (AC-5, AC-8)", async () => {
       const result = await query(
         rollback(
-          `insert into public.staff (clerk_user_id, display_name, role) values ('purge_test_owner', 'Purge Test Owner', 'owner') on conflict do nothing;
+          `insert into public.staff (user_id, display_name, role) values ('purge_test_owner', 'Purge Test Owner', 'staff') on conflict do nothing;
            insert into public.reservation (court_id, kind, starts_at, ends_at, customer_name, customer_phone, created_by, changed_by)
            values (1, 'booking', now() - interval '91 days' - interval '1 hour', now() - interval '91 days', 'Purge Test Customer', '09171234567', 'purge_test_owner', 'purge_test_owner');
            select public.purge_customer_phones() as first_run_count;
@@ -47,7 +52,7 @@ describe.skipIf(!process.env.DB_TESTS)(
     it("leaves a booking with no phone, a recent booking, and a closure untouched (AC-5, AC-8)", async () => {
       const result = await query(
         rollback(
-          `insert into public.staff (clerk_user_id, display_name, role) values ('purge_test_owner2', 'Purge Test Owner 2', 'owner') on conflict do nothing;
+          `insert into public.staff (user_id, display_name, role) values ('purge_test_owner2', 'Purge Test Owner 2', 'staff') on conflict do nothing;
            insert into public.reservation (court_id, kind, starts_at, ends_at, customer_name, customer_phone, created_by, changed_by)
            values
              (1, 'booking', now() - interval '91 days' - interval '2 hours', now() - interval '91 days' - interval '1 hour', 'No Phone Customer', null, 'purge_test_owner2', 'purge_test_owner2'),

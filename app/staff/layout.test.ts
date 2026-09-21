@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const auth = vi.hoisted(() => vi.fn());
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: auth }));
 
 const currentStaff = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/staff", () => ({ currentStaff }));
@@ -38,7 +38,7 @@ beforeEach(() => {
 
 describe("StaffLayout privacy notice gate", () => {
   it("shows no dialog for a signed out visitor", async () => {
-    auth.mockResolvedValue({ userId: null });
+    auth.mockResolvedValue(null);
     currentStaff.mockResolvedValue({ kind: "signed_out" });
     const html = await render();
     expect(html).not.toContain("data-dialog");
@@ -46,7 +46,7 @@ describe("StaffLayout privacy notice gate", () => {
   });
 
   it("shows no dialog for an inactive staff account", async () => {
-    auth.mockResolvedValue({ userId: "user_1" });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     currentStaff.mockResolvedValue({
       kind: "ok",
       staff: {
@@ -62,7 +62,7 @@ describe("StaffLayout privacy notice gate", () => {
   });
 
   it("opens the dialog for an active staff member who has not acknowledged the current version", async () => {
-    auth.mockResolvedValue({ userId: "user_1" });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     currentStaff.mockResolvedValue({
       kind: "ok",
       staff: {
@@ -78,7 +78,7 @@ describe("StaffLayout privacy notice gate", () => {
   });
 
   it("stays closed for an active staff member who already acknowledged the current version", async () => {
-    auth.mockResolvedValue({ userId: "user_1" });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     currentStaff.mockResolvedValue({
       kind: "ok",
       staff: {
@@ -93,7 +93,7 @@ describe("StaffLayout privacy notice gate", () => {
   });
 
   it("reopens when the acknowledged version no longer matches, e.g. after a bump (AC-12)", async () => {
-    auth.mockResolvedValue({ userId: "user_1" });
+    auth.mockResolvedValue({ user: { id: "user_1" } });
     currentStaff.mockResolvedValue({
       kind: "ok",
       staff: {

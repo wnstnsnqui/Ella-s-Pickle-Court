@@ -34,7 +34,7 @@ describe.skipIf(!process.env.DB_TESTS)(
     it("leaves anon no way to insert a staff row (AC-6)", async () => {
       const result = await query(
         rollback(
-          "set local role anon; insert into public.staff (clerk_user_id, display_name) values ('x', 'x');",
+          "set local role anon; insert into public.staff (user_id, display_name) values ('x', 'x');",
         ),
       );
       expect(result).toMatchObject({ ok: false, sqlstate: "42501" });
@@ -58,14 +58,15 @@ describe.skipIf(!process.env.DB_TESTS)(
       });
     });
 
-    it("refuses a token with neither name nor email, naming the Clerk setting (AC-3, AC-8)", async () => {
+    it("refuses a token with neither name nor username, naming the token minter (AC-5)", async () => {
       const result = await query(
         rollback(asAuthenticated({ sub: "probe" }, "select * from public.ensure_staff();")),
       );
       expect(result).toMatchObject({
         ok: false,
         sqlstate: "23514",
-        message: "the session token carries no name or email; check the Clerk session token claims",
+        message:
+          "the session token carries no name or username; check the claims mintStaffToken() signs",
       });
     });
 
@@ -74,27 +75,27 @@ describe.skipIf(!process.env.DB_TESTS)(
         rollback(
           "delete from public.staff;\n" +
             asAuthenticated(
-              { sub: "user_first", name: "First Person", email: "first@example.com" },
+              { sub: "user_first", name: "First Person", username: "first" },
               `select * from public.ensure_staff();
              reset role;
              select s.role, s.is_active, l.locks
                from public.staff s, (${HELD_ADVISORY_LOCKS.replace(";", "")}) l
-              where s.clerk_user_id = 'user_first';`,
+              where s.user_id = 'user_first';`,
             ),
         ),
       );
       expect(result).toEqual({ ok: true, rows: [{ role: "owner", is_active: true, locks: 1 }] });
     });
 
-    it("makes every later row staff, from the trimmed name and the email on the token (AC-3)", async () => {
+    it("makes every later row staff, from the trimmed name and the username on the token (AC-3)", async () => {
       const result = await query(
         rollback(
           asAuthenticated(
-            { sub: "user_probe", name: "  Probe Person  ", email: "probe@example.com" },
+            { sub: "user_probe", name: "  Probe Person  ", username: "probe" },
             `select * from public.ensure_staff();
            reset role;
-           select display_name, email, role, is_active, last_signed_in_at is not null as stamped
-             from public.staff where clerk_user_id = 'user_probe';`,
+           select display_name, username, role, is_active, last_signed_in_at is not null as stamped
+             from public.staff where user_id = 'user_probe';`,
           ),
         ),
       );
@@ -103,7 +104,7 @@ describe.skipIf(!process.env.DB_TESTS)(
         rows: [
           {
             display_name: "Probe Person",
-            email: "probe@example.com",
+            username: "probe",
             role: "staff",
             is_active: true,
             stamped: true,
@@ -112,21 +113,21 @@ describe.skipIf(!process.env.DB_TESTS)(
       });
     });
 
-    it("falls back to the email when the name is blank, and cuts the name to 80 (AC-3)", async () => {
+    it("falls back to the username when the name is blank, and cuts the name to 80 (AC-3)", async () => {
       const blank = await query(
         rollback(
           asAuthenticated(
-            { sub: "user_blank", name: "   ", email: "blank@example.com" },
+            { sub: "user_blank", name: "   ", username: "blank" },
             "select display_name from public.ensure_staff();",
           ),
         ),
       );
-      expect(blank).toEqual({ ok: true, rows: [{ display_name: "blank@example.com" }] });
+      expect(blank).toEqual({ ok: true, rows: [{ display_name: "blank" }] });
 
       const long = await query(
         rollback(
           asAuthenticated(
-            { sub: "user_long", name: "x".repeat(120), email: "long@example.com" },
+            { sub: "user_long", name: "x".repeat(120), username: "long" },
             "select length(display_name) as len from public.ensure_staff();",
           ),
         ),
@@ -134,20 +135,22 @@ describe.skipIf(!process.env.DB_TESTS)(
       expect(long).toEqual({ ok: true, rows: [{ len: 80 }] });
     });
 
-    it("refreshes name and email on a later call without touching role or is_active, and takes no lock (AC-3, AC-5)", async () => {
+    it("refreshes name and username on a later call without touching role or is_active, and takes no lock (AC-3, AC-5)", async () => {
       const result = await query(
         rollback(
-          // A row that already exists, switched off and made owner by SQL, as an owner would.
-          `insert into public.staff (clerk_user_id, display_name, role, is_active)
-           values ('user_again', 'Old Name', 'owner', false);
+          // A row that already exists, switched off and promoted by SQL, as an
+          // owner would. `admin`, not `owner`: `staff_single_owner_idx` (spec
+          // 0012) allows one owner and the project already has one.
+          `insert into public.staff (user_id, display_name, role, is_active)
+           values ('user_again', 'Old Name', 'admin', false);
          ` +
             asAuthenticated(
-              { sub: "user_again", name: "New Name", email: "again@example.com" },
+              { sub: "user_again", name: "New Name", username: "again" },
               `select * from public.ensure_staff();
              reset role;
-             select s.display_name, s.email, s.role, s.is_active, l.locks
+             select s.display_name, s.username, s.role, s.is_active, l.locks
                from public.staff s, (${HELD_ADVISORY_LOCKS.replace(";", "")}) l
-              where s.clerk_user_id = 'user_again';`,
+              where s.user_id = 'user_again';`,
             ),
         ),
       );
@@ -156,8 +159,8 @@ describe.skipIf(!process.env.DB_TESTS)(
         rows: [
           {
             display_name: "New Name",
-            email: "again@example.com",
-            role: "owner",
+            username: "again",
+            role: "admin",
             is_active: false,
             locks: 0,
           },
@@ -168,11 +171,11 @@ describe.skipIf(!process.env.DB_TESTS)(
     it("returns the row an inactive person can read, so the app can show the switched off notice (AC-5)", async () => {
       const result = await query(
         rollback(
-          `insert into public.staff (clerk_user_id, display_name, is_active)
+          `insert into public.staff (user_id, display_name, is_active)
            values ('user_off', 'Switched Off', false);
          ` +
             asAuthenticated(
-              { sub: "user_off", name: "Switched Off", email: "off@example.com" },
+              { sub: "user_off", name: "Switched Off", username: "off" },
               "select * from public.ensure_staff();",
             ),
         ),

@@ -68,10 +68,13 @@ export function PrivacyNoticeDialog({
           </DialogDescription>
         </DialogHeader>
         <ul className="text-body list-disc space-y-2 pl-5">
-          <li>Your name and email are held by Clerk, our sign in provider.</li>
-          <li>Signing in sets a cookie on this device, on staff pages only.</li>
+          <li>Your name, username and password (as a hash only) are held in our own database.</li>
           <li>
-            Your Clerk id, name and role are sent to PostHog, our analytics tool, and kept in this
+            Signing in sets a cookie on this device, on staff pages only, and records this
+            device&apos;s IP address and browser type with your session for up to 30 days.
+          </li>
+          <li>
+            Your account id, name and role are sent to PostHog, our analytics tool, and kept in this
             browser&apos;s local storage while you use staff pages.
           </li>
           <li>

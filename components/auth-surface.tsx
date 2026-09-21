@@ -1,19 +1,19 @@
 import { CalendarCheck, LockKeyhole, UserRound } from "lucide-react";
 
 import { AppShell } from "@/components/app-shell";
-import { clerkConfigured } from "@/lib/env";
+import { STAFF_ONLY_LINE } from "@/lib/auth/constants";
+import { authConfigured } from "@/lib/env";
 
-/** The fixed line under both Clerk cards. Spec 0004, AC-1. */
-export const STAFF_ONLY_LINE =
-  "This board is for staff. Ask Ella for an invitation if you need one.";
+export { STAFF_ONLY_LINE };
 
 /**
- * The page both auth routes render. Spec 0004, AC-1 and AC-10.
+ * The page every auth route renders. Spec 0004 (revised), AC-1 and AC-16.
  *
- * Clerk owns the card and every flow inside it (code, password, Google, the
- * invitation ticket, and each error state). This surface owns everything around
- * it: the shell, the heading, a short word on what signing in is for, and the
- * staff only line, which sits beside Clerk's own message and never replaces it.
+ * Left, why signing in exists; right, the card with the form. The forms are
+ * our own now (the old provider's cards are gone), so this surface owns the whole
+ * screen: the shell with no toolbar, the heading, the short word on what
+ * signing in is for, the card the form sits in, and the staff only line
+ * under it, which every closed door shows.
  */
 export function AuthSurface({
   title,
@@ -22,7 +22,7 @@ export function AuthSurface({
 }: {
   title: string;
   lede: string;
-  /** The Clerk card. */
+  /** The form, or the message that stands in for one. */
   children: React.ReactNode;
 }) {
   return (
@@ -44,23 +44,23 @@ export function AuthSurface({
               trustworthy.
             </Point>
             <Point icon={LockKeyhole}>
-              Accounts are by invitation only. Nobody Ella has not invited can touch the schedule.
+              Accounts exist only through a link Ella made. Nobody without one can touch the
+              schedule.
             </Point>
           </ul>
         </div>
 
-        <div className="flex flex-col items-center gap-4 lg:items-stretch">
-          {clerkConfigured ? (
-            children
-          ) : (
-            <div
-              role="status"
-              className="border-border bg-card text-body text-muted-foreground w-full rounded-lg border p-4"
-            >
-              Sign in is not set up yet. Add the Clerk keys to <code>.env.local</code> and restart
-              the dev server.
-            </div>
-          )}
+        <div className="flex flex-col gap-4">
+          <div className="border-border bg-card rounded-lg border p-6 shadow-sm">
+            {authConfigured ? (
+              children
+            ) : (
+              <p role="status" className="text-body text-muted-foreground">
+                Sign in is not set up yet. Fill the Better Auth values in <code>.env.local</code>{" "}
+                and restart the dev server.
+              </p>
+            )}
+          </div>
           <p className="text-caption text-muted-foreground text-center lg:text-left">
             {STAFF_ONLY_LINE}
           </p>

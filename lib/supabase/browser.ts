@@ -9,7 +9,10 @@ import { publicEnv } from "@/lib/env";
 /**
  * The browser client the public board uses to listen for court broadcasts.
  *
- * Anon key, no Clerk token, so it is read only exactly like `publicSupabase()`.
+ * Anon key and no session, so it is read only exactly like `publicSupabase()`.
+ * Since spec 0004 (revised) the staff board listens through this same client:
+ * the `schedule` topic is readable by `anon`, and every staff read goes through
+ * a Server Action with the session, never through the socket.
  * One instance per tab: a second client would open a second websocket for no gain.
  */
 let client: SupabaseClient<Database> | undefined;

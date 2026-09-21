@@ -9,7 +9,7 @@ import { publicEnv } from "@/lib/env";
 /**
  * The public read client. Architecture rules 4 and 10 in spec 0001.
  *
- * It carries the anon key and no Clerk token, so the database sees an anonymous
+ * It carries the anon key and no session token, so the database sees an anonymous
  * caller and only the explicit read only policies apply. This client must never
  * be given a staff token, and it must never be merged with `staffSupabase()`.
  * They are two different callers and keeping them apart is what makes the read

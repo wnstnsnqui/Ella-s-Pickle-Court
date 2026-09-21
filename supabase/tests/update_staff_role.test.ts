@@ -17,11 +17,11 @@ import { asAuthenticated, query, rollback } from "./db";
 
 const SEED = `
   update public.staff set role = 'admin' where role = 'owner';
-  insert into public.staff (clerk_user_id, display_name, role, is_active, version) values
+  insert into public.staff (user_id, display_name, role, is_active, version) values
     ('sr_test_super', 'SR Test Super', 'superadmin', true, 1),
     ('sr_test_owner', 'SR Test Owner', 'owner', true, 1),
     ('sr_test_target', 'SR Test Target', 'staff', true, 1)
-  on conflict (clerk_user_id) do update
+  on conflict (user_id) do update
     set role = excluded.role, is_active = excluded.is_active, version = excluded.version;
 `;
 
@@ -63,7 +63,7 @@ describe.skipIf(!process.env.DB_TESTS)(
               { sub: "sr_test_owner" },
               `select public.update_staff_role('sr_test_target', 'admin', true, 1);
                reset role;
-               select role, version from public.staff where clerk_user_id = 'sr_test_target';`,
+               select role, version from public.staff where user_id = 'sr_test_target';`,
             ),
         ),
       );
@@ -104,7 +104,7 @@ describe.skipIf(!process.env.DB_TESTS)(
               { sub: "sr_test_super" },
               `select public.update_staff_role('sr_test_target', 'admin', false, 1);
                reset role;
-               select role, is_active, version from public.staff where clerk_user_id = 'sr_test_target';`,
+               select role, is_active, version from public.staff where user_id = 'sr_test_target';`,
             ),
         ),
       );
@@ -122,17 +122,17 @@ describe.skipIf(!process.env.DB_TESTS)(
               { sub: "sr_test_owner" },
               `select public.update_staff_role('sr_test_target', 'owner', true, 1);
                reset role;
-               select clerk_user_id, role from public.staff
-                 where clerk_user_id in ('sr_test_owner', 'sr_test_target')
-                 order by clerk_user_id;`,
+               select user_id, role from public.staff
+                 where user_id in ('sr_test_owner', 'sr_test_target')
+                 order by user_id;`,
             ),
         ),
       );
       expect(result).toEqual({
         ok: true,
         rows: [
-          { clerk_user_id: "sr_test_owner", role: "admin" },
-          { clerk_user_id: "sr_test_target", role: "owner" },
+          { user_id: "sr_test_owner", role: "admin" },
+          { user_id: "sr_test_target", role: "owner" },
         ],
       });
     });
@@ -145,17 +145,17 @@ describe.skipIf(!process.env.DB_TESTS)(
               { sub: "sr_test_super" },
               `select public.update_staff_role('sr_test_target', 'owner', true, 1);
                reset role;
-               select clerk_user_id, role from public.staff
-                 where clerk_user_id in ('sr_test_owner', 'sr_test_target')
-                 order by clerk_user_id;`,
+               select user_id, role from public.staff
+                 where user_id in ('sr_test_owner', 'sr_test_target')
+                 order by user_id;`,
             ),
         ),
       );
       expect(result).toEqual({
         ok: true,
         rows: [
-          { clerk_user_id: "sr_test_owner", role: "admin" },
-          { clerk_user_id: "sr_test_target", role: "owner" },
+          { user_id: "sr_test_owner", role: "admin" },
+          { user_id: "sr_test_target", role: "owner" },
         ],
       });
 
@@ -185,10 +185,10 @@ describe.skipIf(!process.env.DB_TESTS)(
       const result = await query(
         rollback(
           SEED +
-            `insert into public.staff (clerk_user_id, display_name, role, is_active, version)
+            `insert into public.staff (user_id, display_name, role, is_active, version)
              values ('sr_test_owner_2', 'SR Test Owner 2', 'admin', true, 1)
-             on conflict (clerk_user_id) do update set role = excluded.role, version = excluded.version;
-             update public.staff set role = 'owner' where clerk_user_id = 'sr_test_owner_2';`,
+             on conflict (user_id) do update set role = excluded.role, version = excluded.version;
+             update public.staff set role = 'owner' where user_id = 'sr_test_owner_2';`,
         ),
       );
       expect(result).toMatchObject({ ok: false, sqlstate: "23505" });

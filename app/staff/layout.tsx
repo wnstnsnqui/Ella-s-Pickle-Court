@@ -1,7 +1,6 @@
-import { auth } from "@clerk/nextjs/server";
-
 import { StaffIdentity } from "@/components/analytics/staff-identity";
 import { PrivacyNoticeDialog } from "@/components/staff/privacy-notice-dialog";
+import { currentSession } from "@/lib/auth/session";
 import { PRIVACY_NOTICE_VERSION } from "@/lib/legal/constants";
 import { currentStaff } from "@/lib/staff";
 
@@ -21,7 +20,8 @@ import { currentStaff } from "@/lib/staff";
  * succeeds and `router.refresh()` re-runs this layout with a fresh answer.
  */
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
-  const [{ userId }, staff] = await Promise.all([auth(), currentStaff()]);
+  const [session, staff] = await Promise.all([currentSession(), currentStaff()]);
+  const userId = session?.user.id;
   const active =
     userId && staff.kind === "ok" && staff.staff.isActive ? { userId, staff: staff.staff } : null;
 

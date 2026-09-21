@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * Spec 0010, AC-11 and AC-13: `acknowledgePrivacyNotice()`'s three outcomes,
- * and the event it fires only after a successful write. Clerk and Supabase
+ * and the event it fires only after a successful write. Better Auth and Supabase
  * are the boundaries and are faked here.
  */
 
 const auth = vi.hoisted(() => vi.fn());
-vi.mock("@clerk/nextjs/server", () => ({ auth }));
+vi.mock("@/lib/auth/session", () => ({ currentSession: auth }));
 
 const rpc = vi.hoisted(() => vi.fn());
 const staffSupabase = vi.hoisted(() => vi.fn(() => ({ rpc })));
@@ -22,12 +22,12 @@ const { PRIVACY_NOTICE_VERSION } = await import("./constants");
 
 beforeEach(() => {
   vi.clearAllMocks();
-  auth.mockResolvedValue({ isAuthenticated: true, userId: "user_1" });
+  auth.mockResolvedValue({ user: { id: "user_1" } });
 });
 
 describe("acknowledgePrivacyNotice", () => {
   it("requires a signed in caller before anything else", async () => {
-    auth.mockResolvedValue({ isAuthenticated: false, userId: null });
+    auth.mockResolvedValue(null);
     const result = await acknowledgePrivacyNotice({ version: PRIVACY_NOTICE_VERSION });
     expect(result).toEqual({
       ok: false,
@@ -50,7 +50,7 @@ describe("acknowledgePrivacyNotice", () => {
     rpc.mockResolvedValue({ data: PRIVACY_NOTICE_VERSION, error: null });
     const result = await acknowledgePrivacyNotice({ version: PRIVACY_NOTICE_VERSION });
     expect(rpc).toHaveBeenCalledWith("acknowledge_privacy_notice", {
-      version: PRIVACY_NOTICE_VERSION,
+      p_version: PRIVACY_NOTICE_VERSION,
     });
     expect(result).toEqual({ ok: true, data: { version: PRIVACY_NOTICE_VERSION } });
   });

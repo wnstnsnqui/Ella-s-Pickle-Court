@@ -12,7 +12,10 @@ const KEYS = [
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "NEXT_PUBLIC_VENUE_TIMEZONE",
-  "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+  "BETTER_AUTH_SECRET",
+  "BETTER_AUTH_URL",
+  "BETTER_AUTH_DATABASE_URL",
+  "BOOTSTRAP_OWNER_USERNAME",
 ] as const;
 
 const original = Object.fromEntries(KEYS.map((k) => [k, process.env[k]]));
@@ -108,14 +111,48 @@ describe("VENUE_TIMEZONE", () => {
   });
 });
 
-describe("clerkConfigured", () => {
-  it("is true when the Clerk publishable key is present", async () => {
-    const { clerkConfigured } = await loadEnv({ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: "pk_test_abc" });
-    expect(clerkConfigured).toBe(true);
+describe("authConfigured", () => {
+  it("is true when BETTER_AUTH_SECRET is present", async () => {
+    const { authConfigured } = await loadEnv({ BETTER_AUTH_SECRET: "x".repeat(32) });
+    expect(authConfigured).toBe(true);
   });
 
-  it("is false when the Clerk publishable key is absent", async () => {
-    const { clerkConfigured } = await loadEnv({ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: undefined });
-    expect(clerkConfigured).toBe(false);
+  it("is false when BETTER_AUTH_SECRET is absent", async () => {
+    const { authConfigured } = await loadEnv({ BETTER_AUTH_SECRET: undefined });
+    expect(authConfigured).toBe(false);
+  });
+});
+
+describe("serverEnv", () => {
+  const complete = {
+    BETTER_AUTH_SECRET: "s".repeat(32),
+    BETTER_AUTH_URL: "http://localhost:3000",
+    BETTER_AUTH_DATABASE_URL: "postgresql://better_auth_app:pw@db.example:6543/postgres",
+    BOOTSTRAP_OWNER_USERNAME: "ella",
+  };
+
+  it("returns the Better Auth values (spec 0004)", async () => {
+    const { serverEnv } = await loadEnv(complete);
+    expect(serverEnv()).toEqual(complete);
+  });
+
+  it("refuses a missing bootstrap username, naming it", async () => {
+    const { serverEnv } = await loadEnv({ ...complete, BOOTSTRAP_OWNER_USERNAME: undefined });
+    expect(() => serverEnv()).toThrow(/BOOTSTRAP_OWNER_USERNAME/);
+  });
+
+  it("refuses a short secret, naming it", async () => {
+    const { serverEnv } = await loadEnv({ ...complete, BETTER_AUTH_SECRET: "short" });
+    expect(() => serverEnv()).toThrow(/BETTER_AUTH_SECRET/);
+  });
+
+  it("refuses a missing database URL, naming it", async () => {
+    const { serverEnv } = await loadEnv({ ...complete, BETTER_AUTH_DATABASE_URL: undefined });
+    expect(() => serverEnv()).toThrow(/BETTER_AUTH_DATABASE_URL/);
+  });
+
+  it("never exposes SUPABASE_JWT_SECRET or the service role key (invariant 6, rule 1)", async () => {
+    const { serverEnv } = await loadEnv(complete);
+    expect(JSON.stringify(serverEnv())).not.toMatch(/SUPABASE_JWT_SECRET|SERVICE_ROLE/);
   });
 });

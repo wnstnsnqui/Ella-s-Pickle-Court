@@ -58,17 +58,12 @@ export default function PrivacyPage() {
 
         <LegalSection heading="What we record about staff">
           <p>
-            A staff member&apos;s name and email are held by Clerk, our sign in provider, and
-            signing in sets a cookie on staff pages. Their Clerk id, name and role are also sent to
+            A staff member&apos;s name, username and password (stored only as a hash) are held in
+            our own database, and signing in sets a cookie on staff pages. Each sign in also records
+            the device&apos;s IP address and browser type with the session, kept for up to 30 days
+            and deleted when the session ends. Their account id, name and role are also sent to
             PostHog and kept in the browser&apos;s local storage while they use staff pages, so we
             can see how the tool is used.
-          </p>
-        </LegalSection>
-
-        <LegalSection heading="Where this data lives">
-          <p>
-            The booking database is hosted by Supabase in Singapore. Clerk and PostHog host their
-            data in the United States.
           </p>
         </LegalSection>
 

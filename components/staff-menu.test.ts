@@ -6,9 +6,10 @@ import type { CurrentStaff } from "@/lib/staff";
 
 /**
  * Spec 0004, AC-4, AC-5 and AC-8: one rendering per answer from
- * `currentStaff()`, and a sign out button in every one of them.
+ * `currentStaff()`. Sign out sits in the header only for the two states that
+ * cannot reach the account page, where it otherwise lives.
  *
- * The two client buttons need Clerk's provider, so they are stood in for by
+ * The two client buttons talk to Better Auth, so they are stood in for by
  * plain markers here. What is under test is which state the menu picks.
  */
 
@@ -35,7 +36,7 @@ describe("StaffMenu", () => {
     expect(await render()).toBe("");
   });
 
-  it("shows the display name from the staff row and a sign out button (AC-4)", async () => {
+  it("shows the display name from the staff row, with sign out left to the account page (AC-4)", async () => {
     current = {
       kind: "ok",
       staff: {
@@ -48,7 +49,7 @@ describe("StaffMenu", () => {
     const html = await render();
     expect(html).toContain('data-probe="account"');
     expect(html).toContain("Ella");
-    expect(html).toContain('data-probe="sign-out"');
+    expect(html).not.toContain('data-probe="sign-out"');
   });
 
   it("shows the switched off notice, not the name, for an inactive account (AC-5)", async () => {

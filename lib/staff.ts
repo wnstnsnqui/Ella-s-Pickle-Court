@@ -1,9 +1,9 @@
 import "server-only";
 
-import { auth } from "@clerk/nextjs/server";
 import { cache } from "react";
 
 import { describeDatabaseError, fail, ok, requireStaff, type ActionResult } from "@/lib/actions";
+import { currentSession } from "@/lib/auth/session";
 import { STAFF_ROLE_DISPLAY_ORDER, type StaffRole } from "@/lib/schedule/constants";
 import { staffSupabase } from "@/lib/supabase/staff";
 
@@ -13,13 +13,14 @@ import { staffSupabase } from "@/lib/supabase/staff";
  * `currentStaff()` is the one place the app asks "is this person staff, and what
  * are they called?" For a signed in person it calls `ensure_staff()`, the
  * Postgres function that creates or refreshes their own `staff` row from the
- * claims on their Clerk token. So the row exists before any write, and the name
- * in the header is the name `changed_by` will resolve to (AC-3).
+ * claims on the token `mintStaffToken()` signs for them. So the row exists
+ * before any write, and the name in the header is the name `changed_by` will
+ * resolve to (AC-5).
  *
  * Wrapped in React `cache()` so a request asks once however many components
  * want the answer. The call carries a 3 second abort: a slow or missing database
  * becomes the "Could not load your account" notice, never a hung board (AC-8).
- * `requireStaff()` in `lib/actions.ts` stays a pure Clerk check; whether an
+ * `requireStaff()` in `lib/actions.ts` stays a pure session check; whether an
  * inactive account may write is still decided by row level security.
  */
 
@@ -40,8 +41,8 @@ export type CurrentStaff =
 export const ENSURE_STAFF_TIMEOUT_MS = 3000;
 
 export const currentStaff = cache(async (): Promise<CurrentStaff> => {
-  const { isAuthenticated } = await auth();
-  if (!isAuthenticated) return { kind: "signed_out" };
+  const session = await currentSession();
+  if (!session) return { kind: "signed_out" };
 
   try {
     const { data, error } = await staffSupabase()
@@ -70,9 +71,9 @@ export const currentStaff = cache(async (): Promise<CurrentStaff> => {
 });
 
 export type StaffAccount = {
-  clerkUserId: string;
+  userId: string;
   displayName: string;
-  email: string | null;
+  username: string | null;
   role: StaffRole;
   isActive: boolean;
   lastSignedInAt: string | null;
@@ -100,7 +101,7 @@ export async function getAllStaff(): Promise<ActionResult<StaffAccount[]>> {
 
   const { data, error } = await staff.supabase
     .from("staff")
-    .select("clerk_user_id, display_name, email, role, is_active, last_signed_in_at, version")
+    .select("user_id, display_name, username, role, is_active, last_signed_in_at, version")
     .order("display_name");
 
   if (error) {
@@ -108,9 +109,9 @@ export async function getAllStaff(): Promise<ActionResult<StaffAccount[]>> {
   }
 
   const accounts = (data ?? []).map((row): StaffAccount => ({
-    clerkUserId: row.clerk_user_id,
+    userId: row.user_id,
     displayName: row.display_name,
-    email: row.email,
+    username: row.username,
     role: row.role as StaffRole,
     isActive: row.is_active,
     lastSignedInAt: row.last_signed_in_at,
@@ -122,6 +123,62 @@ export async function getAllStaff(): Promise<ActionResult<StaffAccount[]>> {
     return byRole !== 0 ? byRole : a.displayName.localeCompare(b.displayName);
   });
   return ok(accounts);
+}
+
+export type PendingInvite = {
+  id: string;
+  kind: "invite" | "reset";
+  /** The role an invite grants; null for a reset. */
+  role: StaffRole | null;
+  /** The account a reset is for, by display name; null for an invite. */
+  targetDisplayName: string | null;
+  createdByDisplayName: string;
+  /** ISO instant, UTC. Shown in venue time by the panel. */
+  expiresAt: string;
+  createdAt: string;
+};
+
+/**
+ * The links that can still be opened, newest first, for the users screen.
+ * Spec 0004 (revised), AC-3.
+ *
+ * "Pending" is derived here and nowhere else: not claimed, not revoked, not
+ * yet expired. The select policy on `staff_invite` already refuses anyone
+ * who is not an active owner or superadmin, so a `staff` caller gets zero
+ * rows, never an error; `token_hash` is not in the grant and cannot be
+ * selected at all.
+ */
+export async function getPendingInvites(): Promise<ActionResult<PendingInvite[]>> {
+  const staff = await requireStaff();
+  if (!staff.ok) return fail(staff.error);
+
+  const { data, error } = await staff.supabase
+    .from("staff_invite")
+    .select(
+      "id, kind, role, expires_at, created_at, creator:staff!staff_invite_created_by_fkey(display_name), target:staff!staff_invite_target_user_id_fkey(display_name)",
+    )
+    .is("claimed_at", null)
+    .is("revoked_at", null)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return fail(
+      describeDatabaseError(error, { action: "getPendingInvites", distinctId: staff.staffId }),
+    );
+  }
+
+  return ok(
+    (data ?? []).map((row): PendingInvite => ({
+      id: row.id,
+      kind: row.kind as PendingInvite["kind"],
+      role: (row.role as StaffRole | null) ?? null,
+      targetDisplayName: row.target?.display_name ?? null,
+      createdByDisplayName: row.creator?.display_name ?? "a staff member",
+      expiresAt: row.expires_at,
+      createdAt: row.created_at,
+    })),
+  );
 }
 
 /** The parts of an error worth a log line, whatever shape it arrived in. */
