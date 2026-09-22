@@ -34,11 +34,11 @@ async function render(props: {
 }
 
 describe("AppShell", () => {
-  it("renders the wordmark, the content and the venue time footer (AC-10)", async () => {
+  it("renders the wordmark and the content (AC-10)", async () => {
     const html = await render({ children: createElement("p", null, "the board") });
     expect(html).toContain(VENUE_NAME.replace("'", "&#x27;"));
     expect(html).toContain("<p>the board</p>");
-    expect(html).toContain("All times are venue time, Asia/Manila.");
+    expect(html).not.toContain("All times are venue time");
   });
 
   it("puts the content inside a main landmark and the brand inside a header", async () => {

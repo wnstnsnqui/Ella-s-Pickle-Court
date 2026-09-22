@@ -32,6 +32,7 @@ export function BoardSheet({
   footer,
   returnFocusTo,
   compact = false,
+  focusOnOpen = true,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -47,12 +48,26 @@ export function BoardSheet({
    * anything wide enough to anchor one.
    */
   compact?: boolean;
+  /**
+   * Radix hands focus to the first field when a sheet opens, which is right for
+   * a blank form but wrong for one that is already filled in: on a phone it
+   * raises the keyboard over values the person opened the sheet to read. Pass
+   * false and the panel itself takes focus instead, so the trap, Escape and Tab
+   * still work without a field being claimed.
+   */
+  focusOnOpen?: boolean;
 }) {
   const wide = useMediaQuery(WIDE_QUERY);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side={wide ? "right" : "bottom"}
+        onOpenAutoFocus={(event) => {
+          if (focusOnOpen) return;
+          event.preventDefault();
+          const panel = event.currentTarget;
+          if (panel instanceof HTMLElement) panel.focus();
+        }}
         onCloseAutoFocus={(event) => {
           // The opener may be gone by now (the bar unmounts once a booking
           // lands), in which case the grid's own tab stop is the next best place.

@@ -88,6 +88,7 @@ export function EditSheet({
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}
+      focusOnOpen={false}
       title={booking ? "Edit booking" : "Edit closure"}
       description={
         booking

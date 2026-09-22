@@ -60,8 +60,7 @@ export async function AppShell({
       <main className={cn("mx-auto w-full max-w-5xl flex-1 px-4 py-4", className)}>{children}</main>
 
       <footer className="border-border text-caption text-muted-foreground mt-8 border-t">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-4">
-          <p>All times are venue time, Asia/Manila.</p>
+        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-end gap-x-6 gap-y-2 px-4 py-4">
           <div className="flex items-center gap-4">
             <Link
               href="/privacy"
