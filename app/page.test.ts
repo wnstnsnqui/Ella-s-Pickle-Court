@@ -43,10 +43,15 @@ const schedule = {
   horizonDays: 14,
   now: "2026-09-14T10:00:00.000Z",
   hours: {
-    weekdayOpen: "06:00",
-    weekdayClose: "22:00",
-    weekendOpen: "07:00",
-    weekendClose: "23:00",
+    days: [
+      { dayOfWeek: 0, open: "07:00", close: "23:00" },
+      { dayOfWeek: 1, open: "06:00", close: "22:00" },
+      { dayOfWeek: 2, open: "06:00", close: "22:00" },
+      { dayOfWeek: 3, open: "06:00", close: "22:00" },
+      { dayOfWeek: 4, open: "06:00", close: "22:00" },
+      { dayOfWeek: 5, open: "06:00", close: "22:00" },
+      { dayOfWeek: 6, open: "07:00", close: "23:00" },
+    ],
   },
 };
 

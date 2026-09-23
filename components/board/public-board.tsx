@@ -59,6 +59,14 @@ export function PublicBoard() {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Spec 0007, AC-20: the grid stays, greyed, under a line that says so
+          plainly, so a player gets the answer without reading the cells. */}
+      {grid.closed ? (
+        <p className="border-border bg-muted/40 text-body rounded-lg border border-dashed px-4 py-3">
+          <span className="text-label">Closed all day.</span> The venue is not open on this day.
+        </p>
+      ) : null}
+
       <ScheduleGrid
         view={view}
         legendViews={legendViews}

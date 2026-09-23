@@ -10,13 +10,7 @@ import {
 } from "@/lib/actions";
 import { captureStaffEvent } from "@/lib/analytics/server";
 import type { Database } from "@/lib/supabase/database.types";
-import {
-  calendarDateInZone,
-  daysBetween,
-  todayInZone,
-  trimSeconds,
-  zonedTimeToUtc,
-} from "@/lib/time";
+import { calendarDateInZone, daysBetween, todayInZone, zonedTimeToUtc } from "@/lib/time";
 
 import { countOutsideHours } from "./outside-hours";
 import {
@@ -36,6 +30,7 @@ import {
   saveVenueSettingsSchema,
   scheduleDateSchema,
   updateReservationSchema,
+  type SaveVenueSettingsInput,
 } from "./schemas";
 
 /**
@@ -743,12 +738,7 @@ export async function saveVenueSettings(input: unknown): Promise<ActionResult<Ve
 
     const count = countOutsideHours(
       (bookings ?? []).map((row) => ({ startsAt: row.starts_at, endsAt: row.ends_at })),
-      {
-        weekdayOpen: parsed.data.weekdayOpen,
-        weekdayClose: parsed.data.weekdayClose,
-        weekendOpen: parsed.data.weekendOpen,
-        weekendClose: parsed.data.weekendClose,
-      },
+      parsed.data.days,
       loaded.settings.timezone,
     );
     if (count > 0) {
@@ -761,40 +751,66 @@ export async function saveVenueSettings(input: unknown): Promise<ActionResult<Ve
     }
   }
 
-  const { data, error } = await staff.supabase
-    .from("venue_settings")
-    .update({
-      weekday_open: parsed.data.weekdayOpen,
-      weekday_close: parsed.data.weekdayClose,
-      weekend_open: parsed.data.weekendOpen,
-      weekend_close: parsed.data.weekendClose,
-      slot_minutes: parsed.data.slotMinutes,
-      booking_horizon_days: parsed.data.bookingHorizonDays,
-      version: parsed.data.version + 1,
-      changed_by: staff.staffId,
-    })
-    .eq("id", true)
-    .eq("version", parsed.data.version)
-    .select()
-    .maybeSingle();
+  // The whole week, the slot length and the horizon in one transaction against
+  // one version (spec 0007, AC-17), so a half saved week cannot reach the grid.
+  // `stale_version` and the row count refusal come back as `version_stale` and
+  // `forbidden` through `describeDatabaseError`.
+  const { error } = await staff.supabase.rpc("save_venue_hours", {
+    days: [...parsed.data.days]
+      .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+      .map((day) => ({
+        day_of_week: day.dayOfWeek,
+        open_time: day.open,
+        close_time: day.close,
+      })),
+    settings_version: parsed.data.version,
+    slot_minutes: parsed.data.slotMinutes,
+    booking_horizon_days: parsed.data.bookingHorizonDays,
+  });
 
   if (error) {
     return fail(
       describeDatabaseError(error, { action: "saveVenueSettings", distinctId: staff.staffId }),
     );
   }
-  if (!data) {
+
+  const { data, error: readError } = await staff.supabase
+    .from("venue_settings")
+    .select()
+    .eq("id", true)
+    .maybeSingle();
+  if (readError) {
     return fail(
-      await explainZeroRows(staff.supabase, "venue_settings", { id: true }, parsed.data.version),
+      describeDatabaseError(readError, { action: "saveVenueSettings", distinctId: staff.staffId }),
     );
   }
+  if (!data) {
+    return fail({ kind: "failed", message: "The venue settings row is missing." });
+  }
+
   captureStaffEvent(staff.staffId, "hours_changed", {
-    weekday_open: trimSeconds(data.weekday_open),
-    weekday_close: trimSeconds(data.weekday_close),
-    weekend_open: trimSeconds(data.weekend_open),
-    weekend_close: trimSeconds(data.weekend_close),
+    ...summariseWeek(parsed.data.days),
     slot_minutes: data.slot_minutes,
     booking_horizon_days: data.booking_horizon_days,
   });
   return ok(data);
+}
+
+/**
+ * The week as a shape rather than twenty one values (spec 0007, AC-24). A
+ * pattern change is visible in PostHog without a property per day, and a week
+ * with no open day reports no earliest or latest, because it has none.
+ */
+function summariseWeek(days: SaveVenueSettingsInput["days"]) {
+  const opens = days.map((day) => day.open).filter((time): time is string => time !== null);
+  const closes = days.map((day) => day.close).filter((time): time is string => time !== null);
+  // `HH:mm` strings sort the way the times do, `24:00` included.
+  const sortedOpens = [...opens].sort();
+  const sortedCloses = [...closes].sort();
+  return {
+    days_open: opens.length,
+    days_closed: days.length - opens.length,
+    earliest_open: sortedOpens[0] ?? null,
+    latest_close: sortedCloses[sortedCloses.length - 1] ?? null,
+  };
 }

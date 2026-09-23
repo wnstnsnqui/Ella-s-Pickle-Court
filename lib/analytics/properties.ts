@@ -35,12 +35,15 @@ const courtChangedSchema = z
   })
   .strict();
 
+// Spec 0007, AC-24: the shape of the week rather than its twenty one values.
+// `earliest_open` and `latest_close` are both null when no day is open, since a
+// week with no open days has no earliest or latest to report.
 const hoursChangedSchema = z
   .object({
-    weekday_open: z.string(),
-    weekday_close: z.string(),
-    weekend_open: z.string(),
-    weekend_close: z.string(),
+    days_open: z.number(),
+    days_closed: z.number(),
+    earliest_open: z.string().nullable(),
+    latest_close: z.string().nullable(),
     slot_minutes: z.number(),
     booking_horizon_days: z.number(),
   })

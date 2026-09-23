@@ -55,7 +55,7 @@ The entities every screen reads: courts, the bookings and closures that occupy t
 **Done when:** a day's schedule for every court can be read and written cleanly, two staff cannot double book the same hour, nothing personal reaches the public page, and the shape carries the history reporting will need without a breaking change.
 spec [0002](../specs/0002-data-model/index.md) · code in `supabase/migrations/`, `lib/schedule/`, `lib/supabase/`, `lib/time.ts`
 - [x] Design it (spec): `/architect data model`
-- [ ] Build it: `/develop data model`
+- [x] Build it: `/develop data model`
   - [x] The shared value lists and their Zod schemas, defined once (AC-12)
   - [x] One migration: the four tables, the overlap constraint, the grants and policies, the narrowed broadcast trigger, the audit trigger, and the seed, applied and checked with `db advisors` (AC-1, AC-2, AC-3, AC-4, AC-6, AC-8, AC-9, AC-10)
   - [x] Generated database types, and the grid derivation module that turns a day plus the settings into labelled cells in `Asia/Manila` (AC-5, AC-11, AC-12)
@@ -131,8 +131,8 @@ spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/page.t
 
 ### 8. Courts & opening hours · done
 Add a court, rename it, reorder it, retire it, and change the hours the venue is open, without touching the database by hand. Owner only, because these change what everyone else sees.
-**Done when:** an owner can add, rename, reorder, and retire a court, and can change the weekday and weekend opening hours, the slot length, and how far ahead staff may book. Retiring a court that still has future bookings is refused and says how many are in the way. Both boards reflect every change straight away.
-spec [0007](../specs/0007-courts-opening-hours/index.md) · code in `app/staff/settings/`, `components/settings/`, `components/staff-menu.tsx`, `components/schedule/use-schedule-channel.ts`, `lib/schedule/actions.ts`, `lib/schedule/queries.ts`, `lib/schedule/schemas.ts`, `lib/schedule/outside-hours.ts`, `lib/time.ts`, `supabase/migrations/20260915044956_courts_opening_hours.sql`
+**Done when:** an owner can add, rename, reorder, and retire a court, and can set opening and closing times for each day of the week, mark a day closed, and change the slot length and how far ahead staff may book. Retiring a court that still has future bookings is refused and says how many are in the way. Both boards reflect every change straight away.
+spec [0007](../specs/0007-courts-opening-hours/index.md) · code in `app/staff/settings/`, `components/settings/`, `components/staff-menu.tsx`, `components/schedule/use-schedule-channel.ts`, `components/staff/closed-day-sheet.tsx`, `components/board/venue-json-ld.tsx`, `components/date-picker.tsx`, `lib/schedule/actions.ts`, `lib/schedule/queries.ts`, `lib/schedule/schemas.ts`, `lib/schedule/grid.ts`, `lib/schedule/outside-hours.ts`, `lib/report/buckets.ts`, `lib/time.ts`, `supabase/migrations/20260915044956_courts_opening_hours.sql`, `supabase/migrations/20260922155618_venue_hours_per_day.sql`, `supabase/migrations/20260922160528_save_venue_hours.sql`
 - [x] Design it (spec): `/architect courts & opening hours`
 - [x] Build it: `/develop courts & opening hours`
   - [x] The migration and the thin thread: the unique name index, the widened sort order check, the midnight check, `reorder_courts`, the shared broadcast trigger, the listener learning two events, `getOwnerSettings()`, the owner only `/staff/settings` page with its menu link and skeleton, and Add court proven live in a second browser (AC-1, AC-2, AC-3, AC-4, AC-5, AC-8, AC-11)
@@ -141,6 +141,16 @@ spec [0007](../specs/0007-courts-opening-hours/index.md) · code in `app/staff/s
   - [x] Finish: the out of range day on both boards, keyboard, names and contrast, and the full live proof on the real project (AC-12, AC-14, AC-15)
 - [x] Verify it: `/check verify courts & opening hours` (skipped on 2026-09-15; the live owner walkthrough in `verify.md` was not run, marked done by the engineer)
 - [x] Test it: `/test courts & opening hours` (skipped on 2026-09-15; helper unit tests exist, no component or hook tests)
+
+**Revision, 2026-09-22: opening hours per day of the week.** The weekday and weekend pair could not say that Friday runs until midnight while the other weekdays do not, and could not say a day is closed at all. Spec [0007](../specs/0007-courts-opening-hours/index.md) is revised in place (AC-16 to AC-25).
+- [x] Design it (spec): `/architect opening hours per day`
+- [x] Build it: `/develop opening hours per day`
+  - [x] The migration and the read path end to end: the `venue_hours` table with its checks and grants, the seven rows backfilled from the four columns and those columns dropped, its own broadcast trigger, and every read looking up the day instead of asking whether it is a weekend, proven live with a late Friday (AC-16, AC-18, AC-24)
+  - [x] The write path: `save_venue_hours` writing the week in one transaction against the settings version, the revised save action and schema, and the seven row form with its Closed toggles and the two step stranded booking save (AC-8, AC-9, AC-17)
+  - [x] The closed day everywhere it shows: the grid span and cell rules, the staff board's closed line with Add booking, the public board's greyed grid, the muted dates in the picker, and the grouped JSON-LD (AC-19, AC-20, AC-21, AC-22)
+  - [x] Finish: the usage report's per day open minutes and widened hour axis, the reshaped analytics payload, the keyboard and contrast pass, and the live proof (AC-23, AC-24, AC-25)
+- [x] Verify it: `/check verify opening hours per day` (2026-09-23; every acceptance criterion exercised against the linked project in a real browser, except the report's zero open minutes, which the project has no past booking data to show, and the PostHog event, which needs dashboard access)
+- [x] Test it: `/test opening hours per day` (2026-09-23; 25 tests added over the gaps the build left: `dayOfWeek`, `keysInRange`, `isClosedDay` and the picker's muting, and the report's closed day maths)
 
 ## Slice 3: Look back at the day
 
@@ -208,6 +218,8 @@ spec [0012](../specs/0012-staff-roles-admin-superadmin/index.md) · code in `sup
 Out of scope for the current build pass, kept so the plan stays honest.
 - **Takings & unpaid report**: what came in over a date range and which bookings are still unpaid. The data is already recorded from spec 0002, only the view is missing · needs a decision · from spec 0002
 - **Opening hours history**: a table recording every change to hours and courts, so a past day's utilisation uses the hours in force then. Spec 0008 uses today's hours for every day and says so on the page · needs a decision · from spec 0008
+- **One off date exceptions for opening hours**: a public holiday, a tournament day, or a typhoon closure, as a table keyed by calendar date that wins over the weekday row. Staff close the courts with a closure booking today, which works but counts as open time on the usage report. Sits naturally beside `venue_hours` · needs a decision · from spec 0007
+- **Bulk fill on the opening hours form**: a "copy Monday to all weekdays" helper, since five weekdays usually match and the form is now seven rows. Worth revisiting after Ella has used it a few times · from spec 0007
 - **Custom dates on the usage report**: the report offers presets only. A from and to pair would drop into the same range resolver · from spec 0008
 - **CSV of the day list**: the usage report downloads the numbers behind the charts, not the rows of a day · from spec 0008
 - **Player self booking**: players sign in and book a cell themselves. The grid's Selected cell state is the seam it plugs into, and the data model needs one extra column. Brings accounts, customer cancellations and no shows with it · needs a decision

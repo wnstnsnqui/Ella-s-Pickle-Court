@@ -50,10 +50,15 @@ const REPORT = {
     rows: [{ courtId: 1, localDate: "2026-09-17", hour: 9, bookedMinutes: 60 }],
     courts: [{ id: 1, name: "Court 1", sortOrder: 0, retiredAt: null }],
     hours: {
-      weekdayOpen: "08:00",
-      weekdayClose: "22:00",
-      weekendOpen: "06:00",
-      weekendClose: "24:00",
+      days: [
+        { dayOfWeek: 0, open: "06:00", close: "24:00" },
+        { dayOfWeek: 1, open: "08:00", close: "22:00" },
+        { dayOfWeek: 2, open: "08:00", close: "22:00" },
+        { dayOfWeek: 3, open: "08:00", close: "22:00" },
+        { dayOfWeek: 4, open: "08:00", close: "22:00" },
+        { dayOfWeek: 5, open: "08:00", close: "22:00" },
+        { dayOfWeek: 6, open: "06:00", close: "24:00" },
+      ],
     },
   },
 };

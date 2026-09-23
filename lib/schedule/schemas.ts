@@ -295,13 +295,42 @@ export const retireCourtSchema = z.object({
   version: versionSchema,
 });
 
+/**
+ * One day of the week's hours (spec 0007, AC-8). Either both times are there
+ * with the close after the open, or both are absent, which is what closed
+ * means. `24:00` is a close and never an open, which is why the two fields use
+ * different schemas.
+ */
+export const venueDaySchema = z
+  .object({
+    dayOfWeek: z.int().min(0).max(6),
+    open: localTimeSchema.nullable(),
+    close: closeTimeSchema.nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if ((value.open === null) !== (value.close === null)) {
+      ctx.addIssue({
+        code: "custom",
+        path: [value.open === null ? "open" : "close"],
+        message: "A day needs both times, or neither if it is closed.",
+      });
+      return;
+    }
+    if (value.open !== null && value.close !== null && value.close <= value.open) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["close"],
+        message: "The closing time has to be after the opening time.",
+      });
+    }
+  });
+
 export const saveVenueSettingsSchema = z
   .object({
     version: versionSchema,
-    weekdayOpen: localTimeSchema,
-    weekdayClose: closeTimeSchema,
-    weekendOpen: localTimeSchema,
-    weekendClose: closeTimeSchema,
+    // Exactly seven, one per day of the week. The array is the whole week
+    // because the week is one edit (spec 0007, AC-17).
+    days: z.array(venueDaySchema).length(7),
     slotMinutes: slotMinutesSchema,
     bookingHorizonDays: z.int().min(1).max(365),
     // Spec 0007, AC-9: the second step of a save that strands bookings outside
@@ -309,18 +338,12 @@ export const saveVenueSettingsSchema = z
     acknowledge: z.boolean().optional(),
   })
   .superRefine((value, ctx) => {
-    if (value.weekdayClose <= value.weekdayOpen) {
+    const seen = new Set(value.days.map((day) => day.dayOfWeek));
+    if (seen.size !== 7) {
       ctx.addIssue({
         code: "custom",
-        path: ["weekdayClose"],
-        message: "The weekday closing time has to be after the opening time.",
-      });
-    }
-    if (value.weekendClose <= value.weekendOpen) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["weekendClose"],
-        message: "The weekend closing time has to be after the opening time.",
+        path: ["days"],
+        message: "Send one row per day of the week, Sunday through Saturday.",
       });
     }
   });

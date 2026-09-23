@@ -51,13 +51,13 @@ const COURTS_ROW = {
   error: null,
 };
 
-const SETTINGS_ROW = {
-  data: {
-    weekday_open: "08:00:00",
-    weekday_close: "22:00:00",
-    weekend_open: "06:00:00",
-    weekend_close: "24:00:00",
-  },
+/** The seven rows of `venue_hours`, as Postgres hands `time` back (spec 0007, AC-23). */
+const HOURS_ROW = {
+  data: [0, 1, 2, 3, 4, 5, 6].map((day_of_week) => ({
+    day_of_week,
+    open_time: day_of_week === 0 || day_of_week === 6 ? "06:00:00" : "08:00:00",
+    close_time: day_of_week === 0 || day_of_week === 6 ? "24:00:00" : "22:00:00",
+  })),
   error: null,
 };
 
@@ -81,7 +81,7 @@ describe("getUsageReport", () => {
       error: null,
     });
     queue("court", COURTS_ROW);
-    queue("venue_settings", SETTINGS_ROW);
+    queue("venue_hours", HOURS_ROW);
 
     const result = await getUsageReport({ range: "last-7-days", courtId: 1 });
     expect(result.ok).toBe(true);
@@ -94,10 +94,15 @@ describe("getUsageReport", () => {
       { id: 2, name: "Court 2", sortOrder: 1, retiredAt: null },
     ]);
     expect(result.data.hours).toEqual({
-      weekdayOpen: "08:00",
-      weekdayClose: "22:00",
-      weekendOpen: "06:00",
-      weekendClose: "24:00",
+      days: [
+        { dayOfWeek: 0, open: "06:00", close: "24:00" },
+        { dayOfWeek: 1, open: "08:00", close: "22:00" },
+        { dayOfWeek: 2, open: "08:00", close: "22:00" },
+        { dayOfWeek: 3, open: "08:00", close: "22:00" },
+        { dayOfWeek: 4, open: "08:00", close: "22:00" },
+        { dayOfWeek: 5, open: "08:00", close: "22:00" },
+        { dayOfWeek: 6, open: "06:00", close: "24:00" },
+      ],
     });
     expect(rpc).toHaveBeenCalledWith("court_usage", {
       from_date: result.data.from,
@@ -109,7 +114,7 @@ describe("getUsageReport", () => {
   it("passes for_court_id as undefined for all courts", async () => {
     queue("rpc", { data: [], error: null });
     queue("court", COURTS_ROW);
-    queue("venue_settings", SETTINGS_ROW);
+    queue("venue_hours", HOURS_ROW);
 
     await getUsageReport({ range: "last-7-days" });
     expect(rpc).toHaveBeenCalledWith(
@@ -121,7 +126,7 @@ describe("getUsageReport", () => {
   it("maps a 42501 from court_usage to a forbidden result, not a raw database error", async () => {
     queue("rpc", { data: null, error: { code: "42501", message: "permission denied" } });
     queue("court", COURTS_ROW);
-    queue("venue_settings", SETTINGS_ROW);
+    queue("venue_hours", HOURS_ROW);
 
     const result = await getUsageReport({ range: "last-7-days" });
     expect(result).toEqual({
@@ -136,7 +141,7 @@ describe("getUsageReport", () => {
       error: { code: "57014", message: "canceling statement due to timeout" },
     });
     queue("court", COURTS_ROW);
-    queue("venue_settings", SETTINGS_ROW);
+    queue("venue_hours", HOURS_ROW);
 
     const result = await getUsageReport({ range: "last-7-days" });
     expect(result).toEqual({
@@ -145,22 +150,22 @@ describe("getUsageReport", () => {
     });
   });
 
-  it("fails when the venue settings row is missing", async () => {
+  it("fails when the seven opening hours rows are not all there", async () => {
     queue("rpc", { data: [], error: null });
     queue("court", COURTS_ROW);
-    queue("venue_settings", { data: null, error: null });
+    queue("venue_hours", { data: HOURS_ROW.data.slice(0, 5), error: null });
 
     const result = await getUsageReport({ range: "last-7-days" });
     expect(result).toEqual({
       ok: false,
-      error: { kind: "failed", message: "The venue settings row is missing." },
+      error: { kind: "failed", message: "The venue opening hours are missing." },
     });
   });
 
   it("fails when the court read errors", async () => {
     queue("rpc", { data: [], error: null });
     queue("court", { data: null, error: { message: "connection reset" } });
-    queue("venue_settings", SETTINGS_ROW);
+    queue("venue_hours", HOURS_ROW);
 
     const result = await getUsageReport({ range: "last-7-days" });
     expect(result).toEqual({ ok: false, error: { kind: "failed", message: "connection reset" } });

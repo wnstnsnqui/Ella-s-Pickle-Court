@@ -132,13 +132,17 @@ export function todayInZone(timeZone: string, now: Date = new Date()): string {
 }
 
 /**
- * Whether a calendar date is a Saturday or a Sunday. A calendar date already
- * names a day of the week on its own, so no zone is needed once you have it.
+ * Which day of the week a calendar date falls on, `0` for Sunday through `6`
+ * for Saturday. A calendar date already names its own day, so no zone is needed
+ * once you have it.
+ *
+ * `0` is Sunday because that is what both `getUTCDay()` and Postgres
+ * `extract(dow)` say, so `venue_hours.day_of_week` needs no translation at any
+ * boundary (spec 0007, AC-16).
  */
-export function isWeekend(date: string): boolean {
+export function dayOfWeek(date: string): number {
   const [year, month, day] = date.split("-").map(Number);
-  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
-  return weekday === 0 || weekday === 6;
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
 }
 
 /** Move a calendar date by whole days without ever touching a timezone. */

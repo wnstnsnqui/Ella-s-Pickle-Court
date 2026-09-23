@@ -61,15 +61,29 @@ describe("parseEventProperties", () => {
 
   it("refuses an hours_changed bag carrying an unlisted property", () => {
     const result = parseEventProperties("hours_changed", {
-      weekday_open: "06:00",
-      weekday_close: "22:00",
-      weekend_open: "06:00",
-      weekend_close: "22:00",
+      days_open: 6,
+      days_closed: 1,
+      earliest_open: "06:00",
+      latest_close: "22:00",
       slot_minutes: 60,
       booking_horizon_days: 14,
       amount: 500,
     } as never);
     expect(result.ok).toBe(false);
+  });
+
+  // Spec 0007, AC-24: a week with no open day has no earliest or latest to
+  // report, so both come through as null rather than as a made up pair.
+  it("takes a week with every day closed, with no earliest or latest", () => {
+    const result = parseEventProperties("hours_changed", {
+      days_open: 0,
+      days_closed: 7,
+      earliest_open: null,
+      latest_close: null,
+      slot_minutes: 60,
+      booking_horizon_days: 14,
+    });
+    expect(result.ok).toBe(true);
   });
 
   it("refuses a board_day_viewed bag carrying anything beyond day_offset", () => {

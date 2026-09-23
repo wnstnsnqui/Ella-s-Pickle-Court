@@ -18,9 +18,11 @@ import { addDays, daysBetween, todayInZone, trimSeconds } from "@/lib/time";
 import {
   buildGrid,
   dayBoundsUtc,
+  weekSpan,
   type Grid,
   type GridCourt,
   type ScheduleBlock,
+  type VenueDay,
   type VenueSettings,
 } from "./grid";
 import type { PaymentStatus, ReservationKind, ReservationStatus } from "./constants";
@@ -59,10 +61,8 @@ export type Schedule = {
 };
 
 export type VenueHours = {
-  weekdayOpen: string;
-  weekdayClose: string;
-  weekendOpen: string;
-  weekendClose: string;
+  /** Seven entries, ordered `0` (Sunday) to `6` (spec 0007, AC-18). */
+  days: VenueDay[];
 };
 
 /** Every column of a reservation, which only the staff path ever sees. */
@@ -113,12 +113,9 @@ export type OwnerSettings = {
   settings: VenueSettings;
 };
 
-function toSettings(row: VenueSettingsRow) {
+function toSettings(row: VenueSettingsRow, days: VenueDay[]): VenueSettings {
   return {
-    weekdayOpen: trimSeconds(row.weekday_open),
-    weekdayClose: trimSeconds(row.weekday_close),
-    weekendOpen: trimSeconds(row.weekend_open),
-    weekendClose: trimSeconds(row.weekend_close),
+    days,
     slotMinutes: row.slot_minutes,
     bookingHorizonDays: row.booking_horizon_days,
     timezone: row.timezone,
@@ -136,26 +133,49 @@ function toCourt(row: Pick<CourtRow, "id" | "name" | "note" | "sort_order">): Gr
  * rather than on wherever this server happens to be running.
  */
 async function loadSettings(supabase: ReturnType<typeof publicSupabase>, distinctId?: string) {
-  const { data, error } = await supabase
-    .from("venue_settings")
-    .select(
-      "weekday_open, weekday_close, weekend_open, weekend_close, slot_minutes, booking_horizon_days, timezone, version",
-    )
-    .maybeSingle();
+  // Two round trips rather than one, because `venue_hours` is a seven row
+  // lookup joined by nothing (spec 0007, AC-18).
+  const [settingsRow, hoursRows] = await Promise.all([
+    supabase
+      .from("venue_settings")
+      .select("slot_minutes, booking_horizon_days, timezone, version")
+      .maybeSingle(),
+    supabase.from("venue_hours").select("day_of_week, open_time, close_time").order("day_of_week"),
+  ]);
 
+  const error = settingsRow.error ?? hoursRows.error;
   if (error) {
     return {
       ok: false as const,
       error: describeDatabaseError(error, { action: "loadSettings", distinctId }),
     };
   }
-  if (!data) {
+  if (!settingsRow.data) {
     return {
       ok: false as const,
       error: { kind: "failed" as const, message: "The venue settings row is missing." },
     };
   }
-  return { ok: true as const, settings: toSettings(data as VenueSettingsRow) };
+  if ((hoursRows.data ?? []).length !== 7) {
+    return {
+      ok: false as const,
+      error: { kind: "failed" as const, message: "The venue opening hours are missing." },
+    };
+  }
+
+  const days = (hoursRows.data ?? []).map(toDay);
+  return {
+    ok: true as const,
+    settings: toSettings(settingsRow.data as VenueSettingsRow, days),
+  };
+}
+
+function toDay(row: { day_of_week: number; open_time: string | null; close_time: string | null }) {
+  return {
+    dayOfWeek: row.day_of_week,
+    open: row.open_time === null ? null : trimSeconds(row.open_time),
+    close: row.close_time === null ? null : trimSeconds(row.close_time),
+  };
 }
 
 /**
@@ -204,13 +224,8 @@ function failInvalidDate(message: string, reason?: InvalidReason) {
   return { kind: "invalid" as const, message, issues: { date: [message] }, reason };
 }
 
-function toHours(settings: ReturnType<typeof toSettings>): VenueHours {
-  return {
-    weekdayOpen: settings.weekdayOpen,
-    weekdayClose: settings.weekdayClose,
-    weekendOpen: settings.weekendOpen,
-    weekendClose: settings.weekendClose,
-  };
+function toHours(settings: VenueSettings): VenueHours {
+  return { days: settings.days };
 }
 
 /**
@@ -257,6 +272,7 @@ export const getSchedule = cache(async (date?: string): Promise<ActionResult<Sch
   const grid = buildGrid({
     date: resolved.date,
     settings,
+    closedDaySpan: weekSpan(settings.days),
     courts: (courts.data ?? []).map(toCourt),
     blocks: (blocks.data ?? []).map((row): ScheduleBlock => ({
       courtId: row.court_id,
@@ -330,6 +346,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
   const grid = buildGrid({
     date: resolved.date,
     settings,
+    closedDaySpan: weekSpan(settings.days),
     courts: (courts.data ?? []).map(toCourt),
     // Cancelled rows stay readable for reporting but never occupy a cell.
     blocks: rows

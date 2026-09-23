@@ -37,15 +37,18 @@ vi.mock("@/lib/supabase/public", () => ({ publicSupabase }));
 const { getSchedule, getStaffSchedule } = await import("./queries");
 
 const SETTINGS_ROW = {
-  weekday_open: "06:00:00",
-  weekday_close: "22:00:00",
-  weekend_open: "06:00:00",
-  weekend_close: "23:00:00",
   slot_minutes: 60,
   booking_horizon_days: 30,
   timezone: "Asia/Manila",
   version: 1,
 };
+
+/** The seven rows `venue_hours` holds, as Postgres hands `time` back (spec 0007, AC-18). */
+const HOURS_ROWS = [0, 1, 2, 3, 4, 5, 6].map((day_of_week) => ({
+  day_of_week,
+  open_time: "06:00:00",
+  close_time: day_of_week === 0 || day_of_week === 6 ? "23:00:00" : "22:00:00",
+}));
 
 function reservationRow(partial: Record<string, unknown>) {
   return {
@@ -77,6 +80,7 @@ beforeEach(() => {
   staffSupabase.mockReturnValue({ from: (table: string) => builder(table) });
   publicSupabase.mockReturnValue({ from: (table: string) => builder(table) });
   queue("venue_settings", { data: SETTINGS_ROW, error: null });
+  queue("venue_hours", { data: HOURS_ROWS, error: null });
   queue("court", {
     data: [
       { id: 1, name: "Court 1", note: null, sort_order: 1 },
@@ -217,6 +221,7 @@ describe("getSchedule", () => {
     expect(result.error.message).toMatch(/has passed/);
 
     queue("venue_settings", { data: SETTINGS_ROW, error: null });
+    queue("venue_hours", { data: HOURS_ROWS, error: null });
     queue("court", { data: [], error: null });
     queue("reservation", { data: [], error: null });
     queue("staff", { data: [], error: null });
@@ -232,10 +237,15 @@ describe("getSchedule", () => {
     if (!result.ok) return;
     expect(Date.parse(result.data.now)).toBeGreaterThanOrEqual(before);
     expect(result.data.hours).toEqual({
-      weekdayOpen: "06:00",
-      weekdayClose: "22:00",
-      weekendOpen: "06:00",
-      weekendClose: "23:00",
+      days: [
+        { dayOfWeek: 0, open: "06:00", close: "23:00" },
+        { dayOfWeek: 1, open: "06:00", close: "22:00" },
+        { dayOfWeek: 2, open: "06:00", close: "22:00" },
+        { dayOfWeek: 3, open: "06:00", close: "22:00" },
+        { dayOfWeek: 4, open: "06:00", close: "22:00" },
+        { dayOfWeek: 5, open: "06:00", close: "22:00" },
+        { dayOfWeek: 6, open: "06:00", close: "23:00" },
+      ],
     });
   });
 });

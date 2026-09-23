@@ -55,6 +55,15 @@ export function isDayDisabled(
   return (!allowPastPick && day < todayLocal) || day > lastDayLocal;
 }
 
+/**
+ * Whether a day the calendar is drawing falls on a day of the week the venue
+ * is closed. The calendar works in the reader's own local days, and a day of
+ * the week is the same wherever the reader stands, so no zone is involved.
+ */
+export function isClosedDay(day: Date, closedDays: readonly number[]): boolean {
+  return closedDays.includes(day.getDay());
+}
+
 /** The reason read out for a disabled day, verbatim from `resolveDate`. */
 export function disabledReason(
   day: Date,
@@ -74,6 +83,7 @@ export function DatePicker({
   horizonDays,
   now,
   allowPastPick = false,
+  closedDays = [],
   navigate,
   pending = false,
   disabled = false,
@@ -83,6 +93,12 @@ export function DatePicker({
   horizonDays: number;
   now?: string;
   allowPastPick?: boolean;
+  /**
+   * Days of the week the venue is closed, `0` for Sunday (spec 0007, AC-22).
+   * Muted and named as closed, and still selectable: staff open a closed day
+   * to review or add what is on it.
+   */
+  closedDays?: readonly number[];
   /** Pushes a day the same way the prev/next arrows do, transition and all. */
   navigate: (to: string) => void;
   /** A pick from this calendar is what's on its way: the trigger spins. */
@@ -112,6 +128,10 @@ export function DatePicker({
     startMonth: allowPastPick ? undefined : todayLocal,
     endMonth: lastDayLocal,
     disabled: (day: Date) => isDayDisabled(day, todayLocal, lastDayLocal, allowPastPick),
+    // Muted, not disabled: a closed day stays pickable, because staff open one
+    // to review or add what is on it (AC-22).
+    modifiers: { venueClosed: (day: Date) => isClosedDay(day, closedDays) },
+    modifiersClassNames: { venueClosed: "text-muted-foreground line-through" },
     labels: {
       labelDayButton: (day: Date) => {
         const label = day.toLocaleDateString("en-PH", {
@@ -120,7 +140,8 @@ export function DatePicker({
           day: "numeric",
         });
         const reason = disabledReason(day, todayLocal, lastDayLocal, allowPastPick, lastDay);
-        return reason ? `${label}. ${reason}` : label;
+        const closed = isClosedDay(day, closedDays) ? " The venue is closed this day." : "";
+        return `${reason ? `${label}. ${reason}` : label}${closed}`;
       },
     },
     onSelect: (day: Date) => {

@@ -62,7 +62,7 @@ export async function getUsageReport({
   const today = todayInZone(VENUE_TIMEZONE);
   const { from, to } = resolveRange(range, today);
 
-  const [usage, courts, settings] = await Promise.all([
+  const [usage, courts, hours] = await Promise.all([
     staff.supabase.rpc("court_usage", {
       from_date: from,
       to_date: to,
@@ -73,17 +73,19 @@ export async function getUsageReport({
       .select("id, name, sort_order, retired_at")
       .order("sort_order")
       .order("id"),
+    // Spec 0007, AC-23: the report measures each date against its own day of
+    // the week, so it reads the seven rows rather than two pairs.
     staff.supabase
-      .from("venue_settings")
-      .select("weekday_open, weekday_close, weekend_open, weekend_close")
-      .maybeSingle(),
+      .from("venue_hours")
+      .select("day_of_week, open_time, close_time")
+      .order("day_of_week"),
   ]);
 
   if (usage.error) return fail(describeReportError(usage.error));
   if (courts.error) return fail({ kind: "failed", message: courts.error.message });
-  if (settings.error) return fail({ kind: "failed", message: settings.error.message });
-  if (!settings.data) {
-    return fail({ kind: "failed", message: "The venue settings row is missing." });
+  if (hours.error) return fail({ kind: "failed", message: hours.error.message });
+  if ((hours.data ?? []).length !== 7) {
+    return fail({ kind: "failed", message: "The venue opening hours are missing." });
   }
 
   return ok({
@@ -102,10 +104,11 @@ export async function getUsageReport({
       retiredAt: row.retired_at,
     })),
     hours: {
-      weekdayOpen: trimSeconds(settings.data.weekday_open),
-      weekdayClose: trimSeconds(settings.data.weekday_close),
-      weekendOpen: trimSeconds(settings.data.weekend_open),
-      weekendClose: trimSeconds(settings.data.weekend_close),
+      days: (hours.data ?? []).map((row) => ({
+        dayOfWeek: row.day_of_week,
+        open: row.open_time === null ? null : trimSeconds(row.open_time),
+        close: row.close_time === null ? null : trimSeconds(row.close_time),
+      })),
     },
   });
 }

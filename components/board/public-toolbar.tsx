@@ -1,6 +1,7 @@
 "use client";
 
 import { DayNav } from "@/components/day-nav";
+import { closedDaysOf } from "@/lib/schedule/grid";
 import { cn } from "@/lib/utils";
 
 import { usePublicBoard } from "./public-schedule-context";
@@ -14,6 +15,7 @@ export function PublicToolbar({ className }: { className?: string }) {
       timezone={schedule.grid.timezone}
       horizonDays={schedule.horizonDays}
       now={schedule.now}
+      closedDays={closedDaysOf(schedule.hours)}
       className={cn("w-fit", className)}
       onNavigatingChange={setDayNavPending}
     />

@@ -1,4 +1,4 @@
-import { addDays, daysBetween, isWeekend, timeToMinutes } from "@/lib/time";
+import { addDays, dayOfWeek, daysBetween, timeToMinutes } from "@/lib/time";
 
 /**
  * Folding `court_usage` rows into the shapes the report renders. Spec 0008,
@@ -8,11 +8,12 @@ import { addDays, daysBetween, isWeekend, timeToMinutes } from "@/lib/time";
 
 export type UsageRow = { courtId: number; localDate: string; hour: number; bookedMinutes: number };
 
+/**
+ * The week the report measures against, one entry per day of the week (spec
+ * 0007, AC-23). A day with no times is closed and contributes no open minutes.
+ */
 export type ReportHours = {
-  weekdayOpen: string;
-  weekdayClose: string;
-  weekendOpen: string;
-  weekendClose: string;
+  days: { dayOfWeek: number; open: string | null; close: string | null }[];
 };
 
 export type HourBucket = {
@@ -59,24 +60,30 @@ export function datesInRange(from: string, to: string): string[] {
   return Array.from({ length: count + 1 }, (_, index) => addDays(from, index));
 }
 
-function openPair(date: string, hours: ReportHours): { open: string; close: string } {
-  return isWeekend(date)
-    ? { open: hours.weekendOpen, close: hours.weekendClose }
-    : { open: hours.weekdayOpen, close: hours.weekdayClose };
+/** The pair that applies to a date, or `null` when that day is closed. */
+function openPair(date: string, hours: ReportHours): { open: string; close: string } | null {
+  const day = hours.days.find((entry) => entry.dayOfWeek === dayOfWeek(date));
+  if (!day || day.open === null || day.close === null) return null;
+  return { open: day.open, close: day.close };
 }
 
-/** Minutes the venue is open on one date, across `courtsCount` courts. */
+/**
+ * Minutes the venue is open on one date, across `courtsCount` courts. A closed
+ * day is zero, so it neither inflates nor deflates utilisation (AC-23).
+ */
 export function openMinutesForDate(date: string, hours: ReportHours, courtsCount: number): number {
-  const { open, close } = openPair(date, hours);
-  return Math.max(0, timeToMinutes(close) - timeToMinutes(open)) * courtsCount;
+  const pair = openPair(date, hours);
+  if (pair === null) return 0;
+  return Math.max(0, timeToMinutes(pair.close) - timeToMinutes(pair.open)) * courtsCount;
 }
 
-/** How many of `dates` have `hour` inside their own weekday or weekend pair. */
+/** How many of `dates` have `hour` inside their own day's pair. A closed date has none. */
 function openDaysForHour(hour: number, dates: readonly string[], hours: ReportHours): number {
   const hourStart = hour * 60;
   return dates.filter((date) => {
-    const { open, close } = openPair(date, hours);
-    return hourStart >= timeToMinutes(open) && hourStart < timeToMinutes(close);
+    const pair = openPair(date, hours);
+    if (pair === null) return false;
+    return hourStart >= timeToMinutes(pair.open) && hourStart < timeToMinutes(pair.close);
   }).length;
 }
 
@@ -221,18 +228,23 @@ export function totals(
 }
 
 /**
- * The hours the by hour chart and the heatmap show. Spec 0008, AC-7: from the
- * earliest open time to the latest close time across both day pairs, widened
- * to include any hour that has booked minutes so out of hours use is shown
- * rather than clipped.
+ * The hours the by hour chart and the heatmap show. Spec 0008, AC-7, revised by
+ * spec 0007, AC-23: from the earliest open time to the latest close time across
+ * the days the venue is open, widened to include any hour that has booked
+ * minutes so out of hours use is shown rather than clipped. A week with no open
+ * day falls back to the usual `06:00` to `22:00` shape.
  */
 export function hourAxis(hours: ReportHours, rows: readonly UsageRow[]): number[] {
-  let startHour = Math.floor(
-    Math.min(timeToMinutes(hours.weekdayOpen), timeToMinutes(hours.weekendOpen)) / 60,
-  );
-  let endHourExclusive = Math.ceil(
-    Math.max(timeToMinutes(hours.weekdayClose), timeToMinutes(hours.weekendClose)) / 60,
-  );
+  const opens = hours.days
+    .filter((day) => day.open !== null && day.close !== null)
+    .map((day) => ({
+      open: timeToMinutes(day.open as string),
+      close: timeToMinutes(day.close as string),
+    }));
+
+  let startHour = opens.length === 0 ? 6 : Math.floor(Math.min(...opens.map((p) => p.open)) / 60);
+  let endHourExclusive =
+    opens.length === 0 ? 22 : Math.ceil(Math.max(...opens.map((p) => p.close)) / 60);
 
   for (const row of rows) {
     if (row.bookedMinutes <= 0) continue;

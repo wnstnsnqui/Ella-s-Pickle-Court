@@ -6,6 +6,7 @@ import {
   describeSummary,
   EMPTY_SELECTION,
   isSelectable,
+  keysInRange,
   pruneSelection,
   selectionRuns,
   summarizeRuns,
@@ -20,10 +21,15 @@ import {
  */
 
 const SETTINGS = {
-  weekdayOpen: "08:00",
-  weekdayClose: "12:00",
-  weekendOpen: "08:00",
-  weekendClose: "12:00",
+  days: [
+    { dayOfWeek: 0, open: "08:00", close: "12:00" },
+    { dayOfWeek: 1, open: "08:00", close: "12:00" },
+    { dayOfWeek: 2, open: "08:00", close: "12:00" },
+    { dayOfWeek: 3, open: "08:00", close: "12:00" },
+    { dayOfWeek: 4, open: "08:00", close: "12:00" },
+    { dayOfWeek: 5, open: "08:00", close: "12:00" },
+    { dayOfWeek: 6, open: "08:00", close: "12:00" },
+  ],
   slotMinutes: 60,
   bookingHorizonDays: 14,
   timezone: "Asia/Manila",
@@ -147,5 +153,62 @@ describe("summarizeRuns and describeSummary", () => {
   it("speaks singular, and half hours, honestly", () => {
     expect(describeSummary({ hours: 1, courts: 1 })).toBe("1 hour on 1 court");
     expect(describeSummary({ hours: 1.5, courts: 1 })).toBe("1.5 hours on 1 court");
+  });
+});
+
+/**
+ * Spec 0007, AC-19: on a closed day no cell can be tapped, so Add booking
+ * names a court, a start and an end. This is what turns that range back into
+ * the keys the ordinary write path already takes.
+ */
+describe("keysInRange", () => {
+  /** A closed Wednesday: the same four slots, every one of them out of hours. */
+  const closed = () =>
+    buildGrid({
+      date: "2026-09-16",
+      settings: {
+        ...SETTINGS,
+        days: SETTINGS.days.map((day) =>
+          day.dayOfWeek === 3 ? { dayOfWeek: 3, open: null, close: null } : day,
+        ),
+      },
+      closedDaySpan: { open: "08:00", close: "12:00" },
+      courts: COURTS,
+      blocks: [],
+    });
+
+  it("returns one key per whole slot the range covers, on that court only", () => {
+    const keys = keysInRange(closed(), 1, at("00:00"), at("02:00"));
+    expect([...keys].sort()).toEqual([key(1, 8), key(1, 9)].sort());
+  });
+
+  it("takes rows that lie outside opening hours, which is every row on a closed day", () => {
+    const grid = closed();
+    expect(grid.closed).toBe(true);
+    expect(grid.rows.every((row) => row.outOfHours)).toBe(true);
+    expect(keysInRange(grid, 1, at("00:00"), at("04:00")).size).toBe(4);
+  });
+
+  it("leaves out a row the range only partly covers", () => {
+    // 8:30am to 9:30am local covers neither whole slot.
+    expect(keysInRange(closed(), 1, at("00:30"), at("01:30")).size).toBe(0);
+  });
+
+  it("is empty when the range falls outside every row", () => {
+    expect(keysInRange(closed(), 1, at("20:00"), at("21:00")).size).toBe(0);
+  });
+
+  it("feeds selectionRuns, so a typed range becomes one ordinary run", () => {
+    const grid = closed();
+    const runs = selectionRuns(keysInRange(grid, 2, at("00:00"), at("03:00")), grid);
+    expect(runs).toHaveLength(1);
+    expect(runs[0]).toMatchObject({
+      courtId: 2,
+      courtName: "Court 2",
+      date: "2026-09-16",
+      startTime: "08:00",
+      endTime: "11:00",
+      minutes: 180,
+    });
   });
 });

@@ -103,6 +103,12 @@
       "skillPath": "skills/omnibus/instrument-integration/SKILL.md",
       "computedHash": "a3b1fcef658e20f506d0a1fd1532c90f3db19cee0bc3960cd1a11603d546e396"
     },
+    "playwright-cli": {
+      "source": "microsoft/playwright-cli",
+      "sourceType": "github",
+      "skillPath": "skills/playwright-cli/SKILL.md",
+      "computedHash": "1e6cef0264b72fbf47618ccb82644b9a72934b2eeb35186842332928492a3cd2"
+    },
     "prototype": {
       "source": "emilkowalski/skills",
       "sourceType": "github",

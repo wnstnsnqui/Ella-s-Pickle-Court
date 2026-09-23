@@ -126,6 +126,30 @@ export function selectionRuns(selection: Selection, grid: Grid): SelectionRun[] 
   );
 }
 
+/**
+ * The cells one court's booking covers, from a range typed in rather than
+ * picked. Spec 0007, AC-19: on a closed day no cell can be tapped, so Add
+ * booking names the court, the start and the end, and this turns that back
+ * into the keys the ordinary write path already takes.
+ *
+ * Rows outside opening hours count here, which is the whole point: every row
+ * on a closed day is one.
+ */
+export function keysInRange(
+  grid: Grid,
+  courtId: number,
+  startsAt: string,
+  endsAt: string,
+): Selection {
+  const start = Date.parse(startsAt);
+  const end = Date.parse(endsAt);
+  return new Set(
+    grid.rows
+      .filter((row) => Date.parse(row.startsAt) >= start && Date.parse(row.endsAt) <= end)
+      .map((row) => cellKey(courtId, row.startsAt)),
+  );
+}
+
 /** "3 hours on 2 courts": the numbers the bar and the success toast both show. */
 export function summarizeRuns(runs: readonly SelectionRun[]): { hours: number; courts: number } {
   const minutes = runs.reduce((total, run) => total + run.minutes, 0);

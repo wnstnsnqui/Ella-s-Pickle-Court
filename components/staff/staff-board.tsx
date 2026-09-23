@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import {
   EMPTY_SELECTION,
   isSelectable,
+  keysInRange,
   pruneSelection,
   selectionRuns,
   summarizeRuns,
@@ -27,7 +28,10 @@ import {
   type Selection,
 } from "@/lib/schedule/selection";
 
+import { Button } from "@/components/ui/button";
+
 import { BookSheet, type SubmitOutcome } from "./book-sheet";
+import { ClosedDaySheet } from "./closed-day-sheet";
 import { CloseSheet } from "./close-sheet";
 import { ConfirmDialog } from "./confirm-dialog";
 import { DetailsSheet } from "./details-sheet";
@@ -60,6 +64,8 @@ type SheetState =
   | { kind: "none" }
   | { kind: "book" }
   | { kind: "close" }
+  /** Naming a court and an hour on a closed day, where no cell can be tapped. */
+  | { kind: "closed-day" }
   | { kind: "details"; id: number }
   /**
    * `version` is the row as the editor saw it when the sheet opened, on
@@ -120,7 +126,26 @@ export function StaffBoard() {
     [grid, activeReservations],
   );
 
-  const runs = useMemo(() => selectionRuns(selection, grid), [selection, grid]);
+  // A booking typed in on a closed day is one run built from a named range
+  // rather than from tapped cells (spec 0007, AC-19). It takes the same path
+  // from here on: the same sheet, the same action, the same cells marked
+  // pending, because the range is still made of the grid's own rows.
+  const [typedRange, setTypedRange] = useState<{
+    courtId: number;
+    startsAt: string;
+    endsAt: string;
+  } | null>(null);
+
+  const runs = useMemo(
+    () =>
+      typedRange
+        ? selectionRuns(
+            keysInRange(grid, typedRange.courtId, typedRange.startsAt, typedRange.endsAt),
+            grid,
+          )
+        : selectionRuns(selection, grid),
+    [typedRange, selection, grid],
+  );
 
   const openRow = useMemo(() => {
     if (sheet.kind !== "details" && sheet.kind !== "edit") return null;
@@ -270,6 +295,7 @@ export function StaffBoard() {
 
       if (result.ok) {
         setSelection(EMPTY_SELECTION);
+        setTypedRange(null);
         setSheet({ kind: "none" });
         await refetch();
         setPending(EMPTY_SELECTION);
@@ -406,6 +432,11 @@ export function StaffBoard() {
     };
   }, [submitSet, submitEdit, confirmCancel]);
 
+  // Spec 0007, AC-19: on a closed day the rows only earn their space when
+  // something is actually on them. The line above the grid carries the answer
+  // and the one deliberate way in.
+  const closedAndEmpty = grid.closed && activeReservations.length === 0;
+
   const view: GridView =
     grid.courts.length === 0
       ? { kind: "empty", reason: "no-courts" }
@@ -426,24 +457,45 @@ export function StaffBoard() {
 
   return (
     <div className="flex flex-col">
-      <ScheduleGrid
-        view={view}
-        legendViews={CELL_VIEWS}
-        onSelectCell={onSelectCell}
-        selectedCells={selection}
-        pendingCells={pendingCells}
-        failedCells={failedCells}
-        changedCells={changedCells}
-        lockedCells={lockedCells}
-        cellCaptions={cellCaptions}
-        className={cn(
-          dayNavPending &&
-            "pointer-events-none opacity-50 transition-opacity motion-reduce:transition-none",
-        )}
-        busy={dayNavPending}
-      />
+      {grid.closed && grid.courts.length > 0 ? (
+        <div className="border-border bg-muted/40 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3">
+          <p className="text-body">
+            <span className="text-label">Closed all day.</span> The venue is not open on this day.
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={(event) => {
+              remember(event);
+              setSheet({ kind: "closed-day" });
+            }}
+          >
+            Add booking
+          </Button>
+        </div>
+      ) : null}
 
-      {runs.length > 0 ? (
+      {closedAndEmpty ? null : (
+        <ScheduleGrid
+          view={view}
+          legendViews={CELL_VIEWS}
+          onSelectCell={onSelectCell}
+          selectedCells={selection}
+          pendingCells={pendingCells}
+          failedCells={failedCells}
+          changedCells={changedCells}
+          lockedCells={lockedCells}
+          cellCaptions={cellCaptions}
+          className={cn(
+            dayNavPending &&
+              "pointer-events-none opacity-50 transition-opacity motion-reduce:transition-none",
+          )}
+          busy={dayNavPending}
+        />
+      )}
+
+      {selection.size > 0 && runs.length > 0 ? (
         <SelectionBar
           runs={runs}
           onBook={(event) => {
@@ -458,9 +510,24 @@ export function StaffBoard() {
         />
       ) : null}
 
+      <ClosedDaySheet
+        open={sheet.kind === "closed-day"}
+        onOpenChange={(open) => !open && setSheet({ kind: "none" })}
+        grid={grid}
+        onContinue={(range) => {
+          setSelection(EMPTY_SELECTION);
+          setTypedRange(range);
+          setSheet({ kind: "book" });
+        }}
+        returnFocusTo={openerRef}
+      />
       <BookSheet
         open={sheet.kind === "book"}
-        onOpenChange={(open) => !open && !busy && setSheet({ kind: "none" })}
+        onOpenChange={(open) => {
+          if (open || busy) return;
+          setTypedRange(null);
+          setSheet({ kind: "none" });
+        }}
         runs={runs}
         pending={busy}
         onSubmit={(values) => submitSet("booking", toCustomerFields(values))}

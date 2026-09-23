@@ -74,3 +74,96 @@ Option 3 was the tempting one, and each of its parts is a reasonable choice on a
 Two of your choices went against my first suggestion and both are right for the reasons you gave. Redirecting a non owner to `/staff` instead of showing the settings read only means a staff member cannot check the hours on this page, but it also means one fewer state to build and test on a page they have no business on, and the hours are visible on the grid anyway. And keeping the settings page off the live channel is a deliberate trade: a page open a minute a month does not earn a second listener variant, and the version check catches the one collision that matters.
 
 The midnight close is included because the form is what makes the gap visible. Leaving it in Deferred would ship a form that refuses the single value a late night venue is most likely to type.
+
+---
+
+# Revision, 2026-09-22: opening hours per day of the week
+
+## Context
+
+The venue stays open until midnight on a Friday night and closes earlier on the other weekdays. The hours model cannot say this. `venue_settings` holds one pair of times for weekdays and one pair for weekends, and every read decides which pair applies by asking `isWeekend(date)`, which answers Saturday or Sunday. Friday is therefore Monday, and the grid shows Friday closing when the venue is still full.
+
+The gap is not the midnight handling. `24:00` has been a legal closing time since this spec shipped, and `closeTimeSchema`, `zonedTimeToUtc` and `formatSlotLabel` all carry it correctly. The gap is the two bucket model itself: weekday and weekend is a guess about how venues run, and this venue does not run that way. Nothing else does either, in the end, which is the usual fate of a bucket.
+
+Three forces shape the answer. The first is blast radius: the four columns are read in nine places across the grid, the stranded booking count, the usage report, the JSON-LD block, the analytics schema and the settings form, so whatever replaces them has to be adopted by all of them at once or leave a path that is right six days a week. The second is that a day being closed has never been expressible either, and it is the same shaped hole; Ella works around it today with a full day closure on every court, which the usage report then counts as time that was open and empty. The third is that this venue is one site with a handful of staff and a single deployment, so the operational budget for a careful multi phase migration is not there and does not need to be.
+
+Not deciding means the special case moves into somebody's head. Staff would learn that Friday's grid is wrong after 22:00 and book around it, which is exactly the state the board was built to end.
+
+## Options considered
+
+### Option 1: A `venue_hours` table, one row per day of the week
+
+Replace the four columns with seven rows keyed by `day_of_week`, where a row with both times null means closed all day. Every read looks up the date's own day instead of asking whether it is a weekend. The week is written by one Postgres function in one transaction, guarded by `venue_settings.version`.
+
+**Pros**:
+
+- The model matches the domain exactly. A venue's opening hours are a weekly pattern, and that is what is stored, so no read has to infer anything.
+- One question with one answer replaces a bucket, and the three `isWeekend()` branches collapse into one lookup.
+- Closed days come almost free, as the absence of times rather than a new concept, and that retires the closure reservation workaround.
+- It is data, not columns, so a query can join it, the report can eventually compute open minutes in SQL, and a date keyed override table for holidays hangs off the same shape later.
+- Postgres keeps enforcing the invariants: the paired null check, the close after open check and the revoked `insert` and `delete` are all constraints rather than application rules.
+
+**Cons**:
+
+- Every schedule read gains a second query and a second thing that can fail, where before the hours came free with the settings row.
+- The form goes from four selects to seven rows, which is more work for a venue whose weekdays really do all match.
+- The week has to be written atomically, which means a Postgres function rather than a plain update, so there is more SQL to write and test.
+- It is a table for seven rows that will never be six or eight, which reads as heavier than the thing it holds.
+
+### Option 2: Fourteen columns on `venue_settings`
+
+Keep the singleton row and give it `monday_open` through `sunday_close`. No new table, no join, and the existing single row read and version check keep working untouched.
+
+**Pros**:
+
+- The smallest change to the read path: one row still carries everything, so no query, no join and no atomicity problem, since a single row update is already atomic.
+- The existing version and `changed_by` machinery applies with no new function at all.
+- Fastest to build, by a clear margin.
+
+**Cons**:
+
+- Fourteen columns for what is plainly a list, and closed days need all fourteen nullable plus seven paired check constraints written out by hand.
+- Nothing can join it or aggregate it, so the report's open minutes stay in TypeScript permanently rather than becoming a SQL option later.
+- Every consumer hardcodes seven column names, so the mapping between a date's day number and a column name is written out repeatedly and is a fresh chance to get an off by one wrong.
+- A date keyed override table has nothing to hang off, so holidays would be a second unrelated design rather than an extension of this one.
+
+### Option 3: Keep the pairs, add a Friday column
+
+Add `friday_open` and `friday_close` beside the existing four, and have `openingHours()` check for Friday before it checks for the weekend.
+
+**Pros**:
+
+- Genuinely the smallest possible change, and it solves the stated problem today.
+- Nothing already shipped has to move, so the risk is close to zero.
+
+**Cons**:
+
+- It encodes the accident rather than the rule. The model still says days come in categories, with Friday now a third one, and the next request reopens the same file.
+- The lookup becomes a three way branch ordered by specificity, which is the shape that grows a fourth and fifth arm.
+- Closed days remain unexpressible, so the workaround stays and the report stays wrong about it.
+
+### Option 4: A `jsonb` column holding the seven pairs
+
+One `hours jsonb` column on `venue_settings` carrying the week as a document.
+
+**Pros**:
+
+- A single read and a single atomic write, with no new table and no function.
+- The shape can change later without a migration.
+
+**Cons**:
+
+- Postgres stops checking anything. The paired null rule, the close after open rule and the seven day cardinality all move into application code, which is directly against this project's rule that Postgres is the enforcement point and an `if` in a Server Action is not authorization or validation.
+- A malformed document is storable, so a bad write is discovered by a board rendering wrong rather than by a constraint refusing it.
+
+## Rationale
+
+Option 1 because the force that actually decides this is the blast radius, not the build cost. Nine call sites have to change no matter which option wins, so the question is what they change to, and the only answer that stops this coming back is the one where the stored model is the real model. Option 3 is the tempting one at the moment of asking, since Friday is the only day that differs today, but it writes the exception into the schema and leaves the next one homeless. The venue already has a second unexpressible case sitting in front of us, the closed day, which is the evidence that the category based model keeps failing rather than a hypothetical about the future.
+
+Option 2 is the honest runner up and it would work. It is rejected on the second force: the report and the stranded booking count both want to reason about hours in bulk, and a table can eventually answer that in SQL while fourteen columns never can. The Deferred scope item about moving the outside hours count into SQL, and the one about recording an hours history, both get easier with a table and harder with columns. The cost of the extra query is one round trip on a page that already makes several, which is the cheapest thing being traded here.
+
+The atomicity decision follows from the same place. A week is one edit in Ella's head, one Save button on screen, and so it should be one transaction in the database; anything less makes a half saved week representable, and a half saved week is a grid that is wrong in a way nobody can see. Guarding it with `venue_settings.version` rather than a version per row is the same reasoning applied to concurrency: one lock for one edit. It does mean an unrelated slot length change bumps the version an hours edit is checking, which is a real if small cost on a page two owners will almost never have open at once.
+
+The migration is a big bang, which goes against the usual instinct and against this mode's own default. The strangler pattern needs the old and the new to coexist usefully, and here they cannot: keeping the four columns in sync with the seven rows during an overlap means a trigger holding two truths together, and any read still on the old columns is correct six days a week and wrong on Friday, which is the bug. One site, one deployment and three call sites for `openingHours()` is the situation where dropping the columns in the same migration is the safer choice, because it makes a stale read impossible instead of merely unlikely.
+
+Your two calls that went against the obvious symmetric answer are both right. Letting staff book on a closed day, through a deliberate button rather than a grid, matches what actually happens at a venue: the tournament gets booked and nobody wants to phone Ella about it. It also costs nothing to allow, because neither the action nor Postgres has ever refused a booking for being outside hours, so closed was always going to be advisory whatever the UI said. And having the two boards differ on a closed day is worth the inconsistency, because they answer different questions: a player wants to know whether to come, a staff member needs a page that does not invite a click on a day that is shut.

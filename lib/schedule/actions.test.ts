@@ -59,6 +59,9 @@ vi.mock("@/lib/supabase/staff", () => ({ staffSupabase }));
 const getStaffSchedule = vi.hoisted(() => vi.fn());
 vi.mock("./queries", () => ({ getStaffSchedule }));
 
+/** `save_venue_hours` is the one write that goes through a function, not a table. */
+const rpc = vi.hoisted(() => vi.fn());
+
 const captureStaffEvent = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/analytics/server", () => ({ captureStaffEvent, reportFailure: vi.fn() }));
 
@@ -91,7 +94,8 @@ beforeEach(() => {
   calls.length = 0;
   answers.clear();
   auth.mockResolvedValue({ user: { id: "user_staff" } });
-  staffSupabase.mockReturnValue({ from: (table: string) => builder(table) });
+  rpc.mockResolvedValue({ data: null, error: null });
+  staffSupabase.mockReturnValue({ from: (table: string) => builder(table), rpc });
 });
 
 describe("createReservations", () => {
@@ -444,32 +448,80 @@ describe("analytics events (spec 0009, AC-4)", () => {
 
   it("fires hours_changed after saveVenueSettings succeeds", async () => {
     queue("venue_settings", {
-      data: {
-        weekday_open: "06:00:00",
-        weekday_close: "22:00:00",
-        weekend_open: "06:00:00",
-        weekend_close: "22:00:00",
-        slot_minutes: 60,
-        booking_horizon_days: 14,
-      },
+      data: { slot_minutes: 60, booking_horizon_days: 14, version: 2 },
       error: null,
     });
 
     await saveVenueSettings({
-      weekdayOpen: "06:00",
-      weekdayClose: "22:00",
-      weekendOpen: "06:00",
-      weekendClose: "22:00",
+      days: [
+        { dayOfWeek: 0, open: "06:00", close: "22:00" },
+        { dayOfWeek: 1, open: "06:00", close: "22:00" },
+        { dayOfWeek: 2, open: "06:00", close: "22:00" },
+        { dayOfWeek: 3, open: "06:00", close: "22:00" },
+        { dayOfWeek: 4, open: "06:00", close: "22:00" },
+        { dayOfWeek: 5, open: "06:00", close: "22:00" },
+        { dayOfWeek: 6, open: "06:00", close: "22:00" },
+      ],
       slotMinutes: 60,
       bookingHorizonDays: 14,
       version: 1,
       acknowledge: true,
     });
 
+    // The week as a shape, not twenty one values (spec 0007, AC-24).
     expect(captureStaffEvent).toHaveBeenCalledWith(
       "user_staff",
       "hours_changed",
-      expect.objectContaining({ weekday_open: "06:00", weekday_close: "22:00" }),
+      expect.objectContaining({
+        days_open: 7,
+        days_closed: 0,
+        earliest_open: "06:00",
+        latest_close: "22:00",
+      }),
+    );
+  });
+
+  it("writes the whole week, the slot length and the horizon in one call", async () => {
+    queue("venue_settings", {
+      data: { slot_minutes: 30, booking_horizon_days: 21, version: 2 },
+      error: null,
+    });
+
+    await saveVenueSettings({
+      days: [
+        { dayOfWeek: 0, open: null, close: null },
+        { dayOfWeek: 1, open: "06:00", close: "22:00" },
+        { dayOfWeek: 2, open: "06:00", close: "22:00" },
+        { dayOfWeek: 3, open: "06:00", close: "22:00" },
+        { dayOfWeek: 4, open: "06:00", close: "22:00" },
+        { dayOfWeek: 5, open: "06:00", close: "24:00" },
+        { dayOfWeek: 6, open: "06:00", close: "22:00" },
+      ],
+      slotMinutes: 30,
+      bookingHorizonDays: 21,
+      version: 1,
+      acknowledge: true,
+    });
+
+    expect(rpc).toHaveBeenCalledWith("save_venue_hours", {
+      days: [
+        { day_of_week: 0, open_time: null, close_time: null },
+        { day_of_week: 1, open_time: "06:00", close_time: "22:00" },
+        { day_of_week: 2, open_time: "06:00", close_time: "22:00" },
+        { day_of_week: 3, open_time: "06:00", close_time: "22:00" },
+        { day_of_week: 4, open_time: "06:00", close_time: "22:00" },
+        { day_of_week: 5, open_time: "06:00", close_time: "24:00" },
+        { day_of_week: 6, open_time: "06:00", close_time: "22:00" },
+      ],
+      settings_version: 1,
+      slot_minutes: 30,
+      booking_horizon_days: 21,
+    });
+    // A closed Sunday has no earliest or latest of its own to report.
+    expect(captureStaffEvent).toHaveBeenCalledWith(
+      "user_staff",
+      "hours_changed",
+      expect.objectContaining({ days_open: 6, days_closed: 1, latest_close: "24:00" }),
     );
   });
 });

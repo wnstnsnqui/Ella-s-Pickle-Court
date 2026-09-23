@@ -30,6 +30,7 @@ export function DayNav({
   horizonDays,
   now,
   allowPastPick = false,
+  closedDays,
   className,
   onNavigatingChange,
 }: {
@@ -39,6 +40,8 @@ export function DayNav({
   now?: string;
   /** Staff may pick any past day in the calendar; the public board may not. */
   allowPastPick?: boolean;
+  /** Days of the week the venue is closed, passed through to the calendar. */
+  closedDays?: readonly number[];
   className?: string;
   /** Told every time a prev/next tap starts or settles, so a board can dim itself meanwhile. */
   onNavigatingChange?: (pending: boolean) => void;
@@ -165,6 +168,7 @@ export function DayNav({
         horizonDays={horizonDays}
         now={now}
         allowPastPick={allowPastPick}
+        closedDays={closedDays}
         navigate={goTo}
         pending={calendarIsSource}
         disabled={isPending}

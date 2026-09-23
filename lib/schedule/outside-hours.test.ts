@@ -7,12 +7,22 @@ import { countOutsideHours, isOutsideHours } from "./outside-hours";
  * 2026-09-16 is a Wednesday and 2026-09-19 is a Saturday at the venue.
  */
 const TZ = "Asia/Manila";
-const HOURS = {
-  weekdayOpen: "08:00",
-  weekdayClose: "22:00",
-  weekendOpen: "06:00",
-  weekendClose: "24:00",
-};
+type Day = { dayOfWeek: number; open: string | null; close: string | null };
+
+const HOURS: Day[] = [
+  { dayOfWeek: 0, open: "06:00", close: "24:00" },
+  { dayOfWeek: 1, open: "08:00", close: "22:00" },
+  { dayOfWeek: 2, open: "08:00", close: "22:00" },
+  { dayOfWeek: 3, open: "08:00", close: "22:00" },
+  { dayOfWeek: 4, open: "08:00", close: "22:00" },
+  { dayOfWeek: 5, open: "08:00", close: "22:00" },
+  { dayOfWeek: 6, open: "06:00", close: "24:00" },
+];
+
+/** The same week with one day changed, which is how the per day rules are read. */
+function withDay(dayOfWeek: number, patch: Partial<Day>): Day[] {
+  return HOURS.map((day) => (day.dayOfWeek === dayOfWeek ? { ...day, ...patch } : day));
+}
 
 /** 4pm to 6pm Manila on Wednesday the 16th. */
 const weekdayInside = { startsAt: "2026-09-16T08:00:00Z", endsAt: "2026-09-16T10:00:00Z" };
@@ -40,14 +50,15 @@ describe("isOutsideHours", () => {
 
   it("reads an end on the stroke of midnight as 24:00, so it fits a midnight close", () => {
     expect(isOutsideHours(weekendToMidnight, HOURS, TZ)).toBe(false);
-    expect(isOutsideHours(weekendToMidnight, { ...HOURS, weekendClose: "23:00" }, TZ)).toBe(true);
+    // Saturday the 19th, closing an hour earlier.
+    expect(isOutsideHours(weekendToMidnight, withDay(6, { close: "23:00" }), TZ)).toBe(true);
   });
 
   it("measures against the weekend pair on a Saturday", () => {
     // 6am to 7am Manila on the Saturday: inside the weekend open of 06:00, outside a weekday 08:00.
     const saturdayDawn = { startsAt: "2026-09-18T22:00:00Z", endsAt: "2026-09-18T23:00:00Z" };
     expect(isOutsideHours(saturdayDawn, HOURS, TZ)).toBe(false);
-    expect(isOutsideHours(saturdayDawn, { ...HOURS, weekendOpen: "07:00" }, TZ)).toBe(true);
+    expect(isOutsideHours(saturdayDawn, withDay(6, { open: "07:00" }), TZ)).toBe(true);
   });
 
   it("treats a row that spans two venue days as outside", () => {
@@ -57,8 +68,8 @@ describe("isOutsideHours", () => {
   it("decides the weekday at the venue, not in UTC", () => {
     // 2026-09-18T20:00Z is Friday in UTC but 4am Saturday in Manila.
     const row = { startsAt: "2026-09-18T20:00:00Z", endsAt: "2026-09-18T21:00:00Z" };
-    expect(isOutsideHours(row, { ...HOURS, weekendOpen: "04:00" }, TZ)).toBe(false);
-    expect(isOutsideHours(row, { ...HOURS, weekendOpen: "05:00" }, TZ)).toBe(true);
+    expect(isOutsideHours(row, withDay(6, { open: "04:00" }), TZ)).toBe(false);
+    expect(isOutsideHours(row, withDay(6, { open: "05:00" }), TZ)).toBe(true);
   });
 });
 
@@ -70,5 +81,13 @@ describe("countOutsideHours", () => {
 
   it("is zero for no rows", () => {
     expect(countOutsideHours([], HOURS, TZ)).toBe(0);
+  });
+
+  // Spec 0007, AC-9: a closed day has no hours to be inside, so everything on
+  // it counts, whatever time it runs at.
+  it("counts every booking on a day the proposal marks closed", () => {
+    const closedWednesday = withDay(3, { open: null, close: null });
+    expect(isOutsideHours(weekdayInside, closedWednesday, TZ)).toBe(true);
+    expect(countOutsideHours([weekdayInside], closedWednesday, TZ)).toBe(1);
   });
 });

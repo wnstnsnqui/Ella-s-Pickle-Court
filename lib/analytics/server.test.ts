@@ -27,10 +27,10 @@ describe("off switch (AC-9)", () => {
   it("never constructs a PostHog client with no key set", async () => {
     const { captureStaffEvent, reportFailure, analyticsServer } = await import("./server");
     captureStaffEvent("user_1", "hours_changed", {
-      weekday_open: "06:00",
-      weekday_close: "22:00",
-      weekend_open: "06:00",
-      weekend_close: "22:00",
+      days_open: 7,
+      days_closed: 0,
+      earliest_open: "06:00",
+      latest_close: "22:00",
       slot_minutes: 60,
       booking_horizon_days: 14,
     });
@@ -50,10 +50,10 @@ describe("captureStaffEvent (AC-4, AC-5)", () => {
   it("sends a valid property bag through to posthog-node", async () => {
     const { captureStaffEvent } = await import("./server");
     captureStaffEvent("user_1", "hours_changed", {
-      weekday_open: "06:00",
-      weekday_close: "22:00",
-      weekend_open: "06:00",
-      weekend_close: "22:00",
+      days_open: 7,
+      days_closed: 0,
+      earliest_open: "06:00",
+      latest_close: "22:00",
       slot_minutes: 60,
       booking_horizon_days: 14,
     });
@@ -69,7 +69,7 @@ describe("captureStaffEvent (AC-4, AC-5)", () => {
       "user_1",
       "hours_changed",
       // @ts-expect-error deliberately outside the allow list
-      { weekday_open: "06:00", customer_phone: "+639170000000" },
+      { days_open: 7, customer_phone: "+639170000000" },
     );
     expect(capture).not.toHaveBeenCalled();
     expect(warn).toHaveBeenCalled();

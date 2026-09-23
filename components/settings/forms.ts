@@ -37,55 +37,113 @@ const horizonText = z
   .regex(/^\d+$/, "Enter a whole number of days.")
   .refine((value) => Number(value) >= 1 && Number(value) <= 365, "Between 1 and 365 days.");
 
-export const hoursFormSchema = z
+/**
+ * One day row. A closed day carries the toggle and two empty selects rather
+ * than a third state, which is the same shape `venue_hours` stores (spec 0007,
+ * AC-8). The times are strings because that is what a `Select` holds; empty
+ * means nothing picked yet.
+ */
+const dayRowSchema = z
   .object({
-    weekdayOpen: localTimeSchema,
-    weekdayClose: closeTimeSchema,
-    weekendOpen: localTimeSchema,
-    weekendClose: closeTimeSchema,
-    slotMinutes: slotMinutesText,
-    bookingHorizonDays: horizonText,
+    dayOfWeek: z.number().int().min(0).max(6),
+    closed: z.boolean(),
+    open: z.union([localTimeSchema, z.literal("")]),
+    close: z.union([closeTimeSchema, z.literal("")]),
   })
   .superRefine((value, ctx) => {
-    // The same rule the action and the database check: a close after its open.
-    if (value.weekdayClose <= value.weekdayOpen) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["weekdayClose"],
-        message: "Closing has to come after opening.",
-      });
+    if (value.closed) return;
+    if (value.open === "") {
+      ctx.addIssue({ code: "custom", path: ["open"], message: "Pick an opening time." });
     }
-    if (value.weekendClose <= value.weekendOpen) {
+    if (value.close === "") {
+      ctx.addIssue({ code: "custom", path: ["close"], message: "Pick a closing time." });
+    }
+    // The same rule the action and the database check: a close after its open.
+    if (value.open !== "" && value.close !== "" && value.close <= value.open) {
       ctx.addIssue({
         code: "custom",
-        path: ["weekendClose"],
+        path: ["close"],
         message: "Closing has to come after opening.",
       });
     }
   });
 
+export const hoursFormSchema = z.object({
+  /** Seven rows, ordered `0` (Sunday) to `6`, whatever order they render in. */
+  days: z.array(dayRowSchema).length(7),
+  slotMinutes: slotMinutesText,
+  bookingHorizonDays: horizonText,
+});
+
 export type HoursFormValues = z.infer<typeof hoursFormSchema>;
+export type DayRowValues = HoursFormValues["days"][number];
+
+/** Monday first, which is how the week reads, over storage that starts at Sunday. */
+export const DAY_ORDER: readonly number[] = [1, 2, 3, 4, 5, 6, 0];
+
+export const DAY_NAMES: Readonly<Record<number, string>> = {
+  0: "Sunday",
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday",
+  5: "Friday",
+  6: "Saturday",
+};
 
 /** The loaded settings as the form holds them. */
 export function toHoursValues(settings: VenueSettings): HoursFormValues {
+  const byDay = new Map(settings.days.map((day) => [day.dayOfWeek, day]));
   return {
-    weekdayOpen: settings.weekdayOpen,
-    weekdayClose: settings.weekdayClose,
-    weekendOpen: settings.weekendOpen,
-    weekendClose: settings.weekendClose,
+    days: [0, 1, 2, 3, 4, 5, 6].map((dayOfWeek) => {
+      const day = byDay.get(dayOfWeek);
+      const closed = !day || day.open === null || day.close === null;
+      return {
+        dayOfWeek,
+        closed,
+        open: closed ? "" : (day?.open ?? ""),
+        close: closed ? "" : (day?.close ?? ""),
+      };
+    }),
     slotMinutes: String(settings.slotMinutes),
     bookingHorizonDays: String(settings.bookingHorizonDays),
   };
+}
+
+/**
+ * The pair a day reopens on, so Ella is never picking from a blank row (spec
+ * 0007, AC-8): the venue's most common open pair across the other days, and
+ * the usual `06:00` to `22:00` when every other day is closed too.
+ */
+export function commonOpenPair(days: readonly DayRowValues[]): { open: string; close: string } {
+  const tally = new Map<string, number>();
+  for (const day of days) {
+    if (day.closed || day.open === "" || day.close === "") continue;
+    const key = `${day.open}|${day.close}`;
+    tally.set(key, (tally.get(key) ?? 0) + 1);
+  }
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [key, count] of tally) {
+    if (count > bestCount) {
+      best = key;
+      bestCount = count;
+    }
+  }
+  if (best === null) return { open: "06:00", close: "22:00" };
+  const [open, close] = best.split("|");
+  return { open, close };
 }
 
 /** The form's values as `saveVenueSettings` wants them. */
 export function toHoursInput(values: HoursFormValues, version: number, acknowledge?: boolean) {
   return {
     version,
-    weekdayOpen: values.weekdayOpen,
-    weekdayClose: values.weekdayClose,
-    weekendOpen: values.weekendOpen,
-    weekendClose: values.weekendClose,
+    days: values.days.map((day) => ({
+      dayOfWeek: day.dayOfWeek,
+      open: day.closed || day.open === "" ? null : day.open,
+      close: day.closed || day.close === "" ? null : day.close,
+    })),
     slotMinutes: Number(values.slotMinutes),
     bookingHorizonDays: Number(values.bookingHorizonDays),
     acknowledge,

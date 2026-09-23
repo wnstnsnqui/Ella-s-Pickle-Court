@@ -14,10 +14,15 @@ import {
 
 /** Weekday 8am to 10pm, weekend 6am to midnight, spec 0007's own seed. */
 const HOURS: ReportHours = {
-  weekdayOpen: "08:00",
-  weekdayClose: "22:00",
-  weekendOpen: "06:00",
-  weekendClose: "24:00",
+  days: [
+    { dayOfWeek: 0, open: "06:00", close: "24:00" },
+    { dayOfWeek: 1, open: "08:00", close: "22:00" },
+    { dayOfWeek: 2, open: "08:00", close: "22:00" },
+    { dayOfWeek: 3, open: "08:00", close: "22:00" },
+    { dayOfWeek: 4, open: "08:00", close: "22:00" },
+    { dayOfWeek: 5, open: "08:00", close: "22:00" },
+    { dayOfWeek: 6, open: "06:00", close: "24:00" },
+  ],
 };
 
 // 2026-09-14 is a Monday, 2026-09-19 a Saturday, 2026-09-20 a Sunday.
@@ -146,5 +151,86 @@ describe("hourAxis", () => {
   it("never widens for an hour with zero booked minutes", () => {
     const rows: UsageRow[] = [{ courtId: 1, localDate: MONDAY, hour: 2, bookedMinutes: 0 }];
     expect(hourAxis(HOURS, rows)[0]).toBe(6);
+  });
+});
+
+/**
+ * Spec 0007, AC-23: the report measures every date against its own day of the
+ * week, and a closed day contributes no open time at all, so it neither
+ * inflates nor deflates utilisation.
+ */
+describe("a closed day in the report (spec 0007, AC-23)", () => {
+  /** The same week with Monday shut. */
+  const MONDAY_SHUT: ReportHours = {
+    days: HOURS.days.map((day) =>
+      day.dayOfWeek === 1 ? { dayOfWeek: 1, open: null, close: null } : day,
+    ),
+  };
+  const ALL_SHUT: ReportHours = {
+    days: HOURS.days.map((day) => ({ ...day, open: null, close: null })),
+  };
+
+  it("gives a closed date zero open minutes, whatever the court count", () => {
+    expect(openMinutesForDate(MONDAY, MONDAY_SHUT, 2)).toBe(0);
+    expect(openMinutesForDate(MONDAY, MONDAY_SHUT, 99)).toBe(0);
+  });
+
+  it("leaves the other days of that week untouched", () => {
+    expect(openMinutesForDate("2026-09-15", MONDAY_SHUT, 2)).toBe((22 - 8) * 60 * 2);
+    expect(openMinutesForDate(SATURDAY, MONDAY_SHUT, 1)).toBe((24 - 6) * 60);
+  });
+
+  it("counts no open day for any hour of a closed date, so its hours read zero", () => {
+    const buckets = byHour([], [MONDAY], MONDAY_SHUT, 2);
+    expect(buckets.every((bucket) => bucket.openMinutes === 0)).toBe(true);
+    expect(buckets.every((bucket) => bucket.utilisationPercent === 0)).toBe(true);
+  });
+
+  it("keeps utilisation at zero rather than dividing by zero on a closed range", () => {
+    const summary = totals([], [MONDAY], MONDAY_SHUT, 2);
+    expect(summary.openMinutes).toBe(0);
+    expect(summary.utilisationPercent).toBe(0);
+    expect(Number.isNaN(summary.utilisationPercent)).toBe(false);
+  });
+
+  it("still reports the booked minutes stranded on a closed day", () => {
+    const rows: UsageRow[] = [{ courtId: 1, localDate: MONDAY, hour: 18, bookedMinutes: 60 }];
+    const summary = totals(rows, [MONDAY], MONDAY_SHUT, 2);
+    expect(summary.bookedMinutes).toBe(60);
+    expect(summary.openMinutes).toBe(0);
+    // Capped, not infinite: an hour booked on a day with no open time.
+    expect(summary.utilisationPercent).toBe(0);
+  });
+
+  it("takes the hour axis from the days that are open, ignoring the closed one", () => {
+    // Monday was the only 8am day left out; the axis still runs from the
+    // weekend's 6am to its midnight close.
+    expect(hourAxis(MONDAY_SHUT, [])).toEqual(
+      Array.from({ length: 24 - 6 }, (_, index) => 6 + index),
+    );
+  });
+
+  it("narrows the axis when every open day starts later", () => {
+    const weekdaysOnly: ReportHours = {
+      days: HOURS.days.map((day) =>
+        day.dayOfWeek === 0 || day.dayOfWeek === 6
+          ? { dayOfWeek: day.dayOfWeek, open: null, close: null }
+          : day,
+      ),
+    };
+    expect(hourAxis(weekdaysOnly, [])).toEqual(
+      Array.from({ length: 22 - 8 }, (_, index) => 8 + index),
+    );
+  });
+
+  it("falls back to 6am through 10pm when every day of the week is closed", () => {
+    expect(hourAxis(ALL_SHUT, [])).toEqual(Array.from({ length: 22 - 6 }, (_, index) => 6 + index));
+    expect(openMinutesForDate(SATURDAY, ALL_SHUT, 2)).toBe(0);
+    expect(totals([], [MONDAY, SATURDAY], ALL_SHUT, 2).utilisationPercent).toBe(0);
+  });
+
+  it("still widens the axis for an hour that was actually booked on a closed day", () => {
+    const rows: UsageRow[] = [{ courtId: 1, localDate: MONDAY, hour: 23, bookedMinutes: 30 }];
+    expect(hourAxis(ALL_SHUT, rows).at(-1)).toBe(23);
   });
 });

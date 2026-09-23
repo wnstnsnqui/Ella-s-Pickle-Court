@@ -198,3 +198,33 @@ describe("formatDayHeading", () => {
     expect(() => formatDayHeading("nope")).toThrow(RangeError);
   });
 });
+
+describe("dayOfWeek (spec 0007, AC-16, AC-18)", () => {
+  it("numbers Sunday as 0 through Saturday as 6, the way Postgres and getUTCDay do", async () => {
+    const { dayOfWeek } = await loadTime();
+    // 2026-09-20 is a Sunday, so the week that follows it walks 0 to 6.
+    expect(dayOfWeek("2026-09-20")).toBe(0);
+    expect(dayOfWeek("2026-09-21")).toBe(1);
+    expect(dayOfWeek("2026-09-22")).toBe(2);
+    expect(dayOfWeek("2026-09-23")).toBe(3);
+    expect(dayOfWeek("2026-09-24")).toBe(4);
+    expect(dayOfWeek("2026-09-25")).toBe(5);
+    expect(dayOfWeek("2026-09-26")).toBe(6);
+  });
+
+  it("reads the calendar date itself, so the machine's own zone cannot shift it", async () => {
+    const { dayOfWeek } = await loadTime();
+    // A date names its weekday on its own; no zone is involved once you have it.
+    process.env.TZ = "Pacific/Kiritimati";
+    expect(dayOfWeek("2026-09-25")).toBe(5);
+    process.env.TZ = "Pacific/Midway";
+    expect(dayOfWeek("2026-09-25")).toBe(5);
+  });
+
+  it("crosses a month and a year boundary without drifting", async () => {
+    const { dayOfWeek } = await loadTime();
+    expect(dayOfWeek("2026-10-01")).toBe(4);
+    expect(dayOfWeek("2027-01-01")).toBe(5);
+    expect(dayOfWeek("2028-02-29")).toBe(2);
+  });
+});

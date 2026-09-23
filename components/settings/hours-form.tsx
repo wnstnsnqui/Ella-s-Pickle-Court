@@ -25,12 +25,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { SLOT_MINUTES } from "@/lib/schedule/constants";
 import type { VenueSettings } from "@/lib/schedule/grid";
 import { formatSlotLabel } from "@/lib/time";
 
 import {
   CLOSE_TIME_OPTIONS,
+  commonOpenPair,
+  DAY_NAMES,
+  DAY_ORDER,
   hoursFormSchema,
   OPEN_TIME_OPTIONS,
   toHoursValues,
@@ -44,14 +48,7 @@ import { SettingsSection } from "./settings-section";
  */
 export type HoursOutcome = { issues?: Record<string, string[]>; outsideCount?: number } | void;
 
-const HOURS_FIELDS = [
-  "weekdayOpen",
-  "weekdayClose",
-  "weekendOpen",
-  "weekendClose",
-  "slotMinutes",
-  "bookingHorizonDays",
-] as const;
+const HOURS_FIELDS = ["days", "slotMinutes", "bookingHorizonDays"] as const;
 
 /**
  * The opening hours, the slot length and the booking horizon. Spec 0007,
@@ -89,6 +86,7 @@ export function HoursForm({
   };
 
   const { isDirty } = form.formState;
+  const weekError = (form.formState.errors.days as { message?: string } | undefined)?.message;
 
   return (
     <SettingsSection
@@ -103,26 +101,18 @@ export function HoursForm({
           className="flex flex-col gap-6"
           onSubmit={form.handleSubmit((values) => submit(values, false))}
         >
-          <fieldset className="grid gap-4 sm:grid-cols-2">
-            <legend className="text-label mb-3">Weekdays</legend>
-            <TimeField form={form} name="weekdayOpen" label="Opens" options={OPEN_TIME_OPTIONS} />
-            <TimeField
-              form={form}
-              name="weekdayClose"
-              label="Closes"
-              options={CLOSE_TIME_OPTIONS}
-            />
-          </fieldset>
-
-          <fieldset className="grid gap-4 sm:grid-cols-2">
-            <legend className="text-label mb-3">Weekends</legend>
-            <TimeField form={form} name="weekendOpen" label="Opens" options={OPEN_TIME_OPTIONS} />
-            <TimeField
-              form={form}
-              name="weekendClose"
-              label="Closes"
-              options={CLOSE_TIME_OPTIONS}
-            />
+          <fieldset className="flex flex-col gap-4">
+            <legend className="text-label mb-3">The week</legend>
+            {DAY_ORDER.map((dayOfWeek) => (
+              <DayRow key={dayOfWeek} form={form} dayOfWeek={dayOfWeek} />
+            ))}
+            {/* The whole week refused at the boundary, which the per day rules
+                below should have caught first. Shown rather than swallowed. */}
+            {weekError ? (
+              <p role="alert" className="text-destructive text-body">
+                {weekError}
+              </p>
+            ) : null}
           </fieldset>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -222,16 +212,81 @@ export function HoursForm({
   );
 }
 
+/**
+ * One day of the week. Spec 0007, AC-8.
+ *
+ * Closed on disables the two selects and clears them, which is exactly what a
+ * closed day is in the database: both times null. Closed off puts the venue's
+ * most common pair back, so a reopened day is never a blank row to fill in.
+ */
+function DayRow({ form, dayOfWeek }: { form: UseFormReturn<HoursFormValues>; dayOfWeek: number }) {
+  const index = form.getValues("days").findIndex((day) => day.dayOfWeek === dayOfWeek);
+  const name = DAY_NAMES[dayOfWeek];
+  const closed = form.watch(`days.${index}.closed`);
+
+  const toggle = (value: boolean) => {
+    form.setValue(`days.${index}.closed`, value, { shouldDirty: true });
+    if (value) {
+      form.setValue(`days.${index}.open`, "", { shouldDirty: true });
+      form.setValue(`days.${index}.close`, "", { shouldDirty: true });
+      form.clearErrors([`days.${index}.open`, `days.${index}.close`]);
+      return;
+    }
+    const pair = commonOpenPair(form.getValues("days"));
+    form.setValue(`days.${index}.open`, pair.open, { shouldDirty: true });
+    form.setValue(`days.${index}.close`, pair.close, { shouldDirty: true });
+  };
+
+  return (
+    <div className="border-border grid items-end gap-4 border-b pb-4 last:border-b-0 last:pb-0 sm:grid-cols-[8rem_1fr_1fr_auto]">
+      <p className="text-label sm:pb-2.5">{name}</p>
+
+      <TimeField
+        form={form}
+        name={`days.${index}.open`}
+        label="Opens"
+        options={OPEN_TIME_OPTIONS}
+        disabled={closed}
+        describedBy={name}
+      />
+      <TimeField
+        form={form}
+        name={`days.${index}.close`}
+        label="Closes"
+        options={CLOSE_TIME_OPTIONS}
+        disabled={closed}
+        describedBy={name}
+      />
+
+      <div className="flex items-center gap-2 sm:pb-2.5">
+        <Switch
+          id={`closed-${dayOfWeek}`}
+          checked={closed}
+          onCheckedChange={toggle}
+          aria-label={`${name} closed all day`}
+        />
+        <label htmlFor={`closed-${dayOfWeek}`} className="text-body">
+          Closed
+        </label>
+      </div>
+    </div>
+  );
+}
+
 function TimeField({
   form,
   name,
   label,
   options,
+  disabled,
+  describedBy,
 }: {
   form: UseFormReturn<HoursFormValues>;
-  name: "weekdayOpen" | "weekdayClose" | "weekendOpen" | "weekendClose";
+  name: `days.${number}.open` | `days.${number}.close`;
   label: string;
   options: readonly string[];
+  disabled: boolean;
+  describedBy: string;
 }) {
   return (
     <FormField
@@ -240,10 +295,13 @@ function TimeField({
       render={({ field }) => (
         <FormItem>
           <FormLabel>{label}</FormLabel>
-          <Select value={field.value} onValueChange={field.onChange}>
+          <Select value={field.value} onValueChange={field.onChange} disabled={disabled}>
             <FormControl>
-              <SelectTrigger className="w-full tabular-nums">
-                <SelectValue />
+              <SelectTrigger
+                className="w-full tabular-nums"
+                aria-label={`${describedBy} ${label.toLowerCase()}`}
+              >
+                <SelectValue placeholder={disabled ? "Closed" : "Pick a time"} />
               </SelectTrigger>
             </FormControl>
             <SelectContent>

@@ -7,10 +7,15 @@ import type { StaffReservation } from "./queries";
 /** Spec 0005, AC-8: a closure's end may move along the free run after its start. */
 
 const SETTINGS = {
-  weekdayOpen: "08:00",
-  weekdayClose: "13:00",
-  weekendOpen: "08:00",
-  weekendClose: "13:00",
+  days: [
+    { dayOfWeek: 0, open: "08:00", close: "13:00" },
+    { dayOfWeek: 1, open: "08:00", close: "13:00" },
+    { dayOfWeek: 2, open: "08:00", close: "13:00" },
+    { dayOfWeek: 3, open: "08:00", close: "13:00" },
+    { dayOfWeek: 4, open: "08:00", close: "13:00" },
+    { dayOfWeek: 5, open: "08:00", close: "13:00" },
+    { dayOfWeek: 6, open: "08:00", close: "13:00" },
+  ],
   slotMinutes: 60,
   bookingHorizonDays: 14,
   timezone: "Asia/Manila",

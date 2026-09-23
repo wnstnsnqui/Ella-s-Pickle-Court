@@ -110,8 +110,9 @@ export default async function ReportsPage({
       <ReportTiles totals={reportTotals} />
 
       <p className="text-caption text-muted-foreground">
-        Utilisation uses the venue&apos;s current opening hours and live courts, not the hours in
-        force on each day shown.
+        Utilisation uses the venue&apos;s current opening hours for each day of the week, and its
+        live courts, not the hours in force on each day shown. A day marked closed today therefore
+        reads as closed for the whole range.
       </p>
 
       <div className="flex flex-col gap-4">

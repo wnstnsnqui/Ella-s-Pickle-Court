@@ -107,10 +107,15 @@ describe("updateReservationSchema", () => {
 describe("closeTimeSchema and saveVenueSettingsSchema (spec 0007, AC-8)", () => {
   const base = {
     version: 1,
-    weekdayOpen: "06:00",
-    weekdayClose: "22:00",
-    weekendOpen: "06:00",
-    weekendClose: "23:00",
+    days: [
+      { dayOfWeek: 0, open: "06:00", close: "23:00" },
+      { dayOfWeek: 1, open: "06:00", close: "22:00" },
+      { dayOfWeek: 2, open: "06:00", close: "22:00" },
+      { dayOfWeek: 3, open: "06:00", close: "22:00" },
+      { dayOfWeek: 4, open: "06:00", close: "22:00" },
+      { dayOfWeek: 5, open: "06:00", close: "22:00" },
+      { dayOfWeek: 6, open: "06:00", close: "23:00" },
+    ],
     slotMinutes: 60,
     bookingHorizonDays: 30,
   };
@@ -122,13 +127,36 @@ describe("closeTimeSchema and saveVenueSettingsSchema (spec 0007, AC-8)", () => 
     expect(localTimeSchema.safeParse("24:00").success).toBe(false);
   });
 
+  /** The same week with one day changed, which is how the per day rules are read. */
+  const withDay = (dayOfWeek: number, patch: Record<string, string | null>) => ({
+    ...base,
+    days: base.days.map((day) => (day.dayOfWeek === dayOfWeek ? { ...day, ...patch } : day)),
+  });
+
   it("lets a day close at midnight but never open there", () => {
-    expect(saveVenueSettingsSchema.safeParse({ ...base, weekdayClose: "24:00" }).success).toBe(
+    expect(saveVenueSettingsSchema.safeParse(withDay(1, { close: "24:00" })).success).toBe(true);
+    expect(saveVenueSettingsSchema.safeParse(withDay(6, { open: "24:00" })).success).toBe(false);
+  });
+
+  // Spec 0007, AC-8: a closed day is both times absent, and never one of them.
+  it("takes a closed day as both times null and refuses half a day", () => {
+    expect(saveVenueSettingsSchema.safeParse(withDay(1, { open: null, close: null })).success).toBe(
       true,
     );
-    expect(saveVenueSettingsSchema.safeParse({ ...base, weekendOpen: "24:00" }).success).toBe(
-      false,
-    );
+    expect(saveVenueSettingsSchema.safeParse(withDay(1, { close: null })).success).toBe(false);
+    expect(saveVenueSettingsSchema.safeParse(withDay(1, { open: null })).success).toBe(false);
+  });
+
+  it("wants one row per day of the week, no more and no fewer", () => {
+    expect(
+      saveVenueSettingsSchema.safeParse({ ...base, days: base.days.slice(0, 6) }).success,
+    ).toBe(false);
+    expect(
+      saveVenueSettingsSchema.safeParse({
+        ...base,
+        days: [...base.days.slice(0, 6), { ...base.days[5] }],
+      }).success,
+    ).toBe(false);
   });
 
   it("carries the acknowledgement for the two step save", () => {

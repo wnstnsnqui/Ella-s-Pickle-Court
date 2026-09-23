@@ -50,6 +50,7 @@ export function sampleGrid(date: string): Grid {
     openTime: "06:00",
     closeTime: "20:00",
     slotMinutes: 60,
+    closed: false,
     courts: COURTS,
     rows,
   };

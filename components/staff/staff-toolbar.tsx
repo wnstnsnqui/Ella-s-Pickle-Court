@@ -1,6 +1,7 @@
 "use client";
 
 import { DayNav } from "@/components/day-nav";
+import { closedDaysOf } from "@/lib/schedule/grid";
 
 import { useStaffBoard } from "./staff-schedule-context";
 
@@ -14,6 +15,7 @@ export function StaffToolbar() {
         timezone={schedule.grid.timezone}
         horizonDays={schedule.horizonDays}
         now={schedule.now}
+        closedDays={closedDaysOf(schedule.hours)}
         allowPastPick
         className="w-fit"
         onNavigatingChange={setDayNavPending}

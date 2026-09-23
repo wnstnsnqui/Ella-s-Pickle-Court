@@ -306,6 +306,38 @@ export type Database = {
           },
         ];
       };
+      venue_hours: {
+        Row: {
+          changed_by: string | null;
+          close_time: string | null;
+          day_of_week: number;
+          open_time: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          changed_by?: string | null;
+          close_time?: string | null;
+          day_of_week: number;
+          open_time?: string | null;
+          updated_at?: string;
+        };
+        Update: {
+          changed_by?: string | null;
+          close_time?: string | null;
+          day_of_week?: number;
+          open_time?: string | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "venue_hours_changed_by_fkey";
+            columns: ["changed_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["user_id"];
+          },
+        ];
+      };
       venue_settings: {
         Row: {
           booking_horizon_days: number;
@@ -315,10 +347,6 @@ export type Database = {
           timezone: string;
           updated_at: string;
           version: number;
-          weekday_close: string;
-          weekday_open: string;
-          weekend_close: string;
-          weekend_open: string;
         };
         Insert: {
           booking_horizon_days?: number;
@@ -328,10 +356,6 @@ export type Database = {
           timezone?: string;
           updated_at?: string;
           version?: number;
-          weekday_close: string;
-          weekday_open: string;
-          weekend_close: string;
-          weekend_open: string;
         };
         Update: {
           booking_horizon_days?: number;
@@ -341,10 +365,6 @@ export type Database = {
           timezone?: string;
           updated_at?: string;
           version?: number;
-          weekday_close?: string;
-          weekday_open?: string;
-          weekend_close?: string;
-          weekend_open?: string;
         };
         Relationships: [
           {
@@ -429,6 +449,15 @@ export type Database = {
         Returns: undefined;
       };
       revoke_staff_invite: { Args: { p_id: string }; Returns: undefined };
+      save_venue_hours: {
+        Args: {
+          booking_horizon_days: number;
+          days: Json;
+          settings_version: number;
+          slot_minutes: number;
+        };
+        Returns: undefined;
+      };
       update_staff_role: {
         Args: {
           p_is_active: boolean;
