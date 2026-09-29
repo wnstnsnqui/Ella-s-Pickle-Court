@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle, TriangleAlert } from "lucide-react";
+import { SpinnerIcon, WarningIcon } from "@phosphor-icons/react";
 import { useForm } from "react-hook-form";
 
 import { BoardSheet } from "@/components/board-sheet";
@@ -68,14 +68,14 @@ export function CourtSheet({
       }
       footer={
         <Button type="submit" form="court-form" disabled={pending} className="w-full">
-          {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+          {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
           {pending ? "Saving" : editing ? "Save" : "Add court"}
         </Button>
       }
     >
       {stale ? (
         <Alert className="mb-4">
-          <TriangleAlert aria-hidden="true" />
+          <WarningIcon aria-hidden="true" />
           <AlertTitle>This court changed while you were editing</AlertTitle>
           <AlertDescription>
             The fresh values are loaded below. Check them, then save again.

@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
 
+import { DayBoundary } from "@/components/schedule/day-boundary";
+import { boardTitle } from "@/lib/schedule/board-day";
 import type { Schedule } from "@/lib/schedule/queries";
 
 import { usePublicSchedule, type PublicScheduleState } from "./use-public-schedule";
@@ -11,16 +13,14 @@ import { usePublicSchedule, type PublicScheduleState } from "./use-public-schedu
  *
  * Same shape as the staff board's context: the page is a server component with
  * two client regions that need the same state, the toolbar (day navigation and
- * the live indicator) and the board. The provider is keyed on the grid date by
- * the page, so a new day starts fresh from that day's server render.
+ * the live indicator) and the board. The day is the hook's (spec 0014): a day
+ * change is read in the browser, and `DayBoundary` gives each landed day a
+ * fresh board body while the provider and its channel stay mounted.
  */
 
 type PublicBoardContext = PublicScheduleState & {
-  /** The date in the URL, or undefined when the page means today (AC-10). */
-  requestedDate?: string;
-  /** A prev/next day tap is on its way, so the board can dim while it lands. */
+  /** A day change is on its way, so the board can dim while it lands. */
   dayNavPending: boolean;
-  setDayNavPending: (pending: boolean) => void;
 };
 
 const Context = createContext<PublicBoardContext | null>(null);
@@ -31,14 +31,22 @@ export function PublicScheduleProvider({
   children,
 }: {
   initial: Schedule;
+  /** The date in the URL the page was opened on, or undefined for today (AC-10). */
   requestedDate?: string;
   children: React.ReactNode;
 }) {
   const state = usePublicSchedule(initial, requestedDate);
-  const [dayNavPending, setDayNavPending] = useState(false);
+  const { date, schedule } = state;
+
+  // The tab names the day on screen, the same text `generateMetadata` gives
+  // that address on a reload (spec 0014, AC-10).
+  useEffect(() => {
+    document.title = boardTitle(date === undefined ? undefined : schedule.grid.date);
+  }, [date, schedule.grid.date]);
+
   return (
-    <Context.Provider value={{ ...state, requestedDate, dayNavPending, setDayNavPending }}>
-      {children}
+    <Context.Provider value={{ ...state, dayNavPending: state.pendingDate !== undefined }}>
+      <DayBoundary date={schedule.grid.date}>{children}</DayBoundary>
     </Context.Provider>
   );
 }

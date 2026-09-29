@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle, TriangleAlert } from "lucide-react";
+import { SpinnerIcon, WarningIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -97,14 +97,14 @@ export function EditSheet({
       }
       footer={
         <Button type="submit" form="edit-form" disabled={pending} className="w-full">
-          {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+          {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
           {pending ? "Saving" : stale ? "Save over the new version" : "Save"}
         </Button>
       }
     >
       {stale ? (
         <Alert className="mb-4">
-          <TriangleAlert aria-hidden="true" />
+          <WarningIcon aria-hidden="true" />
           <AlertTitle>This changed while you were editing</AlertTitle>
           <AlertDescription>
             The fresh values are shown under each field. Yours are still in the boxes.

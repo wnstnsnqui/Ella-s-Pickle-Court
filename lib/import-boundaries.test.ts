@@ -146,3 +146,36 @@ describe("the auth core is server-only", () => {
     },
   );
 });
+
+/**
+ * Spec 0003 and the icons rule in `AGENTS.md`: Phosphor's main entry reads
+ * React context, so a file without `"use client"` that imports it fails at
+ * render. Such a file uses `@phosphor-icons/react/ssr`. `lucide-react` was
+ * replaced by Phosphor and must not come back. Both are invisible to a Node
+ * test run and to the typecheck, which is why they are pinned here.
+ */
+describe("icons come from the right Phosphor entry, and never from lucide-react", () => {
+  const isClient = (source: string) => /^\s*["']use client["']/.test(source);
+
+  it('a file without "use client" imports Phosphor only from the /ssr entry', () => {
+    const offenders = files.filter((file) => {
+      const source = readFileSync(file, "utf8");
+      return !isClient(source) && importedModules(source).includes("@phosphor-icons/react");
+    });
+    expect(offenders.map((file) => relative(ROOT, file))).toEqual([]);
+  });
+
+  it("no file imports lucide-react", () => {
+    const offenders = files.filter((file) =>
+      /from\s+["']lucide-react["']/.test(readFileSync(file, "utf8")),
+    );
+    expect(offenders.map((file) => relative(ROOT, file))).toEqual([]);
+  });
+
+  it("finds Phosphor imports to check (sanity check)", () => {
+    const users = files.filter((file) =>
+      /from\s+["']@phosphor-icons\/react(\/ssr)?["']/.test(readFileSync(file, "utf8")),
+    );
+    expect(users.length).toBeGreaterThan(10);
+  });
+});

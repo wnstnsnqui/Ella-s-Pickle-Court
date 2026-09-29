@@ -1,4 +1,4 @@
-import { CalendarCheck, LockKeyhole, UserRound } from "lucide-react";
+import { CalendarCheckIcon, LockKeyIcon, UserIcon } from "@phosphor-icons/react/ssr";
 
 import { AppShell } from "@/components/app-shell";
 import { STAFF_ONLY_LINE } from "@/lib/auth/constants";
@@ -30,20 +30,20 @@ export function AuthSurface({
       <div className="grid items-start gap-8 py-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:gap-12">
         <div className="flex max-w-prose flex-col gap-6">
           <div className="flex flex-col gap-3">
-            <p className="text-label text-primary">Staff</p>
+            <p className="text-label text-link">Staff</p>
             <h1 className="text-display">{title}</h1>
             <p className="text-body text-muted-foreground">{lede}</p>
           </div>
 
           <ul className="flex flex-col gap-3">
-            <Point icon={CalendarCheck}>
+            <Point icon={CalendarCheckIcon}>
               Keep every court current from your phone or the desk tablet.
             </Point>
-            <Point icon={UserRound}>
+            <Point icon={UserIcon}>
               Your name goes on every booking and change you make, so the schedule stays
               trustworthy.
             </Point>
-            <Point icon={LockKeyhole}>
+            <Point icon={LockKeyIcon}>
               Accounts exist only through a link Ella made. Nobody without one can touch the
               schedule.
             </Point>

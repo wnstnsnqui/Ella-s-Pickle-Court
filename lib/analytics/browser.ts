@@ -5,7 +5,7 @@ import posthog from "posthog-js";
 import { posthogConfigured } from "@/lib/env";
 import type { StaffRole } from "@/lib/staff";
 
-import { parseEventProperties } from "./properties";
+import { parseEventProperties, type EventProperties } from "./properties";
 
 /**
  * Thin wrappers over `posthog-js` for the browser half of spec 0009. Each
@@ -41,4 +41,30 @@ export function captureDayViewed(dayOffset: number): void {
     return;
   }
   posthog.capture("board_day_viewed", parsed.data);
+}
+
+/**
+ * One cookieless `booking_intent` per press of "Request booking" on the
+ * landing page. Spec 0013, AC-14. Through the same allow list, and a no-op
+ * when analytics is unconfigured.
+ */
+export function captureBookingIntent(properties: EventProperties<"booking_intent">): void {
+  if (!posthogConfigured) return;
+  const parsed = parseEventProperties("booking_intent", properties);
+  if (!parsed.ok) {
+    console.warn(
+      `analytics: dropped "booking_intent", failed its allow list: ${parsed.issues.join(", ")}`,
+    );
+    return;
+  }
+  posthog.capture("booking_intent", parsed.data);
+}
+
+/**
+ * Report a browser side failure as a PostHog exception (spec 0013, AC-23). A
+ * no-op when analytics is unconfigured.
+ */
+export function captureBrowserException(error: unknown): void {
+  if (!posthogConfigured) return;
+  posthog.captureException(error);
 }

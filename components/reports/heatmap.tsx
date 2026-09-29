@@ -18,9 +18,9 @@ const WEEKDAY_LABEL: Record<number, string> = {
 
 function shadeClass(ratio: number): string {
   if (ratio <= 0) return "bg-background";
-  if (ratio <= 1 / 3) return "bg-primary/35";
-  if (ratio <= 2 / 3) return "bg-primary/65";
-  return "bg-primary";
+  if (ratio <= 1 / 3) return "bg-chart-1";
+  if (ratio <= 2 / 3) return "bg-chart-3";
+  return "bg-chart-5";
 }
 
 /**
@@ -85,15 +85,15 @@ export function Heatmap({
       </div>
       <div className="text-caption text-muted-foreground mt-3 flex items-center gap-3">
         <span className="flex items-center gap-1">
-          <span className="bg-primary/35 size-3 rounded-sm" />
+          <span className="bg-chart-1 size-3 rounded-sm" />
           Low
         </span>
         <span className="flex items-center gap-1">
-          <span className="bg-primary/65 size-3 rounded-sm" />
+          <span className="bg-chart-3 size-3 rounded-sm" />
           Medium
         </span>
         <span className="flex items-center gap-1">
-          <span className="bg-primary size-3 rounded-sm" />
+          <span className="bg-chart-5 size-3 rounded-sm" />
           High
         </span>
       </div>

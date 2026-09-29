@@ -13,6 +13,11 @@
  * - no wait is active. A `429` sets a wait from its `Retry-After`; a further
  *   `429` sets a fresh wait from its own header, never a compounding one.
  *
+ * A day change (spec 0014, AC-8) pauses the gate while its own read is in
+ * flight. Triggers during the pause still count; `resume()` lets one read
+ * through for them, under the same rules. The day read itself goes around the
+ * gate but is recorded with `markRead()`, so the floor counts it.
+ *
  * Pure and timer based, so it is tested with fake timers and no React.
  */
 export type ReadGateOptions = {
@@ -28,6 +33,7 @@ export class ReadGate {
   private lastReadAt = Number.NEGATIVE_INFINITY;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private disposed = false;
+  private paused = false;
 
   constructor(
     private readonly read: () => void,
@@ -48,6 +54,25 @@ export class ReadGate {
     if (this.wanted) this.schedule();
   }
 
+  /** Hold every read until `resume()`. Triggers meanwhile are remembered, not lost. */
+  pause(): void {
+    this.paused = true;
+    if (this.timer !== null) clearTimeout(this.timer);
+    this.timer = null;
+  }
+
+  /** End a pause. One read follows if anything was wanted meanwhile. */
+  resume(): void {
+    if (this.disposed || !this.paused) return;
+    this.paused = false;
+    if (this.wanted) this.schedule();
+  }
+
+  /** A read started outside the gate (a day change). It counts for the floor. */
+  markRead(): void {
+    this.lastReadAt = Date.now();
+  }
+
   /** Whether a wait is holding reads right now. */
   get waiting(): boolean {
     return this.waitUntil > Date.now();
@@ -65,6 +90,7 @@ export class ReadGate {
   }
 
   private schedule(): void {
+    if (this.paused) return;
     const now = Date.now();
     const due = Math.max(
       now + this.options.windowMs,
@@ -85,7 +111,7 @@ export class ReadGate {
 
   private fire(): void {
     this.timer = null;
-    if (this.disposed || !this.wanted) return;
+    if (this.disposed || this.paused || !this.wanted) return;
     if (this.waitUntil > Date.now()) {
       // A wait landed while the timer was running. Try again when it ends.
       this.schedule();

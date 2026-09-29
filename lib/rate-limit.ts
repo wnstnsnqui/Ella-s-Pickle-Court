@@ -90,3 +90,10 @@ export function clientAddress(headers: { get(name: string): string | null }): st
   const real = headers.get("x-real-ip")?.trim();
   return real || null;
 }
+
+/**
+ * The request header `proxy.ts` sets on a landing page request over the
+ * shared public read limit (spec 0013, AC-11). Here rather than in the proxy
+ * so the page can read the name without importing the proxy's own state.
+ */
+export const PUBLIC_READ_LIMITED_HEADER = "x-public-read-limited";

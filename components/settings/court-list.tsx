@@ -1,6 +1,13 @@
 "use client";
 
-import { Archive, ArrowDown, ArrowUp, LandPlot, Pencil, Plus } from "lucide-react";
+import {
+  ArchiveIcon,
+  ArrowDownIcon,
+  ArrowUpIcon,
+  CourtBasketballIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+} from "@phosphor-icons/react";
 
 import { EmptyState } from "@/components/schedule/empty-state";
 import { Button } from "@/components/ui/button";
@@ -35,24 +42,24 @@ export function CourtList({
   return (
     <SettingsSection
       id="courts"
-      icon={LandPlot}
+      icon={CourtBasketballIcon}
       title="Courts"
       description="One column each, in this order, on both boards."
       action={
         <Button type="button" size="sm" onClick={(event) => onAdd(event.currentTarget)}>
-          <Plus aria-hidden="true" />
+          <PlusIcon aria-hidden="true" />
           Add court
         </Button>
       }
     >
       {courts.length === 0 ? (
         <EmptyState
-          icon={LandPlot}
+          icon={CourtBasketballIcon}
           title="No courts yet"
           body="Add the first one and it becomes the first column on both boards."
           action={
             <Button type="button" onClick={(event) => onAdd(event.currentTarget)}>
-              <Plus aria-hidden="true" />
+              <PlusIcon aria-hidden="true" />
               Add court
             </Button>
           }
@@ -82,7 +89,7 @@ export function CourtList({
                   disabled={locked || index === 0}
                   onClick={() => onMove(court, "up")}
                 >
-                  <ArrowUp aria-hidden="true" />
+                  <ArrowUpIcon aria-hidden="true" />
                   <span className="sr-only">Move {court.name} up</span>
                 </Button>
                 <Button
@@ -93,7 +100,7 @@ export function CourtList({
                   disabled={locked || index === courts.length - 1}
                   onClick={() => onMove(court, "down")}
                 >
-                  <ArrowDown aria-hidden="true" />
+                  <ArrowDownIcon aria-hidden="true" />
                   <span className="sr-only">Move {court.name} down</span>
                 </Button>
                 <Button
@@ -102,7 +109,7 @@ export function CourtList({
                   size="sm"
                   onClick={(event) => onEdit(court, event.currentTarget)}
                 >
-                  <Pencil aria-hidden="true" />
+                  <PencilSimpleIcon aria-hidden="true" />
                   <span className="sr-only sm:not-sr-only">Edit</span>
                   <span className="sr-only"> {court.name}</span>
                 </Button>
@@ -113,7 +120,7 @@ export function CourtList({
                   className="text-destructive"
                   onClick={(event) => onRetire(court, event.currentTarget)}
                 >
-                  <Archive aria-hidden="true" />
+                  <ArchiveIcon aria-hidden="true" />
                   <span className="sr-only sm:not-sr-only">Retire</span>
                   <span className="sr-only"> {court.name}</span>
                 </Button>

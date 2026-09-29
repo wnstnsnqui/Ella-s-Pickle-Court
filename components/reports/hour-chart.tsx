@@ -40,7 +40,7 @@ export function HourChart({
             allowDecimals={false}
           />
           <Tooltip content={<ChartTooltip />} />
-          <Bar dataKey="bookedHours" fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="bookedHours" fill="var(--color-chart-3)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </div>
       <HiddenDataTable

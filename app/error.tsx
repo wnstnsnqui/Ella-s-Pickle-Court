@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleAlert } from "lucide-react";
+import { WarningCircleIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useEffect } from "react";
 import posthog from "posthog-js";
@@ -41,7 +41,7 @@ export default function Error({
       <Empty className="border-border bg-card max-w-md rounded-lg border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <CircleAlert aria-hidden="true" />
+            <WarningCircleIcon aria-hidden="true" />
           </EmptyMedia>
           <EmptyTitle>Something went wrong on our side</EmptyTitle>
           <EmptyDescription className="flex flex-col items-center gap-3">
@@ -51,7 +51,7 @@ export default function Error({
                 Try again
               </Button>
               <Button asChild variant="outline">
-                <Link href="/">Back to today</Link>
+                <Link href="/schedule">Back to today</Link>
               </Button>
             </div>
             {error.digest && (

@@ -128,4 +128,55 @@ describe("ReadGate", () => {
     vi.advanceTimersByTime(WINDOW * 2);
     expect(read).not.toHaveBeenCalled();
   });
+
+  it("holds every trigger while paused, then reads once on resume (spec 0014, AC-8)", () => {
+    const read = vi.fn();
+    const gate = new ReadGate(read, { windowMs: WINDOW, floorMs: FLOOR });
+
+    gate.pause();
+    gate.request();
+    vi.advanceTimersByTime(10_000);
+    gate.request();
+    vi.advanceTimersByTime(10_000);
+    expect(read).not.toHaveBeenCalled();
+
+    gate.resume();
+    vi.advanceTimersByTime(WINDOW);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops a timer already running when paused, and reads nothing on an idle resume", () => {
+    const read = vi.fn();
+    const gate = new ReadGate(read, { windowMs: WINDOW, floorMs: FLOOR });
+
+    gate.request();
+    gate.pause();
+    vi.advanceTimersByTime(WINDOW * 2);
+    expect(read).not.toHaveBeenCalled();
+
+    gate.resume();
+    vi.advanceTimersByTime(WINDOW);
+    expect(read).toHaveBeenCalledTimes(1);
+
+    gate.pause();
+    gate.resume();
+    vi.advanceTimersByTime(10_000);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it("counts a read started outside the gate for the floor (spec 0014, AC-8)", () => {
+    const read = vi.fn();
+    const gate = new ReadGate(read, { windowMs: WINDOW, floorMs: FLOOR });
+
+    gate.pause();
+    gate.markRead();
+    gate.request();
+    vi.advanceTimersByTime(500);
+    gate.resume();
+
+    vi.advanceTimersByTime(FLOOR - 500 - 1);
+    expect(read).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(read).toHaveBeenCalledTimes(1);
+  });
 });

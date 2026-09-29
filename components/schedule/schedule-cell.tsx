@@ -1,7 +1,7 @@
 "use client";
 
 import { cva, type VariantProps } from "class-variance-authority";
-import { Lock } from "lucide-react";
+import { LockIcon } from "@phosphor-icons/react";
 
 import { cn } from "@/lib/utils";
 
@@ -118,7 +118,7 @@ export function ScheduleCell({
     >
       <span className="flex items-center gap-1">
         <Icon aria-hidden="true" className={cn("size-4", view === "saving" && "animate-spin")} />
-        {locked ? <Lock aria-hidden="true" className="size-3" /> : null}
+        {locked ? <LockIcon aria-hidden="true" className="size-3" /> : null}
       </span>
       {caption ? (
         <span aria-hidden="true" className="text-caption w-full truncate px-1 text-center">

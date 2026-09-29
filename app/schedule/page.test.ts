@@ -3,12 +3,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Spec 0006, AC-1, AC-2, AC-11 and AC-12: `/` renders per request on the public
+ * Spec 0006, AC-1, AC-2, AC-11 and AC-12: `/schedule` renders per request on the public
  * read, refuses a day it cannot show with a way back to today, carries the venue
- * title on `/` and the day in the title on a dated link with a canonical of `/`,
- * and embeds the venue's opening hours as structured data.
+ * title on `/schedule` and the day in the title on a dated link with a canonical of `/schedule`.
+ * The venue's structured data moved to the landing page (spec 0013, AC-20).
  *
- * The shell, the menu, the toolbar and the board are boundaries here and are
+ * The shell, the menu, the toolbar, the board and its analytics are boundaries here and are
  * mocked to markers; what is under test is the page's own branching.
  */
 
@@ -22,6 +22,7 @@ vi.mock("@/components/staff-menu", () => ({ StaffMenu: () => null }));
 vi.mock("@/components/board/public-toolbar", () => ({
   PublicToolbar: () => createElement("div", { "data-toolbar": true }),
 }));
+vi.mock("@/components/board/board-day-viewed", () => ({ BoardDayViewed: () => null }));
 vi.mock("@/components/board/public-board", () => ({
   PublicBoard: () => createElement("div", { "data-board": true }),
 }));
@@ -69,7 +70,7 @@ beforeEach(() => {
   getSchedule.mockResolvedValue({ ok: true, data: schedule });
 });
 
-describe("/", () => {
+describe("/schedule", () => {
   it("renders per request (AC-1)", () => {
     expect(dynamic).toBe("force-dynamic");
   });
@@ -96,29 +97,27 @@ describe("/", () => {
     const html = await render("2026-01-01");
     expect(html).toContain("That day could not be shown");
     expect(html).toContain("That day has passed.");
-    expect(html).toContain('href="/"');
+    expect(html).toContain('href="/schedule"');
     expect(html).not.toContain("data-board");
   });
 
-  it("embeds the venue as structured data with the settings' hours (AC-11)", async () => {
+  it("leaves the venue's structured data to the landing page (spec 0013, AC-20)", async () => {
     const html = await render();
-    expect(html).toContain('type="application/ld+json"');
-    expect(html).toContain('"@type":"SportsActivityLocation"');
-    expect(html).toContain('"opens":"07:00","closes":"23:00"');
+    expect(html).not.toContain('type="application/ld+json"');
     expect(html).not.toMatch(/customer|amount/);
   });
 
-  it("keeps the venue title on / and points every page at / (AC-11)", async () => {
+  it("keeps the venue title on /schedule and points every page at /schedule (AC-11)", async () => {
     const meta = await generateMetadata(props());
     expect(meta.title).toBeUndefined();
-    expect(meta.alternates).toEqual({ canonical: "/" });
+    expect(meta.alternates).toEqual({ canonical: "/schedule" });
     expect(getSchedule).not.toHaveBeenCalled();
   });
 
-  it("puts the day in the title on a dated link, canonical to / (AC-11)", async () => {
+  it("puts the day in the title on a dated link, canonical to /schedule (AC-11)", async () => {
     const meta = await generateMetadata(props("2026-09-20"));
     expect(meta.title).toBe("Court schedule for Sun 20 Sep · Ella's Picklecourt");
-    expect(meta.alternates).toEqual({ canonical: "/" });
+    expect(meta.alternates).toEqual({ canonical: "/schedule" });
   });
 
   it("falls back to the venue title when a dated link cannot be shown (AC-11)", async () => {

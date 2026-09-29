@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle } from "lucide-react";
+import { SpinnerIcon } from "@phosphor-icons/react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
@@ -59,7 +59,7 @@ export function BookSheet({
       description={`${summary}. One booking per run, all under the same name.`}
       footer={
         <Button type="submit" form="book-form" disabled={pending} className="w-full">
-          {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+          {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
           {pending ? "Saving" : `Book ${summary}`}
         </Button>
       }

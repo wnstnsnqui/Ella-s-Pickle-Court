@@ -1,6 +1,13 @@
 "use client";
 
-import { Ban, CalendarCheck, Pencil, Phone, RotateCcw, Trash2 } from "lucide-react";
+import {
+  ArrowCounterClockwiseIcon,
+  CalendarCheckIcon,
+  PencilSimpleIcon,
+  PhoneIcon,
+  ProhibitIcon,
+  TrashIcon,
+} from "@phosphor-icons/react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -66,11 +73,15 @@ export function DetailsSheet({
         canChange ? (
           <div className="flex gap-2">
             <Button type="button" variant="outline" onClick={onEdit} className="flex-1">
-              <Pencil aria-hidden="true" />
+              <PencilSimpleIcon aria-hidden="true" />
               Edit
             </Button>
             <Button type="button" variant="destructive" onClick={onCancel} className="flex-1">
-              {booking ? <Trash2 aria-hidden="true" /> : <RotateCcw aria-hidden="true" />}
+              {booking ? (
+                <TrashIcon aria-hidden="true" />
+              ) : (
+                <ArrowCounterClockwiseIcon aria-hidden="true" />
+              )}
               {booking ? "Cancel booking" : "Reopen court"}
             </Button>
           </div>
@@ -85,7 +96,11 @@ export function DetailsSheet({
         <dt className="text-label text-muted-foreground">Status</dt>
         <dd>
           <Badge variant={booking ? "default" : "secondary"}>
-            {booking ? <CalendarCheck aria-hidden="true" /> : <Ban aria-hidden="true" />}
+            {booking ? (
+              <CalendarCheckIcon aria-hidden="true" />
+            ) : (
+              <ProhibitIcon aria-hidden="true" />
+            )}
             {booking ? "Booked" : "Unavailable"}
           </Badge>
         </dd>
@@ -100,9 +115,9 @@ export function DetailsSheet({
               {reservation.customerPhone ? (
                 <a
                   href={telHref(reservation.customerPhone)}
-                  className="text-primary inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
+                  className="text-link inline-flex items-center gap-1.5 underline-offset-4 hover:underline"
                 >
-                  <Phone aria-hidden="true" className="size-4" />
+                  <PhoneIcon aria-hidden="true" className="size-4" />
                   <span className="tabular-nums">{reservation.customerPhone}</span>
                 </a>
               ) : (

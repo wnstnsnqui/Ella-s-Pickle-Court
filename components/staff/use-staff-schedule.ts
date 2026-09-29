@@ -11,6 +11,8 @@ import { refreshStaffSchedule } from "@/lib/schedule/actions";
 import type { StaffSchedule } from "@/lib/schedule/queries";
 import { browserSupabase } from "@/lib/supabase/browser";
 
+import { staffTransportThrew, toStaffTransportResult } from "./staff-transport";
+
 /**
  * The staff board's listener. Spec 0005, AC-10 and invariant 4; spec 0004
  * (revised), AC-12.
@@ -28,21 +30,17 @@ import { browserSupabase } from "@/lib/supabase/browser";
 export type StaffScheduleState = ScheduleChannelState<StaffSchedule>;
 export type ScheduleListener = (fresh: StaffSchedule) => void;
 
-export function useStaffSchedule(initial: StaffSchedule, date: string): StaffScheduleState {
+/** `date` is where the board starts, undefined for today; the hook owns the day after that. */
+export function useStaffSchedule(initial: StaffSchedule, date?: string): StaffScheduleState {
   const client = useMemo(() => browserSupabase(), []);
 
+  // Which failures are worth a quiet retry lives in `staff-transport.ts` (spec 0014).
   const transport = useCallback<ScheduleTransport<StaffSchedule>>(async (day) => {
-    const result = await refreshStaffSchedule({ date: day });
-    if (result.ok) return { ok: true, data: result.data };
-    return {
-      ok: false,
-      message: result.error.message,
-      // The day fell past the horizon (spec 0007, AC-12): the hook shows today.
-      reason:
-        result.error.kind === "invalid" && result.error.reason === "out_of_range"
-          ? "out_of_range"
-          : undefined,
-    };
+    try {
+      return toStaffTransportResult(await refreshStaffSchedule({ date: day }));
+    } catch (error) {
+      return staffTransportThrew(error);
+    }
   }, []);
 
   return useScheduleChannel<StaffSchedule>({ client, initial, date, transport });

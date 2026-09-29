@@ -49,7 +49,7 @@ export function DayChart({ buckets }: { buckets: readonly DayBucket[] }) {
           <Tooltip content={<ChartTooltip />} />
           <Bar
             dataKey="bookedHours"
-            fill="var(--color-primary)"
+            fill="var(--color-chart-3)"
             radius={[4, 4, 0, 0]}
             className="cursor-pointer"
             onClick={(point: { payload?: { date: string } }) => {

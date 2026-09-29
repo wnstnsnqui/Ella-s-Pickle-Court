@@ -1,13 +1,13 @@
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import {
-  Ban,
-  CalendarCheck,
-  CircleCheck,
-  CircleDot,
-  LoaderCircle,
-  Moon,
-  TriangleAlert,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+  CalendarCheckIcon,
+  CheckCircleIcon,
+  MoonIcon,
+  ProhibitIcon,
+  RecordIcon,
+  SpinnerIcon,
+  WarningIcon,
+} from "@phosphor-icons/react/ssr";
 
 import type { CellState } from "@/lib/schedule/constants";
 
@@ -48,14 +48,14 @@ export const CELL_VIEW_NAME: Record<CellView, string> = {
 };
 
 /** One distinct shape per view, so the board still works in glare or greyscale. */
-export const CELL_VIEW_ICON: Record<CellView, LucideIcon> = {
-  available: CircleCheck,
-  booked: CalendarCheck,
-  unavailable: Ban,
-  "out-of-hours": Moon,
-  selected: CircleDot,
-  saving: LoaderCircle,
-  failed: TriangleAlert,
+export const CELL_VIEW_ICON: Record<CellView, PhosphorIcon> = {
+  available: CheckCircleIcon,
+  booked: CalendarCheckIcon,
+  unavailable: ProhibitIcon,
+  "out-of-hours": MoonIcon,
+  selected: RecordIcon,
+  saving: SpinnerIcon,
+  failed: WarningIcon,
 };
 
 /** A short line explaining each view, used by the legend and the design page. */

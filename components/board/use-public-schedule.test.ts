@@ -48,12 +48,47 @@ describe("publicTransport", () => {
         ),
     );
     const result = await publicTransport("2026-01-01");
-    expect(result).toEqual({ ok: false, message: "Past." });
+    expect(result).toEqual({ ok: false, message: "Past.", retry: false });
+  });
+
+  it("marks a thrown fetch and a 5xx as worth retrying, never a 429 (spec 0014, AC-5, AC-6)", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
+    expect(await publicTransport()).toMatchObject({ ok: false, retry: true });
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(respond(503, { ok: false, error: { message: "Down." } })),
+    );
+    expect(await publicTransport()).toEqual({ ok: false, message: "Down.", retry: true });
+
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(respond(429, {}, { "Retry-After": "9" })));
+    expect(await publicTransport()).toMatchObject({ ok: false, retry: false, retryAfterMs: 9_000 });
+  });
+
+  it("hands on an out of range day as such, not retried (spec 0014, AC-6)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          respond(422, { ok: false, error: { message: "Too far.", reason: "out_of_range" } }),
+        ),
+    );
+    expect(await publicTransport("2027-01-01")).toEqual({
+      ok: false,
+      message: "Too far.",
+      retry: false,
+      reason: "out_of_range",
+    });
   });
 
   it("copes with a body that is not JSON", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response("<html>", { status: 502 })));
     const result = await publicTransport();
-    expect(result).toMatchObject({ ok: false, message: expect.stringContaining("502") });
+    expect(result).toMatchObject({
+      ok: false,
+      message: expect.stringContaining("502"),
+      retry: true,
+    });
   });
 });

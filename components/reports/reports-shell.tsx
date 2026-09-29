@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeftIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -17,7 +17,7 @@ export function ReportsShell({ children }: { children: React.ReactNode }) {
       toolbar={
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link href="/staff">
-            <ArrowLeft aria-hidden="true" />
+            <ArrowLeftIcon aria-hidden="true" />
             Schedule
           </Link>
         </Button>

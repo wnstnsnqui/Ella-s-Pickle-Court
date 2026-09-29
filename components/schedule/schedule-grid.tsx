@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, LandPlot } from "lucide-react";
+import { CalendarDotsIcon, CourtBasketballIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Grid } from "@/lib/schedule/grid";
@@ -178,13 +178,13 @@ export function ScheduleGrid({
       <div className={className} aria-busy={busy}>
         {view.reason === "no-courts" ? (
           <EmptyState
-            icon={LandPlot}
+            icon={CourtBasketballIcon}
             title="No courts yet"
             body="Once a court is added to the venue it will show up here with its hours."
           />
         ) : (
           <EmptyState
-            icon={CalendarDays}
+            icon={CalendarDotsIcon}
             title="Closed all day"
             body="The venue is not open on this day. Try another one with the arrows above."
           />
@@ -245,11 +245,11 @@ export function ScheduleGrid({
                   ref={markerRef}
                   role="presentation"
                   data-now-marker
-                  className="text-caption text-primary col-span-full flex scroll-mt-28 items-center gap-2 py-1"
+                  className="text-caption text-link col-span-full flex scroll-mt-28 items-center gap-2 py-1"
                 >
-                  <span className="bg-primary h-px flex-1" aria-hidden="true" />
+                  <span className="bg-link h-px flex-1" aria-hidden="true" />
                   <span className="font-medium">Now</span>
-                  <span className="bg-primary h-px flex-1" aria-hidden="true" />
+                  <span className="bg-link h-px flex-1" aria-hidden="true" />
                 </div>
               ) : null}
               <div

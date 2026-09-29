@@ -1,18 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Outfit } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
+import { DEFAULT_TITLE } from "@/lib/schedule/board-day";
 import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
 
 import "./globals.css";
 
 /**
- * Inter, self hosted at build time (spec 0003, AC-15). `next/font` downloads the
+ * Outfit, self hosted at build time (spec 0003, AC-15). `next/font` downloads the
  * files during the build and serves them from our own origin, so no visitor's
- * address ever reaches a font host. Geist is gone with the starter.
+ * address ever reaches a font host. `app/globals.css` maps the variable to both
+ * `font-sans` and `font-heading`.
  */
-const inter = Inter({
-  variable: "--font-inter",
+const outfit = Outfit({
+  variable: "--font-outfit",
   subsets: ["latin"],
   display: "swap",
 });
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
   // localhost, and a shared link unfurls with a picture nobody else can load.
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: {
-    default: `${VENUE_NAME} · Court schedule`,
+    default: DEFAULT_TITLE,
     template: `%s · ${VENUE_NAME}`,
   },
   description: VENUE_TAGLINE,
@@ -30,12 +32,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "light",
-  themeColor: "#fffbea",
+  themeColor: "#ffffff",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html lang="en" className={`${outfit.variable} h-full antialiased`}>
       <body className="bg-background text-foreground flex min-h-full flex-col">
         {children}
         <Toaster />

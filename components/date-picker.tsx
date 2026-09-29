@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, LoaderCircle } from "lucide-react";
+import { CalendarDotsIcon, SpinnerIcon } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 
 import { BoardSheet } from "@/components/board-sheet";
@@ -152,9 +152,9 @@ export function DatePicker({
 
   const busy = pending || disabled;
   const icon = pending ? (
-    <LoaderCircle aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
+    <SpinnerIcon aria-hidden="true" className="animate-spin motion-reduce:animate-none" />
   ) : (
-    <CalendarDays aria-hidden="true" />
+    <CalendarDotsIcon aria-hidden="true" />
   );
 
   if (wide) {

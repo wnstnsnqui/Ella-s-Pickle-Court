@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { ListIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export function NavMenu({
           className={cn("lg:hidden", className)}
           aria-label="Menu"
         >
-          <Menu aria-hidden="true" />
+          <ListIcon aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent

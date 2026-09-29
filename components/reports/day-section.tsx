@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { XIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 
 import { firstName } from "@/components/staff/format";
@@ -28,7 +28,7 @@ export function DaySection({
         </h2>
         <Button asChild variant="ghost" size="sm">
           <Link href={closeHref}>
-            <X aria-hidden="true" />
+            <XIcon aria-hidden="true" />
             Close
           </Link>
         </Button>

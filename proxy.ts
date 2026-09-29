@@ -1,7 +1,7 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { clientAddress, SlidingWindow } from "@/lib/rate-limit";
+import { clientAddress, PUBLIC_READ_LIMITED_HEADER, SlidingWindow } from "@/lib/rate-limit";
 
 /**
  * Next.js 16 renamed Middleware to Proxy. Same job, different filename.
@@ -16,10 +16,11 @@ import { clientAddress, SlidingWindow } from "@/lib/rate-limit";
  * carried as `redirect`. The cookie's presence is all that is checked here;
  * `currentStaff()` verifies the session on the page.
  *
- * It is also where the public reads are rate limited (spec 0006, AC-8), before
- * any database work. Proxy runs on the Node.js runtime in Next.js 16
- * (`node_modules/next/dist/docs`, "Runtime"), so the module level window below
- * is one instance per container process.
+ * It is also where the public reads are rate limited (spec 0006, AC-8, and
+ * spec 0013, AC-11 for the landing page), before any database work. Proxy
+ * runs on the Node.js runtime in Next.js 16 (`node_modules/next/dist/docs`,
+ * "Runtime"), so the module level window below is one instance per container
+ * process.
  */
 
 /**
@@ -43,7 +44,8 @@ function toSignIn(request: NextRequest): NextResponse {
 }
 
 /**
- * The two public reads, capped per client address (spec 0006, AC-8). Sixty a
+ * The three public reads, `/`, `/schedule` and `/api/schedule`, capped per
+ * client address and counted together (spec 0006, AC-8; spec 0013, AC-11). Sixty a
  * minute is far above what a real player on a live board makes and far below
  * a scraper in a loop. A request with no forwarded address (direct traffic,
  * only in development or on a host that sets no header) is not limited,
@@ -61,7 +63,27 @@ const publicReads = new SlidingWindow({
 
 function isPublicRead(request: NextRequest): boolean {
   const { pathname } = request.nextUrl;
-  return request.method === "GET" && (pathname === "/" || pathname === "/api/schedule");
+  return (
+    request.method === "GET" &&
+    (pathname === "/" || pathname === "/schedule" || pathname === "/api/schedule")
+  );
+}
+
+/**
+ * The landing page is the front door, so it is never answered `429` (spec
+ * 0013, AC-11). It is counted in the same window as the board, and over the
+ * limit it is let through with `PUBLIC_READ_LIMITED_HEADER`, which the page
+ * reads to skip its schedule read and show the "message us to book" card.
+ * Only this file sets it: any incoming copy is deleted first, so forging it
+ * can only make a visitor skip their own read.
+ */
+function landing(limited: boolean, request: NextRequest): NextResponse {
+  const headers = new Headers(request.headers);
+  headers.delete(PUBLIC_READ_LIMITED_HEADER);
+  if (limited) headers.set(PUBLIC_READ_LIMITED_HEADER, "1");
+  // On the forwarded request, never the response: the page cannot read a
+  // response header (`node_modules/next/dist/docs`, proxy, "Setting Headers").
+  return NextResponse.next({ request: { headers } });
 }
 
 function tooManyRequests(request: NextRequest, retryAfterSeconds: number): NextResponse {
@@ -94,9 +116,10 @@ export default function proxy(request: NextRequest) {
   if (isIngest(request)) return NextResponse.next();
   if (isPublicRead(request)) {
     const address = clientAddress(request.headers);
-    if (address !== null) {
-      const decision = publicReads.hit(address);
-      if (!decision.allowed) return tooManyRequests(request, decision.retryAfterSeconds);
+    const decision = address === null ? null : publicReads.hit(address);
+    if (request.nextUrl.pathname === "/") return landing(decision?.allowed === false, request);
+    if (decision && !decision.allowed) {
+      return tooManyRequests(request, decision.retryAfterSeconds);
     }
   }
   if (isStaffRoute(request) && !getSessionCookie(request)) return toSignIn(request);

@@ -116,3 +116,22 @@ describe("scrubError", () => {
     });
   });
 });
+
+/** Spec 0013, AC-14: `booking_intent` carries three counts and nothing else. */
+describe("booking_intent", () => {
+  it("accepts the three counts", () => {
+    expect(parseEventProperties("booking_intent", { slots: 3, courts: 2, days_ahead: 1 }).ok).toBe(
+      true,
+    );
+  });
+
+  it("refuses anything that could name a day, an hour or a player", () => {
+    const result = parseEventProperties("booking_intent", {
+      slots: 3,
+      courts: 2,
+      days_ahead: 1,
+      date: "2026-09-27",
+    } as never);
+    expect(result.ok).toBe(false);
+  });
+});

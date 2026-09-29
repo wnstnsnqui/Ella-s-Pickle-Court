@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCw, TriangleAlert } from "lucide-react";
+import { ArrowsClockwiseIcon, WarningIcon } from "@phosphor-icons/react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,13 @@ import { Button } from "@/components/ui/button";
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <Alert variant="destructive" role="alert">
-      <TriangleAlert aria-hidden="true" />
+      <WarningIcon aria-hidden="true" />
       <AlertTitle>The schedule did not load</AlertTitle>
       <AlertDescription>
         <p>{message}</p>
         {onRetry ? (
           <Button variant="outline" size="sm" onClick={onRetry} className="mt-2">
-            <RefreshCw aria-hidden="true" />
+            <ArrowsClockwiseIcon aria-hidden="true" />
             Try again
           </Button>
         ) : null}

@@ -16,14 +16,13 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
+    "@phosphor-icons/react": "^2.1.10",
     "@supabase/supabase-js": "^2.114.0",
     "better-auth": "^1.7.5",
     "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
     "cn": "^0.3.0",
     "date-fns": "^4.4.0",
     "jose": "^6.2.12",
-    "lucide-react": "^1.43.0",
     "next": "16.3.3",
     "pg": "^8.23.0",
     "posthog-js": "^1.433.4",
@@ -35,8 +34,8 @@
     "react-hook-form": "^7.88.0",
     "recharts": "^3.10.1",
     "server-only": "^0.0.1",
+    "shadcn": "^4.21.0",
     "sonner": "^2.0.8",
-    "tailwind-merge": "^3.6.0",
     "zod": "^4.5.4"
   },
   "devDependencies": {

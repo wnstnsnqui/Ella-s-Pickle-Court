@@ -16,6 +16,24 @@ const nextConfig: NextConfig = {
   // PostHog's SDK is initialised with `api_host: "/ingest"`, and these three
   // rewrites forward that traffic on to PostHog's US cloud hosts.
   skipTrailingSlashRedirect: true,
+  // Phosphor exports well over a thousand icons from one barrel and, unlike
+  // lucide-react, is not on Next's built in list, so load only the ones imported.
+  experimental: {
+    optimizePackageImports: ["@phosphor-icons/react"],
+  },
+  // Spec 0013, AC-21: the board moved to `/schedule`, so an old shared
+  // `/?date=` link lands on that day's board. Next passes the query through
+  // unchanged, and the board validates the date as it always has.
+  async redirects() {
+    return [
+      {
+        source: "/",
+        has: [{ type: "query", key: "date" }],
+        destination: "/schedule",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {
