@@ -70,3 +70,24 @@ describe("venueJsonLd", () => {
     expect(specs(uniform.map((day) => ({ ...day, open: null, close: null })))).toEqual([]);
   });
 });
+
+/** Spec 0013, AC-20: the address, with the street once it is real, and the pin. */
+describe("venueJsonLd address", () => {
+  it("names the street, locality, region and country", () => {
+    expect(venueJsonLd({ days: uniform }, "https://example.test").address).toEqual({
+      "@type": "PostalAddress",
+      streetAddress: "Cadulawan Road, Guindaruhan",
+      addressLocality: "Minglanilla",
+      addressRegion: "Cebu",
+      addressCountry: "PH",
+    });
+  });
+
+  it("pins the venue's coordinates", () => {
+    expect(venueJsonLd({ days: uniform }, "https://example.test").geo).toEqual({
+      "@type": "GeoCoordinates",
+      latitude: 10.2691812,
+      longitude: 123.7750599,
+    });
+  });
+});

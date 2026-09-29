@@ -1,4 +1,4 @@
-import { CircleAlert, UserRoundX } from "lucide-react";
+import { UserMinusIcon, WarningCircleIcon } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -43,7 +43,11 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
   if (current.kind === "signed_out") {
     // The proxy makes this unreachable; said plainly rather than left to chance.
     return (
-      <BoardNotice heading="Staff schedule" icon={CircleAlert} title="Sign in to see the schedule">
+      <BoardNotice
+        heading="Staff schedule"
+        icon={WarningCircleIcon}
+        title="Sign in to see the schedule"
+      >
         <Button asChild>
           <Link href="/sign-in">Staff sign in</Link>
         </Button>
@@ -53,7 +57,11 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
 
   if (current.kind === "error") {
     return (
-      <BoardNotice heading="Staff schedule" icon={CircleAlert} title="Could not load your account">
+      <BoardNotice
+        heading="Staff schedule"
+        icon={WarningCircleIcon}
+        title="Could not load your account"
+      >
         The venue database did not answer in time. Reload in a moment, and if it keeps happening
         tell Ella.
       </BoardNotice>
@@ -62,7 +70,11 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
 
   if (!current.staff.isActive) {
     return (
-      <BoardNotice heading="Staff schedule" icon={UserRoundX} title="Your account is switched off">
+      <BoardNotice
+        heading="Staff schedule"
+        icon={UserMinusIcon}
+        title="Your account is switched off"
+      >
         You are signed in, but this account can no longer change the schedule. Ask Ella if you think
         that is a mistake. You can still sign out from the header.
       </BoardNotice>
@@ -73,7 +85,11 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
 
   if (!result.ok) {
     return (
-      <BoardNotice heading="Staff schedule" icon={CircleAlert} title="That day could not be shown">
+      <BoardNotice
+        heading="Staff schedule"
+        icon={WarningCircleIcon}
+        title="That day could not be shown"
+      >
         <p>{result.error.message}</p>
         <Button asChild variant="outline">
           <Link href="/staff">Back to today</Link>
@@ -83,11 +99,11 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
   }
 
   return (
+    // Not keyed on the day: a day change is read in the browser (spec 0014),
+    // and the provider's `DayBoundary` gives each landed day its fresh board.
     <StaffScheduleProvider
-      // A new day is a new board: every piece of browser state starts fresh.
-      key={result.data.grid.date}
       initial={result.data}
-      date={result.data.grid.date}
+      date={date}
       viewer={{ userId: session?.user.id ?? "", role: current.staff.role }}
     >
       <AppShell

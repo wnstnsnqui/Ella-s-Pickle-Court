@@ -1,6 +1,6 @@
 "use client";
 
-import { LogOut, UserRound } from "lucide-react";
+import { SignOutIcon, UserIcon } from "@phosphor-icons/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -25,7 +25,7 @@ export function AccountButton({ name }: { name: string }) {
   return (
     <Button asChild variant="ghost" size="sm" title={`Your account (${name})`}>
       <Link href={ACCOUNT_PAGE}>
-        <UserRound aria-hidden="true" />
+        <UserIcon aria-hidden="true" />
         <span className="max-w-32 truncate">{firstName(name)}</span>
         <span className="sr-only">, your account</span>
       </Link>
@@ -74,7 +74,7 @@ export function SignOutButton({
       title="Sign out"
       className={className}
     >
-      <LogOut aria-hidden="true" />
+      <SignOutIcon aria-hidden="true" />
       <span>Sign out</span>
     </Button>
   );

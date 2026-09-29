@@ -15,7 +15,7 @@ no-op, so development and `next build` are unaffected.
 | `properties.ts`      | The event allow list: one `.strict()` Zod schema per event name, plus `scrubError()`. Nothing reaches PostHog that isn't named here first. |
 | `server.ts`          | `captureStaffEvent()`, `reportFailure()`, and the `posthog-node` singleton. Server only (`server-only` import). |
 | `register-node.ts`   | The Node.js runtime half of `instrumentation.ts`'s `register()` (the SIGTERM shutdown hook), split out so `process.on` never reaches the Edge Runtime's bundle. |
-| `browser.ts`         | `identifyStaff()`, `resetIdentity()`, `captureDayViewed()`: thin `posthog-js` wrappers, all no-ops when unconfigured. |
+| `browser.ts`         | `identifyStaff()`, `resetIdentity()`, `captureDayViewed()`, `captureBookingIntent()` (the landing page, spec 0013), `captureBrowserException()`: thin `posthog-js` wrappers, all no-ops when unconfigured. |
 
 Root convention files `instrumentation-client.ts` and `instrumentation.ts` (client init and
 `onRequestError`) live outside this folder, per Next.js's own convention, but are part of the

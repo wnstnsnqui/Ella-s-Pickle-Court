@@ -108,7 +108,7 @@ const PAIRS: Array<{ fg: string; bg: string; need: ContrastNeed; what: string }>
   { fg: "--destructive", bg: "--background", need: "boundary", what: "Error text and icon" },
   // The auth forms (spec 0004, AC-16) put these on `--card`.
   { fg: "--muted-foreground", bg: "--card", need: "body", what: "Quiet text on a card" },
-  { fg: "--primary", bg: "--card", need: "body", what: "Link on a card" },
+  { fg: "--link", bg: "--card", need: "body", what: "Link on a card" },
   { fg: "--input", bg: "--card", need: "boundary", what: "Input boundary on a card" },
   { fg: "--destructive", bg: "--card", need: "boundary", what: "Error text and icon on a card" },
 ];

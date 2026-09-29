@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle, TriangleAlert } from "lucide-react";
+import { SpinnerIcon, WarningIcon } from "@phosphor-icons/react";
 
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ export function FormError({ message }: { message: string | null }) {
   if (!message) return null;
   return (
     <Alert variant="destructive" role="alert">
-      <TriangleAlert aria-hidden="true" />
+      <WarningIcon aria-hidden="true" />
       <AlertDescription>{message}</AlertDescription>
     </Alert>
   );
@@ -39,7 +39,7 @@ export function SubmitButton({
 }) {
   return (
     <Button type="submit" disabled={pending} className={cn("w-full", className)}>
-      {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+      {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
       {pending ? pendingLabel : children}
     </Button>
   );

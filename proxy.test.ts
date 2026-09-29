@@ -91,6 +91,7 @@ describe("proxy", () => {
 
   it.each([
     "/",
+    "/schedule",
     "/sign-in",
     "/sign-up",
     "/sign-up/abc",
@@ -113,7 +114,7 @@ describe("proxy", () => {
     const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
     const address = "203.0.113.20";
     for (let i = 0; i <= PUBLIC_READ_LIMIT; i += 1) {
-      await proxy(request("/", { "x-forwarded-for": address }) as never);
+      await proxy(request("/schedule", { "x-forwarded-for": address }) as never);
     }
     const ingest = (await proxy(
       request("/ingest/e/", { "x-forwarded-for": address }, "POST") as never,
@@ -127,14 +128,14 @@ describe("proxy", () => {
    * Auth's own endpoints are never seen by this limiter.
    */
   describe("public read limit", () => {
-    const from = (address: string, pathname = "/") =>
+    const from = (address: string, pathname = "/schedule") =>
       request(pathname, { "x-forwarded-for": address }) as never;
 
     it("answers 429 with Retry-After on the 61st read from one address inside a minute", async () => {
       const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
       for (let i = 0; i < PUBLIC_READ_LIMIT; i += 1) {
         const response = (await proxy(
-          from("203.0.113.9", i % 2 ? "/" : "/api/schedule"),
+          from("203.0.113.9", i % 2 ? "/schedule" : "/api/schedule"),
         )) as Response;
         expect(response.status).not.toBe(429);
       }
@@ -155,6 +156,42 @@ describe("proxy", () => {
       expect(await refused.json()).toMatchObject({ ok: false, error: { kind: "rate_limited" } });
     });
 
+    /**
+     * Spec 0013, AC-11: `/` shares the window, is never answered 429, and
+     * over the limit is passed through with a request header the page reads.
+     * Next carries a forwarded request header as `x-middleware-request-<name>`.
+     */
+    const limitedHeader = (response: Response) =>
+      response.headers.get("x-middleware-request-x-public-read-limited");
+
+    it("counts / in the shared window and passes it through over the limit, never 429 (spec 0013, AC-11)", async () => {
+      const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
+      for (let i = 0; i < PUBLIC_READ_LIMIT; i += 1) {
+        const response = (await proxy(
+          from("203.0.113.20", i % 2 ? "/" : "/api/schedule"),
+        )) as Response;
+        expect(response.status).not.toBe(429);
+        if (i % 2) expect(limitedHeader(response)).toBeNull();
+      }
+      const landing = (await proxy(from("203.0.113.20", "/"))) as Response;
+      expect(landing.status).toBe(200);
+      expect(limitedHeader(landing)).toBe("1");
+      // The landing visits spent the same budget as the board's reads.
+      const board = (await proxy(from("203.0.113.20", "/schedule"))) as Response;
+      expect(board.status).toBe(429);
+    });
+
+    it("strips a forged limited header on / under the limit (spec 0013, AC-11)", async () => {
+      const proxy = (await import("./proxy")).default;
+      const response = (await proxy(
+        request("/", { "x-forwarded-for": "203.0.113.21", "x-public-read-limited": "1" }) as never,
+      )) as Response;
+      expect(limitedHeader(response)).toBeNull();
+      expect(response.headers.get("x-middleware-override-headers")).not.toContain(
+        "x-public-read-limited",
+      );
+    });
+
     it("keeps a second address on its own bucket", async () => {
       const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
       for (let i = 0; i <= PUBLIC_READ_LIMIT; i += 1) await proxy(from("203.0.113.11"));
@@ -165,7 +202,7 @@ describe("proxy", () => {
     it("never limits a request with no forwarded address", async () => {
       const { default: proxy, PUBLIC_READ_LIMIT } = await import("./proxy");
       for (let i = 0; i <= PUBLIC_READ_LIMIT + 5; i += 1) {
-        const response = (await proxy(request("/") as never)) as Response;
+        const response = (await proxy(request("/schedule") as never)) as Response;
         expect(response.status).not.toBe(429);
       }
     });

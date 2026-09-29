@@ -1,4 +1,11 @@
-import { CalendarDays, ChartColumn, CircleAlert, Settings2, UserRoundX, Users } from "lucide-react";
+import {
+  CalendarDotsIcon,
+  ChartBarIcon,
+  SlidersHorizontalIcon,
+  UserMinusIcon,
+  UsersIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 
 import { AccountButton, SignOutButton } from "@/components/staff-controls";
@@ -28,7 +35,7 @@ export async function StaffMenu() {
   if (current.kind === "error") {
     return (
       <>
-        <StaffNotice icon={CircleAlert}>Could not load your account</StaffNotice>
+        <StaffNotice icon={WarningCircleIcon}>Could not load your account</StaffNotice>
         <SignOutButton className="order-last" />
       </>
     );
@@ -37,7 +44,7 @@ export async function StaffMenu() {
   if (!current.staff.isActive) {
     return (
       <>
-        <StaffNotice icon={UserRoundX}>Your account is switched off</StaffNotice>
+        <StaffNotice icon={UserMinusIcon}>Your account is switched off</StaffNotice>
         <SignOutButton className="order-last" />
       </>
     );
@@ -48,7 +55,7 @@ export async function StaffMenu() {
       {/* The way to the staff board from anywhere else (spec 0005, AC-1). */}
       <Button asChild variant="ghost" size="sm" title="Schedule">
         <Link href="/staff">
-          <CalendarDays aria-hidden="true" />
+          <CalendarDotsIcon aria-hidden="true" />
           <span>Schedule</span>
         </Link>
       </Button>
@@ -58,13 +65,13 @@ export async function StaffMenu() {
         <>
           <Button asChild variant="ghost" size="sm" title="Reports">
             <Link href="/staff/reports">
-              <ChartColumn aria-hidden="true" />
+              <ChartBarIcon aria-hidden="true" />
               <span>Reports</span>
             </Link>
           </Button>
           <Button asChild variant="ghost" size="sm" title="Settings">
             <Link href="/staff/settings">
-              <Settings2 aria-hidden="true" />
+              <SlidersHorizontalIcon aria-hidden="true" />
               <span>Settings</span>
             </Link>
           </Button>
@@ -74,7 +81,7 @@ export async function StaffMenu() {
       {canManageStaffRoles(current.staff.role) ? (
         <Button asChild variant="ghost" size="sm" title="Users">
           <Link href="/staff/admin/users">
-            <Users aria-hidden="true" />
+            <UsersIcon aria-hidden="true" />
             <span>Users</span>
           </Link>
         </Button>

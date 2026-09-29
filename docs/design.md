@@ -15,13 +15,18 @@ you change a token, look there first.
 
 ## Character
 
-Sunset Club. Retro sport with real warmth: a soft cream canvas, a golden yellow header band with dark
-type, deep teal as the brand ink, teal for a free hour and tangerine for a taken one. The energy sits
-in the header and the cells; everything between them stays quiet so the grid still reads in a hurry,
-by a player squinting at a phone in daylight and by a staff member glancing between rallies. At
-night the band steps back to the page colour and the mark alone carries the yellow.
+The shadcn preset [`bQEdqZEKm`](https://ui.shadcn.com/create?preset=bQEdqZEKm): style maia, stone
+neutrals, a yellow theme, Phosphor icons, and Outfit for all type. A clean
+white page, a sunny yellow header band with dark type, and deep amber wherever yellow would be too
+pale to read. Teal for a free hour and tangerine for a taken one stay, because they are the grid's
+meaning rather than decoration. The energy sits in the header and the cells; everything between them
+stays quiet so the grid still reads in a hurry, by a player squinting at a phone in daylight and by a
+staff member glancing between rallies.
 
-_Chosen on 2026-09-12 from three directions on the [colour canvas](https://claude.ai/code/artifact/5fd14971-b09d-4fc9-a8cd-089221746d23); it replaces the near neutral first palette from spec 0003._
+_Adopted on 2026-09-25 with `npx shadcn@latest apply --preset bQEdqZEKm`; it replaces the Sunset
+Club palette chosen on 2026-09-12. Preset values that missed an AC-4 contrast pair were nudged darker
+along the same hue, and `app/globals.css` marks each one. The type is Outfit rather than the
+preset's Roboto Slab and Inter, chosen on 2026-09-26._
 
 ## Build mandate
 
@@ -42,14 +47,18 @@ _Chosen on 2026-09-12 from three directions on the [colour canvas](https://claud
 
 ## Type
 
-Inter, and nothing else. It is self hosted through `next/font`, downloaded at build time and served
-from our own origin, so no visitor's address ever reaches a font host.
+Outfit, and nothing else: `font-sans` on `<body>`, and `font-heading` (applied to `h1` to `h6` in
+the base layer and used by the shadcn titles) points at the same face. It is self hosted through `next/font`, downloaded at build time and served from our own origin, so no
+visitor's address ever reaches a font host.
 
-Six steps, and nothing in this project sets a font size any other way. Each is a Tailwind utility
+Six steps, plus two marketing steps (`text-hero`, `text-headline`) that only the landing page at
+`/` uses, and nothing in this project sets a font size any other way. Each is a Tailwind utility
 that carries its size, line height and weight together, so you cannot take one without the others:
 
 | Utility        | Used for                                                     |
 | -------------- | ------------------------------------------------------------ |
+| `text-hero`    | The landing page's one headline, fluid with the viewport      |
+| `text-headline`| Landing page section headings, fluid with the viewport        |
 | `text-display` | The one page title                                            |
 | `text-title`   | Section headings, the wordmark                                |
 | `text-body`    | Paragraphs, descriptions, the default on `<body>`             |
@@ -71,9 +80,12 @@ picks which half is in force, and only the semantic names are ever used:
 
 - **Surface**: `--background`, `--foreground`, `--card`, `--muted`, `--muted-foreground`,
   `--accent`, `--secondary`, `--border`, `--input`, `--ring`, `--overlay`.
-- **Accent**: `--primary` (deep teal, the one colour buttons and links wear), `--brand` (the golden
-  header band, which becomes the page colour at night), `--mark` (the letter badge in the wordmark),
-  `--destructive`, and each one's `-foreground`.
+- **Accent**: `--primary` (the preset yellow that buttons wear), `--link` (deep amber, for anything
+  that reads as a link or accent text, because yellow on white lands near 1.5:1), `--brand` (the
+  yellow header band), `--mark` (the letter badge in the wordmark), `--destructive`, and each one's
+  `-foreground`.
+- **Charts**: `--chart-1` to `--chart-5`, the preset's yellow ramp from lightest to darkest. Charts
+  and the heatmap use these, never `--primary`.
 - **State**: five roles the grid owns, each with a fill, a `-fg` and a `-border`:
   `--state-available`, `--state-booked`, `--state-unavailable`, `--state-outofhours`,
   `--state-selected`.
@@ -104,15 +116,15 @@ The database knows three states. A reader sees seven, because four of them are t
 knows and Postgres has no business storing. `CELL_STATES` in `lib/schedule/constants.ts` stays at
 three forever; the seven live in `components/schedule/cell-view.ts` as `CellView`.
 
-| View          | Where it comes from                                   | Icon            |
+| View          | Where it comes from                                   | Icon (Phosphor) |
 | ------------- | ----------------------------------------------------- | --------------- |
-| Available     | `CellState` from `lib/schedule/grid.ts`               | `circle-check`  |
+| Available     | `CellState` from `lib/schedule/grid.ts`               | `check-circle`  |
 | Booked        | `CellState`                                            | `calendar-check`|
-| Unavailable   | `CellState`                                            | `ban`           |
+| Unavailable   | `CellState`                                            | `prohibit`      |
 | Out of hours  | `GridRow.outOfHours`, a row flag over a real state      | `moon`          |
-| Selected      | Browser state only                                     | `circle-dot`    |
-| Saving        | A Server Action in flight                              | `loader-circle` |
-| Failed        | A Server Action that was refused                       | `triangle-alert`|
+| Selected      | Browser state only                                     | `record`        |
+| Saving        | A Server Action in flight                              | `spinner`       |
+| Failed        | A Server Action that was refused                       | `warning`       |
 
 Precedence, most urgent outward: failed, saving, selected, out of hours, then the derived state.
 `cellViewFor` is the only place that decides it.

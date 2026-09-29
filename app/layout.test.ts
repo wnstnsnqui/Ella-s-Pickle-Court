@@ -4,20 +4,20 @@ import { describe, expect, it, vi } from "vitest";
 import { VENUE_NAME, VENUE_TAGLINE } from "@/lib/venue";
 
 /**
- * Spec 0003, AC-15 (Inter, self hosted through `next/font`).
+ * Spec 0003, AC-15 (Outfit, self hosted through `next/font`).
  *
  * The root layout is a server component. Its element tree is inspected
  * rather than rendered: `<html>` and `<body>` are what matter.
  */
 
 // `next/font/google` is a build time transform. Outside `next build` it must be
-// stood in for; what matters here is that the layout asks for Inter and puts its
+// stood in for; what matters here is that the layout asks for Outfit and puts its
 // variable on `<html>`.
-const inter = vi.fn<(opts: unknown) => { variable: string; className: string }>(() => ({
-  variable: "--font-inter",
-  className: "inter",
+const outfit = vi.fn<(opts: unknown) => { variable: string; className: string }>(() => ({
+  variable: "--font-outfit",
+  className: "outfit",
 }));
-vi.mock("next/font/google", () => ({ Inter: (opts: unknown) => inter(opts) }));
+vi.mock("next/font/google", () => ({ Outfit: (opts: unknown) => outfit(opts) }));
 
 const Toaster = () => null;
 vi.mock("@/components/ui/sonner", () => ({ Toaster }));
@@ -49,12 +49,12 @@ describe("RootLayout", () => {
     expect(html!.props.lang).toBe("en");
   });
 
-  it("loads Inter through next/font, self hosted, and puts its variable on <html> (AC-15)", async () => {
+  it("loads Outfit through next/font, self hosted, and puts its variable on <html> (AC-15)", async () => {
     const html = find(await renderTree(), "html");
-    expect(inter).toHaveBeenCalledWith(
-      expect.objectContaining({ variable: "--font-inter", subsets: ["latin"] }),
+    expect(outfit).toHaveBeenCalledWith(
+      expect.objectContaining({ variable: "--font-outfit", subsets: ["latin"] }),
     );
-    expect(html!.props.className).toContain("--font-inter");
+    expect(html!.props.className).toContain("--font-outfit");
   });
 
   it("paints the body with the background and foreground tokens", async () => {
@@ -79,7 +79,7 @@ describe("viewport", () => {
 
   it("gives the browser a theme colour", async () => {
     const { viewport } = await import("./layout");
-    expect(viewport.themeColor).toBe("#fffbea");
+    expect(viewport.themeColor).toBe("#ffffff");
   });
 });
 

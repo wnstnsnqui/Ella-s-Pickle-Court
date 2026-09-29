@@ -7,18 +7,19 @@ import { useStaffBoard } from "./staff-schedule-context";
 
 /** The strip under the brand band: which day. */
 export function StaffToolbar() {
-  const { schedule, date, setDayNavPending } = useStaffBoard();
+  const { schedule, pendingDate, goToDay } = useStaffBoard();
   return (
     <div className="flex items-center justify-between gap-3">
       <DayNav
-        date={date}
+        date={schedule.grid.date}
+        pendingDate={pendingDate}
+        onNavigate={goToDay}
         timezone={schedule.grid.timezone}
         horizonDays={schedule.horizonDays}
         now={schedule.now}
         closedDays={closedDaysOf(schedule.hours)}
         allowPastPick
         className="w-fit"
-        onNavigatingChange={setDayNavPending}
       />
     </div>
   );

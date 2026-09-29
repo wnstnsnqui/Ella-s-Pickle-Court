@@ -1,6 +1,14 @@
 "use client";
 
-import { Check, Copy, KeyRound, Link2, LoaderCircle, Plus, UserPlus } from "lucide-react";
+import {
+  CheckIcon,
+  CopyIcon,
+  KeyIcon,
+  LinkSimpleIcon,
+  PlusIcon,
+  SpinnerIcon,
+  UserPlusIcon,
+} from "@phosphor-icons/react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
@@ -109,14 +117,14 @@ export function InvitePanel({
           </p>
         </div>
         <Button type="button" onClick={() => setMakeOpen(true)}>
-          <Plus aria-hidden="true" />
+          <PlusIcon aria-hidden="true" />
           Make a link
         </Button>
       </div>
 
       {links.length === 0 ? (
         <EmptyState
-          icon={Link2}
+          icon={LinkSimpleIcon}
           title="No links waiting"
           body="A link disappears from here once it is opened, revoked or seven days old. If someone's sign up failed after they opened their link, it is spent: make them a new one."
         />
@@ -130,9 +138,9 @@ export function InvitePanel({
               >
                 <Badge variant={link.kind === "invite" ? "default" : "secondary"}>
                   {link.kind === "invite" ? (
-                    <UserPlus aria-hidden="true" />
+                    <UserPlusIcon aria-hidden="true" />
                   ) : (
-                    <KeyRound aria-hidden="true" />
+                    <KeyIcon aria-hidden="true" />
                   )}
                   {link.kind === "invite" ? "Invite" : "Reset"}
                 </Badge>
@@ -155,7 +163,7 @@ export function InvitePanel({
                   onClick={() => void revoke(link)}
                 >
                   {busyId === link.id ? (
-                    <LoaderCircle aria-hidden="true" className="animate-spin" />
+                    <SpinnerIcon aria-hidden="true" className="animate-spin" />
                   ) : null}
                   Revoke
                 </Button>
@@ -318,7 +326,7 @@ function MakeLinkDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={pending}>
-              {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+              {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
               {pending ? "Making" : "Make link"}
             </Button>
           </DialogFooter>
@@ -377,7 +385,7 @@ function ShowLinkDialog({
               className="text-caption font-mono"
             />
             <Button type="button" variant="outline" onClick={() => void copy()}>
-              {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+              {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>

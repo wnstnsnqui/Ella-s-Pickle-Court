@@ -1,6 +1,6 @@
 "use client";
 
-import { Ban, CalendarPlus, X } from "lucide-react";
+import { CalendarPlusIcon, ProhibitIcon, XIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { describeSummary, summarizeRuns, type SelectionRun } from "@/lib/schedule/selection";
@@ -52,17 +52,17 @@ export function SelectionBar({
           </ul>
         </div>
         <Button type="button" variant="ghost" size="sm" onClick={onClear}>
-          <X aria-hidden="true" />
+          <XIcon aria-hidden="true" />
           Clear
         </Button>
       </div>
       <div className="flex gap-2">
         <Button type="button" onClick={onBook} className="flex-1">
-          <CalendarPlus aria-hidden="true" />
+          <CalendarPlusIcon aria-hidden="true" />
           Book
         </Button>
         <Button type="button" variant="outline" onClick={onClose} className="flex-1">
-          <Ban aria-hidden="true" />
+          <ProhibitIcon aria-hidden="true" />
           Close court
         </Button>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, CalendarPlus, LandPlot, Trash2 } from "lucide-react";
+import { BellIcon, CalendarPlusIcon, CourtBasketballIcon, TrashIcon } from "@phosphor-icons/react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -58,19 +58,19 @@ export function ComponentGallery() {
       <Group title="Buttons">
         <div className="flex flex-wrap items-center gap-2">
           <Button>
-            <CalendarPlus aria-hidden="true" data-icon="inline-start" />
+            <CalendarPlusIcon aria-hidden="true" data-icon="inline-start" />
             Book this hour
           </Button>
           <Button variant="secondary">Edit booking</Button>
           <Button variant="outline">Close the court</Button>
           <Button variant="ghost">Cancel</Button>
           <Button variant="destructive">
-            <Trash2 aria-hidden="true" data-icon="inline-start" />
+            <TrashIcon aria-hidden="true" data-icon="inline-start" />
             Cancel booking
           </Button>
           <Button size="sm">Small</Button>
           <Button size="icon" aria-label="Notifications">
-            <Bell aria-hidden="true" />
+            <BellIcon aria-hidden="true" />
           </Button>
           <Button disabled>Saving…</Button>
         </div>
@@ -207,14 +207,14 @@ export function ComponentGallery() {
       <Group title="Alerts">
         <div className="flex flex-col gap-3">
           <Alert>
-            <Bell aria-hidden="true" />
+            <BellIcon aria-hidden="true" />
             <AlertTitle>Opening hours changed</AlertTitle>
             <AlertDescription>
               Weekends now run 6am to 9pm. Bookings already outside those hours keep their own row.
             </AlertDescription>
           </Alert>
           <Alert variant="destructive">
-            <Bell aria-hidden="true" />
+            <BellIcon aria-hidden="true" />
             <AlertTitle>That hour is already taken</AlertTitle>
             <AlertDescription>
               Somebody booked Court 1 at 9am while this form was open.
@@ -233,7 +233,7 @@ export function ComponentGallery() {
           <Empty className="border-border rounded-lg border border-dashed">
             <EmptyHeader>
               <EmptyMedia variant="icon">
-                <LandPlot aria-hidden="true" />
+                <CourtBasketballIcon aria-hidden="true" />
               </EmptyMedia>
               <EmptyTitle>No courts yet</EmptyTitle>
               <EmptyDescription>

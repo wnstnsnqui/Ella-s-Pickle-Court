@@ -100,6 +100,22 @@ describe("/staff", () => {
     expect(html).toContain('data-provider="2026-09-16"');
   });
 
+  it("hands an undated board no date, so it follows the venue's day (spec 0014, AC-9)", async () => {
+    currentStaff.mockResolvedValue({
+      kind: "ok",
+      staff: {
+        displayName: "Ella",
+        role: "owner",
+        isActive: true,
+        privacyAcknowledgedVersion: null,
+      },
+    });
+    const html = await render();
+    expect(getStaffSchedule).toHaveBeenCalledWith(undefined);
+    expect(html).toContain("data-board");
+    expect(html).not.toContain("data-provider");
+  });
+
   it("explains a day that could not be read and offers the way back", async () => {
     currentStaff.mockResolvedValue({
       kind: "ok",

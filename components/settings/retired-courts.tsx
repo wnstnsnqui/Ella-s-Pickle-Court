@@ -1,6 +1,6 @@
 "use client";
 
-import { ArchiveRestore, ChevronDown } from "lucide-react";
+import { ArrowUUpLeftIcon, CaretDownIcon } from "@phosphor-icons/react";
 import { useId, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -50,7 +50,7 @@ export function RetiredCourts({
               Out of use, kept with their history. Restore one to put it back on the boards.
             </span>
           </span>
-          <ChevronDown
+          <CaretDownIcon
             aria-hidden="true"
             className={cn(
               "text-muted-foreground size-5 shrink-0 transition-transform duration-(--dur-fast) motion-reduce:transition-none",
@@ -84,7 +84,7 @@ export function RetiredCourts({
               disabled={pendingId !== null}
               onClick={() => onRestore(court)}
             >
-              <ArchiveRestore aria-hidden="true" />
+              <ArrowUUpLeftIcon aria-hidden="true" />
               {pendingId === court.id ? "Restoring" : "Restore"}
               <span className="sr-only"> {court.name}</span>
             </Button>

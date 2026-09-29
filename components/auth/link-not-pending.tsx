@@ -1,4 +1,4 @@
-import { LinkIcon } from "lucide-react";
+import { LinkIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";

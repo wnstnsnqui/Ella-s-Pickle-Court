@@ -1,4 +1,4 @@
-import { Compass } from "lucide-react";
+import { CompassIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,13 @@ export default function NotFound() {
       <Empty className="border-border bg-card max-w-md rounded-lg border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <Compass aria-hidden="true" />
+            <CompassIcon aria-hidden="true" />
           </EmptyMedia>
           <EmptyTitle>Page not found</EmptyTitle>
           <EmptyDescription className="flex flex-col items-center gap-3">
             <p>That page doesn&apos;t exist. Check the link, or head back to the board.</p>
             <Button asChild variant="outline">
-              <Link href="/">Back to today</Link>
+              <Link href="/schedule">Back to today</Link>
             </Button>
           </EmptyDescription>
         </EmptyHeader>

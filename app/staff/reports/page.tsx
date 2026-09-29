@@ -1,4 +1,4 @@
-import { CircleAlert } from "lucide-react";
+import { WarningCircleIcon } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -47,7 +47,7 @@ export default async function ReportsPage({
 
   if (current.kind === "error") {
     return (
-      <BoardNotice heading="Reports" icon={CircleAlert} title="Could not load your account">
+      <BoardNotice heading="Reports" icon={WarningCircleIcon} title="Could not load your account">
         The venue database did not answer in time. Reload in a moment, and if it keeps happening
         tell Ella.
       </BoardNotice>

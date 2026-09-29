@@ -1,5 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/*
+ * Light only (invariant 2), so `dark:` never follows the device. Pinned to a
+ * class nothing ever sets: a component added later from the registry keeps its
+ * light styles on a phone in dark mode instead of half switching.
+ */
+@custom-variant dark (&:is(.dark *));
 
 /*
  * The one token layer. Spec 0003, AC-1 and invariant 1.
@@ -10,6 +18,11 @@
  * same lightness number actually look equally light, which is what makes a
  * contrast pair predictable instead of a guess.
  *
+ * The palette is the shadcn preset `bQEdqZEKm` (style maia, base stone, theme
+ * yellow), set in Outfit instead of the preset's fonts. Where a preset value missed a pair AC-4 measures, it is nudged darker
+ * along the same hue and the comment says so; everything else is the preset as
+ * shipped.
+ *
  * Light only: there is no toggle and no dark palette. Invariant 2 still forbids
  * `dark:` colour overrides in components, enforced by the lint rule in
  * `eslint.config.mjs`.
@@ -18,64 +31,73 @@
 :root {
   color-scheme: light;
 
-  /* Surface. Direction "Sunbeam": white reads as white first, the warmth
-   * comes from the brand band and state fills rather than a tinted page. */
-  --background: oklch(0.996 0.01 93);
-  --foreground: oklch(0.216 0.006 56);
-  --card: oklch(0.999 0.004 96);
-  --card-foreground: oklch(0.216 0.006 56);
-  --popover: oklch(0.999 0.004 96);
-  --popover-foreground: oklch(0.216 0.006 56);
-  --muted: oklch(0.965 0.022 94);
-  --muted-foreground: oklch(0.468 0.023 91);
-  --accent: oklch(0.975 0.03 95);
-  --accent-foreground: oklch(0.216 0.006 56);
-  --secondary: oklch(0.965 0.022 94);
-  --secondary-foreground: oklch(0.216 0.006 56);
-  --border: oklch(0.93 0.035 93);
-  --input: oklch(0.657 0.032 92);
-  --ring: oklch(0.511 0.086 186);
-  --overlay: oklch(0 0 0 / 0.5);
+  /* Surface: white page, stone neutrals. */
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.147 0.004 49.25);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.147 0.004 49.25);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.147 0.004 49.25);
+  --muted: oklch(0.97 0.001 106.424);
+  /* Preset 0.553, a hair under 4.5:1 on the muted fill. */
+  --muted-foreground: oklch(0.525 0.013 58.071);
+  --accent: oklch(0.852 0.199 91.936);
+  --accent-foreground: oklch(0.421 0.095 57.708);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --border: oklch(0.923 0.003 48.717);
+  /* Preset 0.923 is a hairline; an input's edge has to clear 3:1 (AC-4). */
+  --input: oklch(0.64 0.012 58);
+  /* Preset grey 0.709 disappears on the yellow band; the deep amber holds on
+   * white and on yellow alike. */
+  --ring: oklch(0.421 0.095 57.708);
+  --overlay: oklch(0 0 0 / 0.8);
 
-  /* Accent. Primary is deep teal, kept as-is: a yellow bright enough to read
-   * as yellow can't clear 4.5:1 as link text on a white card, so the
-   * livelier yellow lives in brand and mark, not in primary/ring.
-   * Brand is the golden header band, pushed more vivid; mark is the letter
-   * badge, its foreground matched to the same gold. */
-  --primary: oklch(0.511 0.086 186);
-  --primary-foreground: oklch(1 0 0);
-  --destructive: oklch(0.553 0.174 38);
+  /* Accent. Primary is the preset yellow, with deep amber text on it. Yellow
+   * can never be text on white (it lands near 1.5:1), so anything that reads
+   * as a link uses `--link`, the same amber, instead of `text-primary`.
+   * Brand is the header band, the same yellow; mark is the letter badge. */
+  --primary: oklch(0.852 0.199 91.936);
+  --primary-foreground: oklch(0.421 0.095 57.708);
+  --link: oklch(0.421 0.095 57.708);
+  --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(1 0 0);
-  --mark-foreground: oklch(0.84 0.185 86.5);
-  --mark: oklch(0.216 0.006 56);
-  --brand-foreground: oklch(0.216 0.006 56);
-  --brand: oklch(0.84 0.185 86.5);
+  --mark-foreground: oklch(0.852 0.199 91.936);
+  --mark: oklch(0.147 0.004 49.25);
+  --brand-foreground: oklch(0.147 0.004 49.25);
+  --brand: oklch(0.852 0.199 91.936);
+
+  /* Charts: the preset's yellow ramp, lightest to darkest. */
+  --chart-1: oklch(0.905 0.182 98.111);
+  --chart-2: oklch(0.795 0.184 86.047);
+  --chart-3: oklch(0.681 0.162 75.834);
+  --chart-4: oklch(0.554 0.135 66.442);
+  --chart-5: oklch(0.476 0.114 61.907);
 
   /* State: the five roles the grid owns. Saving reuses muted, Failed reuses destructive.
-   * Available and booked carry more chroma than before, at the same lightness,
-   * so the grid feels alive against the brighter background without moving
-   * off any contrast pair AC-4 already measures. */
+   * The hues are the grid's own meaning and stay; unavailable follows the
+   * stone neutrals and selected follows the preset yellow. */
   --state-available: oklch(0.937 0.06 182);
   --state-available-fg: oklch(0.434 0.075 183);
   --state-available-border: oklch(0.6 0.14 183);
   --state-booked: oklch(0.923 0.085 74);
   --state-booked-fg: oklch(0.445 0.121 48);
   --state-booked-border: oklch(0.67 0.19 56);
-  --state-unavailable: oklch(0.949 0.014 93);
-  --state-unavailable-fg: oklch(0.468 0.023 91);
-  --state-unavailable-border: oklch(0.657 0.032 92);
+  --state-unavailable: oklch(0.955 0.002 90);
+  --state-unavailable-fg: oklch(0.5 0.013 58);
+  --state-unavailable-border: oklch(0.64 0.012 58);
   --state-outofhours: oklch(0.935 0.036 298);
   --state-outofhours-fg: oklch(0.436 0.147 291);
   --state-outofhours-border: oklch(0.668 0.126 295);
-  --state-selected: oklch(0.953 0.079 96);
-  --state-selected-fg: oklch(0.346 0.071 86);
-  --state-selected-border: oklch(0.635 0.132 82);
+  --state-selected: oklch(0.955 0.085 97);
+  --state-selected-fg: oklch(0.421 0.095 57.708);
+  --state-selected-border: oklch(0.554 0.135 66.442);
+
   /* Type */
-  --font-inter-fallback:
+  --font-outfit-fallback:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
-  /* Space and geometry: the grid's fixed measurements. Radius nudged up for
-   * the friendlier "Sunbeam" direction: still crisp, not pill-shaped. */
+  /* Space and geometry: the grid's fixed measurements. */
   --radius: 0.625rem;
   --radius-cell: 0.5rem;
   --row-h: 3rem;
@@ -85,6 +107,13 @@
   /* Motion. Slow is the changed cell highlight; fast is everything else. */
   --dur-fast: 120ms;
   --dur-slow: 1.2s;
+
+  /* Marketing motion, the landing page only. Enter is the hero's once per
+   * visit arrival; the curves are the strong ease-out for anything arriving
+   * and the strong ease-in-out for anything moving across the screen. */
+  --dur-enter: 700ms;
+  --curve-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --curve-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 @theme inline {
@@ -106,12 +135,19 @@
   --color-overlay: var(--overlay);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
+  --color-link: var(--link);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-mark: var(--mark);
   --color-mark-foreground: var(--mark-foreground);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
 
   --color-state-available: var(--state-available);
   --color-state-available-fg: var(--state-available-fg);
@@ -129,9 +165,22 @@
   --color-state-selected-fg: var(--state-selected-fg);
   --color-state-selected-border: var(--state-selected-border);
 
-  --font-sans: var(--font-inter), var(--font-inter-fallback);
+  /* Outfit, one face for body and headings. `font-heading` stays a token of its
+   * own because the shadcn titles name it. */
+  --font-sans: var(--font-outfit), var(--font-outfit-fallback);
+  --font-heading: var(--font-outfit), var(--font-outfit-fallback);
 
-  /* The six step type scale. Nothing else sets a font size. */
+  /* The six step type scale. Nothing else sets a font size. The two marketing
+   * steps above it, hero and headline, belong to the landing page alone: they
+   * scale with the viewport and tighten their tracking as they grow. */
+  --text-hero: clamp(2.5rem, 1.25rem + 5vw, 4.5rem);
+  --text-hero--line-height: 1.02;
+  --text-hero--letter-spacing: -0.035em;
+  --text-hero--font-weight: 600;
+  --text-headline: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+  --text-headline--line-height: 1.1;
+  --text-headline--letter-spacing: -0.025em;
+  --text-headline--font-weight: 600;
   --text-display: 1.75rem;
   --text-display--line-height: 2rem;
   --text-display--font-weight: 600;
@@ -151,10 +200,14 @@
   --text-caption--line-height: 1rem;
   --text-caption--font-weight: 400;
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  /* The preset's radius scale, every step a multiple of the one `--radius`. */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
   --radius-cell: var(--radius-cell);
 
   /* Grid geometry, as spacing tokens so `h-row` and `w-time-col` are real utilities. */
@@ -163,6 +216,9 @@
   --spacing-court-col: var(--col-court-min);
 
   --animate-cell-changed: cell-changed var(--dur-slow) ease-out 1;
+
+  --ease-out-strong: var(--curve-out);
+  --ease-in-out-strong: var(--curve-in-out);
 }
 
 @layer base {
@@ -172,9 +228,16 @@
 
   body {
     @apply bg-background text-foreground text-body font-sans;
-    /* Inter's own optical sizing plus the figure sets the grid depends on. */
-    font-feature-settings: "cv11", "ss01";
-    font-variation-settings: normal;
+  }
+
+  /* Headings take the heading face, as the preset's own titles do. */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-heading;
   }
 
   /*
@@ -199,6 +262,91 @@
   }
   100% {
     box-shadow: inset 0 0 0 2px transparent;
+  }
+}
+
+/*
+ * The landing page's motion. It is seen once per visit, so it may spend a little
+ * more than the boards do, but every piece is transform and opacity only, and
+ * every piece sits behind `no-preference` so reduced motion gets the finished
+ * page with nothing moving.
+ */
+@keyframes landing-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(6px);
+  }
+}
+
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.98);
+  }
+}
+
+@keyframes landing-edge {
+  to {
+    border-color: var(--border);
+    background-color: color-mix(in oklch, var(--background) 82%, transparent);
+  }
+}
+
+@keyframes landing-ping {
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Anchor links glide instead of jumping, on the landing page only. */
+  html:has([data-landing]) {
+    scroll-behavior: smooth;
+  }
+
+  /* The hero arrives in a short cascade: each piece sets its own `--i`. */
+  [data-rise] {
+    animation: landing-rise var(--dur-enter) var(--curve-out) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+
+  [data-ping] {
+    animation: landing-ping 2s var(--curve-out) infinite;
+  }
+
+  /* Scroll driven, so it runs off the main thread and needs no script. A
+   * browser without scroll timelines simply shows the section. */
+  @supports (animation-timeline: view()) {
+    [data-reveal] {
+      animation: landing-reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+
+    /* A cascade in reading order: each step sets its own `--i` and starts 8
+     * points later, so the last of four still finishes inside the entry phase. */
+    [data-reveal="step"] {
+      animation-range: entry calc(var(--i, 0) * 8%) entry calc(55% + var(--i, 0) * 8%);
+    }
+
+    /* The header is clear over the hero and gains its hairline once the page
+     * scrolls under it: a scroll edge, not a permanent divider. */
+    [data-landing-header] {
+      animation: landing-edge linear both;
+      animation-timeline: scroll();
+      animation-range: 0 96px;
+    }
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-landing-header],
+  [data-glass] {
+    background-color: var(--background);
+    backdrop-filter: none;
   }
 }
 

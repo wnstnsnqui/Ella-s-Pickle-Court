@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Users } from "lucide-react";
+import { PencilSimpleIcon, UsersIcon } from "@phosphor-icons/react";
 import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -152,7 +152,7 @@ export function UsersPanel({
 
   if (staff.length === 0) {
     return (
-      <EmptyState icon={Users} title="No staff accounts yet" body="Nobody has signed in yet." />
+      <EmptyState icon={UsersIcon} title="No staff accounts yet" body="Nobody has signed in yet." />
     );
   }
 
@@ -191,7 +191,7 @@ export function UsersPanel({
                     disabled={busy}
                     onClick={(event) => openEdit(row, event.currentTarget)}
                   >
-                    <Pencil aria-hidden="true" />
+                    <PencilSimpleIcon aria-hidden="true" />
                     <span className="sr-only">Edit {firstName(row.displayName)}</span>
                   </Button>
                 </div>

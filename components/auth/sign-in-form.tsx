@@ -68,7 +68,7 @@ export function SignInForm({
   return (
     <div className="flex flex-col gap-6">
       {initialError === "reset" ? (
-        <p role="status" className="text-body text-primary">
+        <p role="status" className="text-body text-link">
           Your password was changed. Sign in with the new one.
         </p>
       ) : null}

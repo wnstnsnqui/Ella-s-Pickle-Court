@@ -65,9 +65,14 @@ export function useChangedCells(grid: Grid | null, holdMs: number): ReadonlySet<
   return useMemo(() => new Set(state.batches.flatMap((batch) => [...batch.keys])), [state.batches]);
 }
 
-/** The keys whose state differs between two grids. A new cell is not a change. */
+/**
+ * The keys whose state differs between two grids. A new cell is not a change,
+ * and neither is another day: two grids of different dates are a new baseline,
+ * never a diff (spec 0014, AC-7).
+ */
 function changedCells(before: Grid | null, after: Grid | null): string[] {
   if (!before || !after) return [];
+  if (before.date !== after.date) return [];
 
   const wasByKey = new Map<string, string>();
   for (const row of before.rows) {

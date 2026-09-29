@@ -105,6 +105,25 @@ Why it holds up as a decision and not only a taste: it keeps every structural ru
 
 Option 4 answers both gaps option 3 left open, spinner visibility and grid staleness, without the flash option 1 causes, and without option 2's loss of specificity. The heading is optimistic because it is safe to be: `today + 1` or a calendar pick's target date is pure client side arithmetic on a date already known, never a guess at what the day holds, which is a real distinction from the grid. The grid cannot be shown optimistically the same way: only the server knows tomorrow's actual bookings, and a booking board that briefly shows the wrong availability before correcting itself is worse than one that is honestly a beat slow, which is also why AGENTS.md insists these boards render per request rather than from cache. Scoping the spinner to only the control pressed (tracked as the specific target date inside `DayNav`, not a bare boolean) was a second, smaller fix within option 4: the first pass spun every control on any navigation, which made picking a date also spin the arrows and vice versa, confusing about what was actually happening. Disabling the other controls without spinning them keeps the "you cannot start a second navigation right now" signal without implying they are themselves doing something.
 
+## Preset and light only revision, 2026-09-25 and 2026-09-26
+
+**What changed.** On 2026-09-25 the Sunset Club look was replaced by the shadcn preset `bQEdqZEKm`: style maia (rounder, pill shaped controls), stone greys, a yellow theme, and Phosphor icons in place of lucide. On 2026-09-26 the engineer swapped the preset's fonts (Roboto Slab for body, Inter for headings) for Outfit, one face for everything. The spec also now records that the board is light only, which had been true in the code since 2026-09-18 (commit `3013dca`, which removed the dark palette and `ThemeToggle` together with the staff roles work) but was never written here.
+
+**Why.** The engineer chose the preset because its yellow theme suits the venue's brand. Outfit was chosen because it reads friendlier and one face is simpler than two. The only alternative weighed was keeping Sunset Club as it was. A separate "premium-club-white" restyle had been started and stashed; it was set aside, not merged.
+
+**What held.** Every structural rule of this spec survives: one token layer, no theme named in a component, an icon and a name on every state, AA measured live on `/design`, the six step type scale, and the grid geometry. Only values moved. The state hues (teal, tangerine, dusk purple) were kept because they are the grid's meaning, not decoration; unavailable and selected were retuned to sit with the stone greys and the yellow.
+
+**Where the preset was not taken as shipped, and why.**
+
+- Four colors missed an AC-4 pair: the quiet text on the muted fill (4.39:1 against 4.5), the input edge (a hairline, far under 3:1), the focus ring (grey, lost on the yellow band) and the selected cell border (the lighter `chart-3` amber, replaced by `chart-4`). Each was darkened along its own hue. The price is that the board is not pixel exact to the preset.
+- Yellow cannot be text on white (about 1.5:1), so a `--link` token in deep amber carries links and accent text, and the charts moved to the preset's `--chart-*` ramp instead of `--primary`.
+- The preset wires `sonner` to `next-themes` and ships a `.dark` palette and `dark:` classes. All three were removed, because the board is light only and invariant 2 bans `dark:`.
+- The preset's `cn` imports come straight from the `cn` package, which would drop `text-body` next to `text-foreground`. They were pointed back at `@/lib/utils`, which configures `cn/config` with the type scale.
+
+The same pass corrected an older drift: AC-10 and the security notes still named Clerk for the staff check, which spec 0004 had replaced with a Better Auth session on 2026-09-19.
+
+**Tradeoffs accepted.** A drift from the preset's exact look, as above. Forty six files of icon churn from lucide to Phosphor, and a rule (server files use `@phosphor-icons/react/ssr`) that only a failing render enforces today. A reader with dark mode on gets a bright board at night. And a future `apply` or `add` from the registry will bring the preset's defaults back, so those fixes will need doing again each time.
+
 ## Evidence: what the repo already fixes
 
 Read during this design, so the spec does not contradict what is built:

@@ -1,6 +1,6 @@
 "use client";
 
-import { Radio, RefreshCw, WifiOff } from "lucide-react";
+import { ArrowsClockwiseIcon, BroadcastIcon, WifiSlashIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -77,7 +77,12 @@ export function LiveIndicator({
         ? "Reconnecting"
         : `Not live · ${formatAge(now - lastUpdatedAt)} old`;
 
-  const Icon = reading === "live" ? Radio : reading === "reconnecting" ? RefreshCw : WifiOff;
+  const Icon =
+    reading === "live"
+      ? BroadcastIcon
+      : reading === "reconnecting"
+        ? ArrowsClockwiseIcon
+        : WifiSlashIcon;
 
   return (
     <p

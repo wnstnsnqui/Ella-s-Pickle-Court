@@ -1,6 +1,6 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
+import { WarningIcon } from "@phosphor-icons/react";
 
 import {
   Dialog,
@@ -56,7 +56,7 @@ export function ConfirmDialog({
         </DialogHeader>
         {error ? (
           <p role="alert" className="text-label text-destructive flex items-start gap-2">
-            <TriangleAlert aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <WarningIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
             <span>{error}</span>
           </p>
         ) : null}

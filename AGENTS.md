@@ -85,6 +85,8 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - **Prettier owns layout, ESLint owns real problems.** `eslint-config-prettier` stands down every formatting rule, so never add one back. Run `npm run check` before calling a slice finished: it is lint, format check, typecheck, and tests in that order.
 - **Every Server Action sends its analytics event only after a successful write, through `captureStaffEvent()`, and never awaits it.** See `lib/analytics/AGENTS.md`.
 - **A Client Component may never import from a module that starts `import "server-only"` (`lib/staff.ts`, `lib/actions.ts`), not even one named export.** The guard travels with the whole file, so Next refuses to bundle it, and because these modules sit on the path from the root layout the failure cascades to every route, not just the one screen that imported it. A shared pure helper both a Server Component and a Client Component need belongs in a plain module with no `server-only` import instead, e.g. `lib/schedule/constants.ts`. `lib/import-boundaries.test.ts` checks every `"use client"` file for this.
+- **Icons are Phosphor, and a file without `"use client"` imports them from `@phosphor-icons/react/ssr`, never the main `@phosphor-icons/react` entry.** The main entry reads React context, so a Server Component that imports it fails at render. `"use client"` files use the main entry. `lucide-react` is gone; do not add it back. See spec 0003.
+- **Import `cn` from `@/lib/utils`, never from the `cn` package directly.** The project copy is configured with the six step type scale, so `text-body` survives next to a color class instead of being merged away. `npx shadcn@latest add` and `apply` write the package import, so point it back after either, and strip any `dark:` class they bring (the board is light only).
 
 ## Agent skills
 
@@ -96,6 +98,8 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - [better-auth-security-best-practices](.agents/skills/better-auth-security-best-practices/): `better-auth/skills`, rate limiting, secrets, trusted origins, cookies
 - [email-and-password-best-practices](.agents/skills/email-and-password-best-practices/): `better-auth/skills`, the credential provider, password policy and reset
 - [tailwind-4-docs](.agents/skills/tailwind-4-docs/): `lombiq/tailwind-agent-skills`, Tailwind 4 utilities and config (v3 patterns are wrong here)
+- [shadcn](.agents/skills/shadcn/): `shadcn/ui`, adding and styling components in `components/ui/`, presets and `components.json`
+- [accessibility](.agents/skills/accessibility/): `addyosmani/web-quality-skills`, WCAG 2.2 audits, keyboard and screen reader checks
 - [zod](.agents/skills/zod/): `pproenca/dot-skills`, schema validation and inferred types
 - [vitest](.agents/skills/vitest/): `antfu/skills`, writing tests, mocking with `vi.*`, coverage and test filtering
 - [playwright-cli](.agents/skills/playwright-cli/): `microsoft/playwright-cli`, driving a real browser to check a change in the running app
@@ -112,5 +116,7 @@ Declined: prettier (the setup is done and the available skills are all scaffolde
 - [lib/analytics/AGENTS.md](lib/analytics/AGENTS.md): PostHog analytics and error tracking, the event allow list, and the off switch
 - [lib/staff/AGENTS.md](lib/staff/AGENTS.md): the Server Actions behind `/staff/admin/users`, role and active status writes and invite links
 - [lib/auth/AGENTS.md](lib/auth/AGENTS.md): Better Auth, the invite gate, the session read, and the `pg` pool boundary
+- [components/landing/AGENTS.md](components/landing/AGENTS.md): the landing page at `/`, its one server read, the booking picker, quiet failure, and where its words live
+- Design system: build all UI to [docs/design.md](docs/design.md) (art direction and the build mandate); token values live in `app/globals.css`.
 
 _Drafted by /audit from the repo, worth a quick human pass. Edit freely: once a line stops matching this draft, later runs treat it as curated and will flag rather than overwrite it._

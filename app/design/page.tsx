@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { AppShell } from "@/components/app-shell";
 import { LiveIndicator } from "@/components/live-indicator";
-import { DayNav } from "@/components/day-nav";
 import { StateLegend } from "@/components/schedule/state-legend";
 import { CELL_VIEWS } from "@/components/schedule/cell-view";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import { VENUE_NAME } from "@/lib/venue";
 import { CellStateGallery, GridPreview, LiveIndicatorPreview } from "./board-preview";
 import { ComponentGallery } from "./component-gallery";
 import { ContrastAudit } from "./contrast-audit";
+import { DayNavPreview } from "./day-nav-preview";
 import { ColorTokens, SpaceAndRadius, TypeScale } from "./token-gallery";
 import { SAMPLE_HORIZON_DAYS, SAMPLE_TIMEZONE } from "./sample";
 import { ThemePane } from "./theme-pane";
@@ -50,7 +50,7 @@ export default function DesignPage() {
     <AppShell
       toolbar={
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <DayNav date={date} timezone={SAMPLE_TIMEZONE} horizonDays={SAMPLE_HORIZON_DAYS} />
+          <DayNavPreview date={date} timezone={SAMPLE_TIMEZONE} horizonDays={SAMPLE_HORIZON_DAYS} />
           <LiveIndicator channelStatus="SUBSCRIBED" lastUpdatedAt={renderedAt} />
         </div>
       }
@@ -65,10 +65,11 @@ export default function DesignPage() {
           <p className="text-caption text-muted-foreground uppercase">Spec 0003</p>
           <h1 className="text-display">The design system</h1>
           <p className="text-body text-muted-foreground max-w-prose">
-            Sunset Club: a soft cream canvas, a golden header band, deep teal as the brand ink, and
-            the cell states in teal and tangerine. Inter throughout. Every value on this page comes
-            from a token in <code>app/globals.css</code>, which is the source of truth. Nothing here
-            is written twice.
+            The shadcn maia preset: a white canvas, stone neutrals, a yellow header band with deep
+            amber for anything that has to read as text, and the cell states in teal and tangerine.
+            Outfit throughout. Every value on this page comes from a token in{" "}
+            <code>app/globals.css</code>, which is the source of truth. Nothing here is written
+            twice.
           </p>
         </header>
 

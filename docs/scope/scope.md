@@ -24,6 +24,8 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 11 | Analytics & error alerts | Slice 5 | done |
 | 12 | Privacy, terms & cookie notice | Slice 5 | in-progress |
 | 13 | Staff roles & admin access | Slice 5 | done |
+| 14 | Landing page | Slice 6 | done |
+| 15 | Board day switch in the browser | Slice 6 | done |
 
 ## Foundations
 
@@ -115,15 +117,16 @@ spec [0005](../specs/0005-staff-booking-schedule/index.md) · code in `app/staff
 ### 7. Public schedule board · in-progress
 The page players open before they drive over. Read only, no sign in, and it updates by itself within a second or two so nobody is looking at a stale grid.
 **Done when:** anyone can pick a day and see each court's hours as Booked, Available or Unavailable, a change made by staff appears without a reload, no customer name, phone, note or amount is reachable from the page or its live updates, the read is rate limited, and the page carries a proper title, description, and social card when shared as a link.
-spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/page.tsx`, `app/loading.tsx`, `app/api/schedule/`, `components/board/`, `components/board-notice.tsx`, `components/schedule/read-gate.ts`, `components/schedule/use-schedule-channel.ts`, `lib/rate-limit.ts`, `proxy.ts`; the calendar date picker (spec [0011](../specs/0011-calendar-date-picker/index.md)) folds in here too, code in `components/day-nav.tsx`, `components/date-picker.tsx`, `components/board-sheet.tsx`, `components/use-media-query.ts`, `components/ui/calendar.tsx`, `components/ui/popover.tsx`
+spec [0006](../specs/0006-public-schedule-board/index.md) · code in `app/schedule/` (moved from `app/page.tsx` on 2026-09-26, spec 0013), `app/loading.tsx` (moving to `app/schedule/loading.tsx`), `app/api/schedule/`, `components/board/`, `components/board-notice.tsx`, `components/schedule/read-gate.ts`, `components/schedule/use-schedule-channel.ts`, `lib/rate-limit.ts`, `proxy.ts`; the calendar date picker (spec [0011](../specs/0011-calendar-date-picker/index.md)) folds in here too, code in `components/day-nav.tsx`, `components/date-picker.tsx`, `components/board-sheet.tsx`, `components/use-media-query.ts`, `components/ui/calendar.tsx`, `components/ui/popover.tsx`
 - [x] Design it (spec): `/architect public schedule board`
-- [x] Build it: `/develop public schedule board`
+- [ ] Build it: `/develop public schedule board`
   - [x] The thin thread: `/` becomes the board on `getSchedule()` with the day range rule, the notice, the empty, error and loading states, and `GET /api/schedule`, proven against a staff booking after a reload (AC-1, AC-2, AC-12)
   - [x] Live: the base listener hook extracted from the staff board, the public hook on the anonymous client, one booking seen in a signed out browser with no reload, and the privacy proof over the JSON and the HTML (AC-5, AC-7, AC-13)
   - [x] Honest when not live: the slow poll, the focus refetch, the 429 wait, and the board following the venue's day at midnight (AC-6, AC-9, AC-10)
   - [x] The limiter in `proxy.ts` with its tests (AC-8)
   - [x] The phone conveniences and the metadata: the next free strip, dimmed past hours, the now marker and scroll, the per day title, the canonical link and the JSON-LD block (AC-3, AC-4, AC-11)
   - [x] Calendar date picker (spec 0011): the `Pick a date` button on `DayNav` opening a shadcn `Calendar` inside the promoted, shared `BoardSheet`, bounded to the booking window and the staff/public past rule, on both boards; `BoardSheet`/`useMediaQuery` promoted out of `components/staff/` (spec 0011, all ACs)
+  - [ ] The move to `/schedule`: the board, its canonical and its notice link at `/schedule`, the `/?date=` redirect, the shared limit window with `/`, no JSON-LD on the board, and the loading skeleton moved to `app/schedule/loading.tsx` (spec 0006 task 11; AC-1, AC-2, AC-8, AC-11, AC-12)
 - [ ] Verify it: `/check verify public schedule board`
 - [ ] Test it: `/test public schedule board`
 
@@ -213,6 +216,36 @@ spec [0012](../specs/0012-staff-roles-admin-superadmin/index.md) · code in `sup
   - [ ] Proof and tests: the owner transfer and audit trail proven live against the linked database, and the database and unit tests, are done (AC-9, AC-10); the one time SQL promoting Winston to superadmin is still owed (AC-13, Winston's own step)
 - [x] Verify it: `/check verify staff roles & admin access`
 - [x] Test it: `/test staff roles & admin access` (test files already cover this feature's area: `lib/staff.test.ts`, `lib/staff/actions.test.ts`, `components/staff-menu.test.ts`, `components/staff/roles.test.ts`, `supabase/tests/update_staff_role.test.ts`, `lib/import-boundaries.test.ts`, all passing)
+
+## Slice 6: The front door
+
+### 14. Landing page · done
+`/` becomes the venue's front door: what it is, what it offers, a live look at both courts with a way to ask for hours, and where to find it. The board moves to `/schedule`. Booking online stays a signpost to Messenger or a text until its own spec.
+**Done when:** `/` shows the top bar, hero, offers, court booking, visit and footer on the real schedule (both courts side by side, a day strip plus calendar, picks totalled at ₱250 an hour), the booking button honestly says online booking is coming and hands the picks to Messenger or a text, a failed read never shows an error but retries quietly and ends in a "message us to book" card, old `/?date=` links redirect to `/schedule`, and the page carries its metadata, JSON-LD, sitemap and robots.
+spec [0013](../specs/0013-landing-page/index.md) · code in `app/(landing)/`, `components/landing/`, `lib/venue.ts`, `lib/legal/constants.ts`, `lib/schedule/`, `lib/analytics/`, `proxy.ts`, `next.config.ts`, `app/sitemap.ts`, `app/robots.ts`, `app/schedule/`
+- [x] Design it (spec): `/architect landing page`
+- [x] Build it: `/develop landing page`
+  - [x] The thin thread: today's live read on `/`, both courts side by side with the five tile views, the mock data gone, `/` in the shared limiter with the over limit pass through, and the `/?date=` redirect (AC-2, AC-3, AC-4, AC-5, AC-11, AC-21)
+  - [x] Other days and quiet failure: the day strip and calendar, the browser fetch with the newest request guard, the five quiet retries, the message card and toast, the `(landing)` error boundary, and the logging (AC-6, AC-7, AC-8, AC-9, AC-10, AC-23, AC-26)
+  - [x] Picks and the live hero: selection across courts with the total, the coming soon toast with Messenger and Text us, the `booking_intent` event, the live hero board, chip and stats (AC-12, AC-13, AC-14, AC-15, AC-16)
+  - [x] Content and discoverability: venue facts in `lib/venue.ts`, the two offers, grouped real hours on Visit, the metadata, the JSON-LD moved to `/`, sitemap and robots, and spec 0006 updated for `/schedule` (AC-17, AC-18, AC-19, AC-20, AC-22). Code landed; only the spec 0006 wording is left, owed to `/architect` (a spec edit `/develop` does not make)
+  - [x] Tests and the final pass: the landing branches, the retry schedule, total, SMS body and hours grouping, the privacy assertion, and a keyboard and reduced motion pass in a real browser (AC-1, AC-24, AC-25)
+  - [x] Amenities in the offers section: open play removed, Court rental beside four amenity tiles (guest wifi, parking, comfort rooms, outdoor courts) with badges, the new heading, the parking note, and the tile cascade on scroll (AC-17, AC-19, AC-27; spec 0013 build task 9, added 2026-09-26)
+- [x] Verify it: `/check verify landing page` (2026-09-29: all run checks passed; marked done with two checks owed in verify.md, a closed weekday struck through at 1440 and the 3 day horizon, both needing a settings change)
+- [x] Test it: `/test landing page` (test files already cover this feature's area: `app/(landing)/page.test.ts`, `components/landing/*.test.ts`, `lib/schedule/hours.test.ts`, `proxy.test.ts`)
+
+### 15. Board day switch in the browser · done · from spec 0014
+Changing day on the public and staff boards feels like the landing page: the next day is read in the browser with the old day dimmed meanwhile, a dropped request is retried quietly, and the address bar follows the day on screen with no reload.
+**Done when:** an arrow tap or calendar pick on `/schedule` and `/staff` reads the day in the browser with no page render, only the newest read lands, transient failures retry at 1, 2 and 4 seconds before one toast with Try again, per day state resets as a remount did, and the URL and title name the day on screen.
+spec [0014](../specs/0014-board-day-switch-browser/index.md) · code in `components/schedule/use-schedule-channel.ts`, `components/day-nav.tsx`, `lib/schedule/quiet-retry.ts`
+- [x] Design it (spec): `/architect board day switch`
+- [ ] Build it: `/develop board day switch`
+  - [x] The public board thread: the hook owns the day, the gate pauses, `DayNav` controlled, `DayBoundary`, `replaceState` on land, proven with no RSC request (AC-1, AC-2, AC-3, AC-4, AC-8, AC-9)
+  - [x] The staff board on the same path, the in browser `out_of_range` recovery, and the changed cell guard (AC-1, AC-7, AC-11)
+  - [x] Quiet retries shared with the landing page, the snap back toast, the `429` and non retryable failures (AC-5, AC-6, AC-12)
+  - [ ] The tab title, analytics and now marker per landed day, the older specs amended, and the real browser pass (AC-7, AC-10, every AC). Code, tests and the real browser pass landed; only the older spec amendments are left, owed to `/architect` (a spec edit `/develop` does not make)
+- [x] Verify it: `/check verify board day switch` · 40 of 42 steps passed on 2026-09-29; accepted as known gaps: the PostHog `$exception` delivery (browser events are not reaching PostHog, a spec 0009 matter) and the highlight after a booking made elsewhere (needs a live booking)
+- [x] Test it: `/test board day switch` · 831 passing on 2026-09-29; accepted gap: the hook's in browser behaviour (`useScheduleChannel`, `useChangedCells`, `BoardDayViewed`) has no jsdom test, proven by `/check verify` instead
 
 ## Deferred
 Out of scope for the current build pass, kept so the plan stays honest.

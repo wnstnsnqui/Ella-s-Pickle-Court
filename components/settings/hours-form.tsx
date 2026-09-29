@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Clock, LoaderCircle, RotateCcw } from "lucide-react";
+import { ArrowCounterClockwiseIcon, ClockIcon, SpinnerIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 
@@ -91,7 +91,7 @@ export function HoursForm({
   return (
     <SettingsSection
       id="hours"
-      icon={Clock}
+      icon={ClockIcon}
       title="Opening hours"
       description="The rows on the grid, and how far ahead staff may book. Times are venue time, Asia/Manila."
     >
@@ -177,12 +177,12 @@ export function HoursForm({
                 disabled={pending}
                 onClick={() => form.reset(toHoursValues(settings))}
               >
-                <RotateCcw aria-hidden="true" />
+                <ArrowCounterClockwiseIcon aria-hidden="true" />
                 Undo changes
               </Button>
             ) : null}
             <Button type="submit" disabled={!isDirty || pending}>
-              {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+              {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
               {pending ? "Saving" : "Save hours"}
             </Button>
           </div>

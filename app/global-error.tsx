@@ -60,11 +60,10 @@ export default function GlobalError({
             >
               Try again
             </button>
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- this
-                replaces the whole document outside the router tree, exactly where
-                Next's own docs say a plain anchor is correct. */}
+            {/* A plain anchor: this replaces the whole document outside the router
+                tree, exactly where Next's own docs say one is correct. */}
             <a
-              href="/"
+              href="/schedule"
               style={{
                 padding: "0.5rem 1rem",
                 borderRadius: "0.375rem",

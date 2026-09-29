@@ -55,6 +55,19 @@ const boardDayViewedSchema = z
   })
   .strict();
 
+/**
+ * Spec 0013, AC-14: someone pressed "Request booking" on the landing page.
+ * Counts only, never which hours or which day, so demand can be measured
+ * without anything that could identify a player.
+ */
+const bookingIntentSchema = z
+  .object({
+    slots: z.number().int().positive(),
+    courts: z.number().int().positive(),
+    days_ahead: z.number().int().nonnegative(),
+  })
+  .strict();
+
 const privacyNoticeAcknowledgedSchema = z
   .object({
     version: z.string(),
@@ -95,9 +108,10 @@ const staffPasswordChangedSchema = z
   .strict();
 
 /**
- * Every event `captureStaffEvent()` or `captureDayViewed()` may send, and the
- * schema its properties must pass. Adding an event means adding a row here
- * first; there is no way to send an event this map does not name.
+ * Every event `captureStaffEvent()`, `captureDayViewed()` or
+ * `captureBookingIntent()` may send, and the schema its properties must pass.
+ * Adding an event means adding a row here first; there is no way to send an
+ * event this map does not name.
  */
 export const eventSchemas = {
   booking_created: reservationEventSchema,
@@ -109,6 +123,7 @@ export const eventSchemas = {
   court_changed: courtChangedSchema,
   hours_changed: hoursChangedSchema,
   board_day_viewed: boardDayViewedSchema,
+  booking_intent: bookingIntentSchema,
   privacy_notice_acknowledged: privacyNoticeAcknowledgedSchema,
   staff_role_changed: staffRoleChangedSchema,
   staff_invite_created: staffInviteCreatedSchema,

@@ -37,9 +37,19 @@ export type PublicScheduleState = ScheduleChannelState<Schedule> & {
   now: number;
 };
 
+/**
+ * `retry` (spec 0014): a thrown `fetch` and any `5xx` are worth asking again;
+ * a `429` (a wait instead) and a `4xx` refusal are not.
+ */
 export const publicTransport: ScheduleTransport<Schedule> = async (date) => {
   const url = date ? `/api/schedule?date=${encodeURIComponent(date)}` : "/api/schedule";
-  const response = await fetch(url, { cache: "no-store" });
+  let response: Response;
+  try {
+    response = await fetch(url, { cache: "no-store" });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "The schedule did not reload.";
+    return { ok: false, message, retry: true };
+  }
 
   if (response.status === 429) {
     const header = Number(response.headers.get("Retry-After"));
@@ -48,16 +58,18 @@ export const publicTransport: ScheduleTransport<Schedule> = async (date) => {
     return {
       ok: false,
       message: "Too many requests. The board will catch up shortly.",
+      retry: false,
       retryAfterMs,
     };
   }
 
+  const retry = response.status >= 500;
   let body:
     TransportResult<Schedule> | { ok: false; error?: { message?: string; reason?: string } };
   try {
     body = (await response.json()) as typeof body;
   } catch {
-    return { ok: false, message: `The schedule did not reload (${response.status}).` };
+    return { ok: false, message: `The schedule did not reload (${response.status}).`, retry };
   }
 
   if (body.ok) return { ok: true, data: body.data };
@@ -68,10 +80,11 @@ export const publicTransport: ScheduleTransport<Schedule> = async (date) => {
     response.status === 422 && "error" in body && body.error?.reason === "out_of_range"
       ? ("out_of_range" as const)
       : undefined;
-  return { ok: false, message, reason };
+  return reason ? { ok: false, message, retry, reason } : { ok: false, message, retry };
 };
 
 export function usePublicSchedule(initial: Schedule, requestedDate?: string): PublicScheduleState {
+  // `requestedDate` is where the board starts; the hook owns the day after that (spec 0014).
   const client = useMemo(() => browserSupabase(), []);
   const prepare = useCallback(() => client.realtime.setAuth(), [client]);
 
@@ -84,7 +97,7 @@ export function usePublicSchedule(initial: Schedule, requestedDate?: string): Pu
     pollWhileDownMs: POLL_WHILE_DOWN_MS,
   });
 
-  const { schedule, requestRead } = state;
+  const { schedule, requestRead, date } = state;
 
   // The clock: the server stamp, plus one minute per tick this tab has held
   // it. Whole minutes, counted rather than measured, so the server render and
@@ -104,13 +117,15 @@ export function usePublicSchedule(initial: Schedule, requestedDate?: string): Pu
 
   const now = Date.parse(clock.stamp) + clock.minutes * TICK_MS;
 
-  // Midnight at the venue (AC-10): an undated board means today, and today just moved.
+  // Midnight at the venue (AC-10): an undated board means today, and today just
+  // moved. Undated is the hook's live day, so landing on today by navigation
+  // follows midnight too, and a board moved to another day does not (spec 0014, AC-9).
   useEffect(() => {
-    if (requestedDate !== undefined) return;
+    if (date !== undefined) return;
     if (calendarDateInZone(new Date(now), schedule.grid.timezone) !== schedule.grid.date) {
       requestRead();
     }
-  }, [now, requestedDate, schedule.grid.date, schedule.grid.timezone, requestRead]);
+  }, [now, date, schedule.grid.date, schedule.grid.timezone, requestRead]);
 
   return { ...state, now };
 }

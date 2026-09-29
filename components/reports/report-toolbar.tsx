@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { DownloadSimpleIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
@@ -60,7 +60,7 @@ export function ReportToolbar({
         <CourtSelect courts={courts} selectedCourtId={courtId} />
         <Button asChild variant="outline" size="sm">
           <Link href={csvHref(range, courtId)}>
-            <Download aria-hidden="true" />
+            <DownloadSimpleIcon aria-hidden="true" />
             <span className="sr-only sm:not-sr-only">Download CSV</span>
           </Link>
         </Button>

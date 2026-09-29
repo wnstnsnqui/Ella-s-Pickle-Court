@@ -1,6 +1,6 @@
 "use client";
 
-import { LoaderCircle } from "lucide-react";
+import { SpinnerIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { BoardSheet } from "@/components/board-sheet";
@@ -60,7 +60,7 @@ export function UserSheet({
       description="Change their role or active flag, then continue to confirm."
       footer={
         <Button type="submit" form="user-form" disabled={pending} className="w-full">
-          {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+          {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
           {pending ? "Saving" : "Continue"}
         </Button>
       }

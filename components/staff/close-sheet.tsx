@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle } from "lucide-react";
+import { SpinnerIcon } from "@phosphor-icons/react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
@@ -63,7 +63,7 @@ export function CloseSheet({
       description={`${summary}. Players will see these hours as Unavailable.`}
       footer={
         <Button type="submit" form="close-form" disabled={pending} className="w-full">
-          {pending ? <LoaderCircle aria-hidden="true" className="animate-spin" /> : null}
+          {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
           {pending ? "Saving" : `Close ${summary}`}
         </Button>
       }

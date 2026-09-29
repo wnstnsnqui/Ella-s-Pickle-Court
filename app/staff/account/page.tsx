@@ -1,4 +1,4 @@
-import { CircleAlert, KeyRound, MonitorSmartphone, UserRound } from "lucide-react";
+import { DevicesIcon, KeyIcon, UserIcon, WarningCircleIcon } from "@phosphor-icons/react/ssr";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
@@ -40,7 +40,11 @@ export default async function AccountPage() {
 
   if (current.kind === "error") {
     return (
-      <BoardNotice heading="Your account" icon={CircleAlert} title="Could not load your account">
+      <BoardNotice
+        heading="Your account"
+        icon={WarningCircleIcon}
+        title="Could not load your account"
+      >
         The venue database did not answer in time. Reload in a moment, and if it keeps happening
         tell Ella.
       </BoardNotice>
@@ -53,7 +57,7 @@ export default async function AccountPage() {
     <AccountShell>
       <SettingsSection
         id="details"
-        icon={UserRound}
+        icon={UserIcon}
         title="Details"
         description="Your name is yours to change. Ask Ella about anything else."
         action={<SignOutButton variant="outline" />}
@@ -74,7 +78,7 @@ export default async function AccountPage() {
 
       <SettingsSection
         id="password"
-        icon={KeyRound}
+        icon={KeyIcon}
         title="Password"
         description="Changing it signs every other device out."
       >
@@ -83,7 +87,7 @@ export default async function AccountPage() {
 
       <SettingsSection
         id="devices"
-        icon={MonitorSmartphone}
+        icon={DevicesIcon}
         title="Other devices"
         description="Every place you are signed in besides this one."
       >
