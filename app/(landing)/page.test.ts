@@ -175,6 +175,16 @@ describe("the day strip, the tiles and the offers", () => {
     expect(html).toMatch(/<button[^>]*disabled=""[^>]*>(?:(?!<\/button>)[\s\S])*Request booking/);
   });
 
+  it("prices every spot from hourly_rate on the read, not a constant (spec 0015, AC-17)", async () => {
+    getSchedule.mockResolvedValue({ ok: true, data: { ...scheduleFixture(), hourlyRate: 300 } });
+    const html = await render();
+    expect(html).toContain("₱300");
+    expect(html).not.toContain("₱250");
+    const offers = html.slice(html.indexOf("offers-title"), html.indexOf("book-title"));
+    expect(offers).toContain("at ₱300 an hour");
+    expect(html).toContain("₱300 per court hour.");
+  });
+
   it("renders court rental at ₱250 beside the four amenities, and no open play (AC-17)", async () => {
     const html = await render();
     const offers = html.slice(html.indexOf("offers-title"), html.indexOf("book-title"));
@@ -213,12 +223,15 @@ describe("/ when the read fails", () => {
     getSchedule.mockResolvedValue({ ok: false, error: { kind: "failed", message: "boom 42P01" } });
   });
 
-  it("renders at once with the skeleton, no hero board, only the price stat (AC-8, AC-16)", async () => {
+  it("renders at once with the skeleton, no hero board and no stats (AC-8, AC-16)", async () => {
     const html = await render();
     expect(html).toContain('aria-label="Loading court hours"');
     expect(html).not.toContain("As of");
     expect(html).not.toContain("Earliest serve");
-    expect(html).toContain("Per court hour");
+    // Spec 0015, AC-17: the price is the read's too, so with no read it is
+    // left out rather than guessed, everywhere it would show.
+    expect(html).not.toContain("Per court hour");
+    expect(html).not.toMatch(/₱[1-9]/);
     expect(html).toContain("Message us for today&#x27;s hours");
     expect(html).not.toContain("application/ld+json");
   });

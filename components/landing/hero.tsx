@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { formatSlotLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { formatPeso, PRICE_PER_HOUR } from "@/lib/venue";
+import { formatPeso } from "@/lib/venue";
 
 import { HERO } from "./content";
 import { HeroBoard } from "./hero-board";
@@ -21,6 +21,8 @@ export type HeroStats = {
   courts: number | null;
   /** The week's earliest opening, `HH:mm`, or null when unavailable or every day is closed. */
   earliestOpen: string | null;
+  /** Pesos per court hour, `hourly_rate` from the read, or null when unavailable (spec 0015, AC-17). */
+  hourlyRate: number | null;
 };
 
 /**
@@ -29,8 +31,8 @@ export type HeroStats = {
  * faint court outline rather than a photograph, because the system ships no
  * images.
  *
- * Spec 0013, AC-15 and AC-16: the board and the two data stats come from the
- * real read, and each is simply left out when that read is unavailable, so the
+ * Spec 0013, AC-15 and AC-16: the board and the three data stats (the price
+ * from `hourly_rate`, spec 0015, AC-17) come from the real read, and each is simply left out when that read is unavailable, so the
  * hero never shows a number the schedule could contradict.
  */
 export function Hero({ board, stats }: { board: HeroBoardData | null; stats: HeroStats }) {
@@ -39,7 +41,9 @@ export function Hero({ board, stats }: { board: HeroBoardData | null; stats: Her
     stats.earliestOpen === null
       ? null
       : { value: formatSlotLabel(stats.earliestOpen), label: "Earliest serve" },
-    { value: formatPeso(PRICE_PER_HOUR), label: "Per court hour" },
+    stats.hourlyRate === null
+      ? null
+      : { value: formatPeso(stats.hourlyRate), label: "Per court hour" },
   ].filter((item) => item !== null);
 
   return (

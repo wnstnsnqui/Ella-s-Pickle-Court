@@ -13,6 +13,7 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { Location } from "@/components/landing/location";
 import { Offers } from "@/components/landing/offers";
+import { checkoutEnabled } from "@/lib/booking/switch";
 import { PUBLIC_READ_LIMITED_HEADER } from "@/lib/rate-limit";
 import { earliestOpen } from "@/lib/schedule/hours";
 import { getSchedule, type Schedule } from "@/lib/schedule/queries";
@@ -82,10 +83,11 @@ export default async function Landing() {
           stats={{
             courts: today ? today.grid.courts.length : null,
             earliestOpen: today ? earliestOpen(today.hours.days) : null,
+            hourlyRate: today ? today.hourlyRate : null,
           }}
         />
-        <Offers />
-        <BookingSection initial={today} limited={limited} />
+        <Offers hourlyRate={today ? today.hourlyRate : null} />
+        <BookingSection initial={today} limited={limited} checkout={checkoutEnabled()} />
         <Location hours={today?.hours ?? null} />
       </main>
       <LandingFooter />

@@ -8,6 +8,99 @@ export type Database = {
   };
   public: {
     Tables: {
+      booking: {
+        Row: {
+          amount: number;
+          changed_by: string | null;
+          client_hash: string | null;
+          code: string;
+          created_at: string;
+          customer_email: string | null;
+          customer_name: string;
+          customer_phone: string | null;
+          decided_at: string | null;
+          decided_by: string | null;
+          hold_expires_at: string | null;
+          hourly_rate: number;
+          id: number;
+          proof_path: string | null;
+          reference_last4: string | null;
+          source: string;
+          status: string;
+          submission_id: string;
+          submitted_at: string | null;
+          terms_accepted_at: string;
+          terms_version: string;
+          updated_at: string;
+          version: number;
+        };
+        Insert: {
+          amount: number;
+          changed_by?: string | null;
+          client_hash?: string | null;
+          code: string;
+          created_at?: string;
+          customer_email?: string | null;
+          customer_name: string;
+          customer_phone?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          hold_expires_at?: string | null;
+          hourly_rate: number;
+          id?: never;
+          proof_path?: string | null;
+          reference_last4?: string | null;
+          source?: string;
+          status: string;
+          submission_id: string;
+          submitted_at?: string | null;
+          terms_accepted_at: string;
+          terms_version: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Update: {
+          amount?: number;
+          changed_by?: string | null;
+          client_hash?: string | null;
+          code?: string;
+          created_at?: string;
+          customer_email?: string | null;
+          customer_name?: string;
+          customer_phone?: string | null;
+          decided_at?: string | null;
+          decided_by?: string | null;
+          hold_expires_at?: string | null;
+          hourly_rate?: number;
+          id?: never;
+          proof_path?: string | null;
+          reference_last4?: string | null;
+          source?: string;
+          status?: string;
+          submission_id?: string;
+          submitted_at?: string | null;
+          terms_accepted_at?: string;
+          terms_version?: string;
+          updated_at?: string;
+          version?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booking_changed_by_fkey";
+            columns: ["changed_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["user_id"];
+          },
+          {
+            foreignKeyName: "booking_decided_by_fkey";
+            columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["user_id"];
+          },
+        ];
+      };
       court: {
         Row: {
           changed_by: string | null;
@@ -55,6 +148,7 @@ export type Database = {
       reservation: {
         Row: {
           amount: number | null;
+          booking_id: number | null;
           cancelled_at: string | null;
           cancelled_by: string | null;
           changed_by: string | null;
@@ -76,6 +170,7 @@ export type Database = {
         };
         Insert: {
           amount?: number | null;
+          booking_id?: number | null;
           cancelled_at?: string | null;
           cancelled_by?: string | null;
           changed_by?: string | null;
@@ -97,6 +192,7 @@ export type Database = {
         };
         Update: {
           amount?: number | null;
+          booking_id?: number | null;
           cancelled_at?: string | null;
           cancelled_by?: string | null;
           changed_by?: string | null;
@@ -117,6 +213,13 @@ export type Database = {
           version?: number;
         };
         Relationships: [
+          {
+            foreignKeyName: "reservation_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "booking";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "reservation_cancelled_by_fkey";
             columns: ["cancelled_by"];
@@ -342,6 +445,7 @@ export type Database = {
         Row: {
           booking_horizon_days: number;
           changed_by: string | null;
+          hourly_rate: number;
           id: boolean;
           slot_minutes: number;
           timezone: string;
@@ -351,6 +455,7 @@ export type Database = {
         Insert: {
           booking_horizon_days?: number;
           changed_by?: string | null;
+          hourly_rate?: number;
           id?: boolean;
           slot_minutes?: number;
           timezone?: string;
@@ -360,6 +465,7 @@ export type Database = {
         Update: {
           booking_horizon_days?: number;
           changed_by?: string | null;
+          hourly_rate?: number;
           id?: boolean;
           slot_minutes?: number;
           timezone?: string;
@@ -436,6 +542,19 @@ export type Database = {
           role: string;
         }[];
       };
+      expire_online_holds: { Args: never; Returns: number };
+      hold_online_booking: {
+        Args: {
+          p_day: string;
+          p_email: string;
+          p_name: string;
+          p_phone: string;
+          p_picks: Json;
+          p_submission_id: string;
+          p_terms_version: string;
+        };
+        Returns: Json;
+      };
       peek_staff_invite: {
         Args: { p_token_hash: string };
         Returns: {
@@ -444,6 +563,10 @@ export type Database = {
         }[];
       };
       purge_customer_phones: { Args: never; Returns: number };
+      release_online_booking: {
+        Args: { p_submission_id: string };
+        Returns: Json;
+      };
       reorder_courts: {
         Args: { ids: number[]; versions: number[] };
         Returns: undefined;
@@ -457,6 +580,10 @@ export type Database = {
           slot_minutes: number;
         };
         Returns: undefined;
+      };
+      submit_online_booking: {
+        Args: { p_reference_last4: string; p_submission_id: string };
+        Returns: Json;
       };
       update_staff_role: {
         Args: {

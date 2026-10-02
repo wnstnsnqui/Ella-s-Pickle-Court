@@ -58,6 +58,11 @@ export type Schedule = {
   now: string;
   /** The venue's opening hours, venue local `HH:mm`, for the JSON-LD block (spec 0006, AC-11). */
   hours: VenueHours;
+  /**
+   * Pesos per court per hour, `venue_settings.hourly_rate`: the one price
+   * every page shows and the only one checkout charges (spec 0015, AC-17).
+   */
+  hourlyRate: number;
 };
 
 export type VenueHours = {
@@ -83,6 +88,27 @@ export type StaffReservation = {
   changedBy: string | null;
   createdAt: string;
   updatedAt: string;
+  /** The online booking this row belongs to, null for a desk booking or a closure (spec 0015). */
+  bookingId: number | null;
+};
+
+/** Where an online booking stands (spec 0015, the `booking.status` check). */
+export type BookingStatus =
+  "held" | "pending_check" | "confirmed" | "rejected" | "expired" | "cancelled";
+
+/**
+ * An online booking as the desk sees it beside one of its rows (spec 0015,
+ * AC-21). Never the proof path or the client hash: staff open the screenshot
+ * from feature 17 on, through a signed URL.
+ */
+export type StaffBooking = {
+  id: number;
+  code: string;
+  status: BookingStatus;
+  /** Null once the retention purge has cleared it (AC-23). */
+  customerEmail: string | null;
+  referenceLast4: string | null;
+  submittedAt: string | null;
 };
 
 /** A name for every user id that ever wrote a row, active or not. Spec 0005, AC-7. */
@@ -138,7 +164,7 @@ async function loadSettings(supabase: ReturnType<typeof publicSupabase>, distinc
   const [settingsRow, hoursRows] = await Promise.all([
     supabase
       .from("venue_settings")
-      .select("slot_minutes, booking_horizon_days, timezone, version")
+      .select("slot_minutes, booking_horizon_days, timezone, version, hourly_rate")
       .maybeSingle(),
     supabase.from("venue_hours").select("day_of_week, open_time, close_time").order("day_of_week"),
   ]);
@@ -164,9 +190,12 @@ async function loadSettings(supabase: ReturnType<typeof publicSupabase>, distinc
   }
 
   const days = (hoursRows.data ?? []).map(toDay);
+  const row = settingsRow.data as VenueSettingsRow;
   return {
     ok: true as const,
-    settings: toSettings(settingsRow.data as VenueSettingsRow, days),
+    settings: toSettings(row, days),
+    // `numeric` in Postgres; a plain number is exact at peso and centavo scale.
+    hourlyRate: Number(row.hourly_rate),
   };
 }
 
@@ -288,6 +317,7 @@ export const getSchedule = cache(async (date?: string): Promise<ActionResult<Sch
     horizonDays: settings.bookingHorizonDays,
     now: now.toISOString(),
     hours: toHours(settings),
+    hourlyRate: loaded.hourlyRate,
   });
 });
 
@@ -365,6 +395,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
     horizonDays: settings.bookingHorizonDays,
     now: now.toISOString(),
     hours: toHours(settings),
+    hourlyRate: loaded.hourlyRate,
     reservations: rows.map((row): StaffReservation => ({
       id: row.id,
       courtId: row.court_id,
@@ -382,6 +413,7 @@ export async function getStaffSchedule(date?: string): Promise<ActionResult<Staf
       changedBy: row.changed_by,
       createdAt: row.created_at,
       updatedAt: row.updated_at,
+      bookingId: row.booking_id,
     })),
     staff: (staffRows.data ?? []).map((row) => ({
       userId: row.user_id,
@@ -429,5 +461,36 @@ export async function getOwnerSettings(): Promise<ActionResult<OwnerSettings>> {
       version: row.version,
     })),
     settings: loaded.settings,
+  });
+}
+
+/**
+ * One online booking, for the staff details sheet (spec 0015, AC-21). Read
+ * with the staff member's own token: the select policy on `booking` admits
+ * active staff only, so anybody else gets `not_found`, never the row.
+ */
+export async function getBookingForStaff(bookingId: number): Promise<ActionResult<StaffBooking>> {
+  const staff = await requireStaff();
+  if (!staff.ok) return fail(staff.error);
+
+  const { data, error } = await staff.supabase
+    .from("booking")
+    .select("id, code, status, customer_email, reference_last4, submitted_at")
+    .eq("id", bookingId)
+    .maybeSingle();
+
+  if (error)
+    return fail(
+      describeDatabaseError(error, { action: "getBookingForStaff", distinctId: staff.staffId }),
+    );
+  if (!data) return fail({ kind: "not_found", message: "That online booking is not there." });
+
+  return ok({
+    id: data.id,
+    code: data.code,
+    status: data.status as BookingStatus,
+    customerEmail: data.customer_email,
+    referenceLast4: data.reference_last4,
+    submittedAt: data.submitted_at,
   });
 }

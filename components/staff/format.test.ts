@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BOOKING_STATUS_LABEL,
   firstName,
   formatDayOf,
   formatPeso,
@@ -9,6 +10,7 @@ import {
   PAYMENT_LABEL,
   staffDisplayName,
   telHref,
+  writerLabel,
 } from "./format";
 
 /** Spec 0005 AC-7 value sourcing: what the details sheet shows, and from where. */
@@ -67,5 +69,21 @@ describe("formatRange and formatStamp", () => {
 
   it("labels every payment status", () => {
     expect(Object.values(PAYMENT_LABEL)).toEqual(["Unpaid", "Partial", "Paid", "Waived"]);
+  });
+});
+
+describe("the online booking labels (spec 0015, AC-21)", () => {
+  const staff = [{ userId: "user_1", displayName: "Ana Cruz" }];
+
+  it("reads online, not a staff member, for a row nobody signed in wrote", () => {
+    expect(writerLabel(staff, null, 42)).toBe("online");
+    expect(writerLabel(staff, "user_1", 42)).toBe("by Ana");
+    expect(writerLabel(staff, null, null)).toBe("by a staff member");
+  });
+
+  it("names the three states this feature writes in words", () => {
+    expect(BOOKING_STATUS_LABEL.held).toBe("Held, not yet paid");
+    expect(BOOKING_STATUS_LABEL.pending_check).toBe("Payment not yet checked");
+    expect(BOOKING_STATUS_LABEL.expired).toBe("Expired");
   });
 });

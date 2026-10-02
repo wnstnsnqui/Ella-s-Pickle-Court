@@ -20,6 +20,9 @@ to `/schedule`.
 | `notices.ts`                            | The two toasts: the read failed toast and the "online booking is coming soon" toast.                  |
 | `channels.tsx`                          | Messenger and Text us, the only two ways to book the page offers.                                       |
 | `press.ts`                              | `PRESS`, the tap feedback class every landing button wears.                                             |
+| `checkout-sheet.tsx`                    | The checkout card (spec 0015): a centered Radix dialog over `--overlay-soft`, the steps, the hold, Confirm and release. Mounted fresh per Book press. |
+| `checkout-payment.tsx`, `checkout-receipt.tsx`, `checkout-selection.tsx` | The Payment step, the screenshot upload hook and the hold banner; Review and the receipt; the Selected courts and slots card and the summary line. |
+| `turnstile-widget.tsx`                  | The Turnstile widget on the Terms step, retried once quietly before checkout gives up on this device. |
 | `test-fixture.ts`                       | `scheduleFixture()`, a real `Schedule` built through `buildGrid`, for the tests.                       |
 
 ## Conventions
@@ -28,13 +31,15 @@ to `/schedule`.
 - **Today is read once on the server; any other day is read in the browser.** The URL stays `/`. Only the newest read may land (the `latest` ref in `booking-picker.tsx`).
 - **The clock is the server's.** Past tiles use `schedule.now` plus the minutes this tab has held it, never `Date.now()` on its own, so a device with a wrong clock cannot move them.
 - **Over the shared rate limit, `/` is never a `429`.** `proxy.ts` passes the request with `PUBLIC_READ_LIMITED_HEADER` set, and the page skips the read and shows the message card.
-- **"Request booking" books nothing.** It shows the coming soon toast and sends `booking_intent` (counts only) through `captureBookingIntent()`.
+- **"Request booking" books nothing.** It shows the coming soon toast and sends `booking_intent` (counts only) through `captureBookingIntent()`. It shows only while checkout is off (`checkoutEnabled()`, decided per request on the server); with checkout on the button reads "Book" and opens the checkout card, still sending `booking_intent`.
+- **However the checkout card closes, focus goes to the "Your booking" heading,** never the page body. The card dims with `--overlay-soft`, not `--overlay`, on purpose.
 - **The day strip changes with the screen.** From `lg` up it pages a week at a time with arrows; below `lg` it is one row that scrolls sideways through every bookable day. Both are rendered, CSS shows one, and each keeps its own radio group name.
 - **Sections open with `SectionHeading` and reveal on scroll through `data-reveal`** (the keyframes live in `app/globals.css`, and reduced motion arrives already in place).
 
 ## Related specs
 
 - [0013 Landing page](../../docs/specs/0013-landing-page/index.md)
+- [0015 Online booking checkout](../../docs/specs/0015-online-booking-checkout/index.md) (the checkout card)
 - [0014 Board day switch in the browser](../../docs/specs/0014-board-day-switch-browser/index.md) (the shared quiet retry)
 
 _Drafted by /sync from the introducing change, worth a quick human pass._

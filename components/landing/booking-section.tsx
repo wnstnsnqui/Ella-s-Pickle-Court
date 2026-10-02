@@ -15,9 +15,12 @@ import { SectionHeading } from "./section-heading";
 export function BookingSection({
   initial,
   limited,
+  checkout,
 }: {
   initial: Schedule | null;
   limited: boolean;
+  /** Online checkout is on (spec 0015, AC-26). A boolean only, never a secret. */
+  checkout: boolean;
 }) {
   return (
     <section
@@ -34,7 +37,7 @@ export function BookingSection({
           {BOOKING_SECTION.lede}
         </SectionHeading>
         <div data-reveal className="mt-12">
-          <BookingPicker initial={initial} limited={limited} />
+          <BookingPicker initial={initial} limited={limited} checkout={checkout} />
         </div>
       </div>
     </section>

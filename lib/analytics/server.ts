@@ -1,5 +1,7 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
+
 import { PostHog } from "posthog-node";
 
 import { posthogConfigured } from "@/lib/env";
@@ -78,6 +80,39 @@ export function captureStaffEvent<E extends AnalyticsEvent>(
 
   try {
     posthog.capture({ distinctId, event, properties: parsed.data });
+  } catch {
+    warnOnce(`analytics: capture of "${event}" failed.`);
+  }
+}
+
+/**
+ * Send one event for something a member of the public did, after the write
+ * that made it true (spec 0015, AC-24). Cookieless, like the public board: a
+ * fresh random distinct id per event and no person profile, so no two events
+ * can be tied to one player. Never awaited by the caller; a property bag that
+ * fails its allow list is dropped whole.
+ */
+export function capturePublicEvent<E extends AnalyticsEvent>(
+  event: E,
+  properties: EventProperties<E>,
+): void {
+  const posthog = analyticsServer();
+  if (!posthog) return;
+
+  const parsed = parseEventProperties(event, properties);
+  if (!parsed.ok) {
+    warnOnce(
+      `analytics: dropped "${event}", properties failed its allow list: ${parsed.issues.join(", ")}`,
+    );
+    return;
+  }
+
+  try {
+    posthog.capture({
+      distinctId: randomUUID(),
+      event,
+      properties: { ...parsed.data, $process_person_profile: false },
+    });
   } catch {
     warnOnce(`analytics: capture of "${event}" failed.`);
   }

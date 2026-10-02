@@ -35,11 +35,14 @@ function migrationSql(): string {
  * forward only, so a widened column (spec 0012 widens `role`) reappears as a
  * later `drop constraint` / `add constraint` pair rather than an edit to the
  * original; the last match across every migration, in file order, is the
- * constraint actually live today.
+ * constraint actually live today. `constraint` narrows the match to one named
+ * constraint, for a column name two tables share (`booking` has a `status`
+ * too since spec 0015).
  */
-function checkedValues(sql: string, column: string): string[] {
+function checkedValues(sql: string, column: string, constraint?: string): string[] {
+  const prefix = constraint ? `${constraint}\\s+` : "";
   const matches = [
-    ...sql.matchAll(new RegExp(`check\\s*\\(\\s*${column}\\s+in\\s*\\(([^)]*)\\)`, "gi")),
+    ...sql.matchAll(new RegExp(`${prefix}check\\s*\\(\\s*${column}\\s+in\\s*\\(([^)]*)\\)`, "gi")),
   ];
   if (matches.length === 0) throw new Error(`No check constraint found for ${column}.`);
   const [, values] = matches[matches.length - 1];
@@ -57,7 +60,9 @@ describe("the value lists and the database agree", () => {
   });
 
   it("keeps reservation statuses in step", () => {
-    expect(checkedValues(sql, "status")).toEqual([...RESERVATION_STATUSES]);
+    expect(checkedValues(sql, "status", "reservation_status_check")).toEqual([
+      ...RESERVATION_STATUSES,
+    ]);
   });
 
   it("keeps payment statuses in step", () => {

@@ -104,6 +104,29 @@ describe("SUPABASE_JWT_SECRET is read by lib/supabase/staff-token.ts and nowhere
 });
 
 /**
+ * Spec 0015, the Decision and Consequences: `mintOnlineBookingToken()` hands
+ * out the `online_booking` role, the public write path. Only the checkout
+ * actions may call it, after their own checks, so a second caller anywhere
+ * would be a way to write without Turnstile.
+ */
+describe("mintOnlineBookingToken is called from lib/booking/actions.ts and nowhere else", () => {
+  const callsMinter = (source: string) =>
+    source
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\/?\*)/.test(line))
+      .some((line) => line.includes("mintOnlineBookingToken"));
+
+  const callers = files
+    .map((file) => relative(ROOT, file))
+    .filter((file) => file !== "lib/supabase/staff-token.ts")
+    .filter((file) => callsMinter(readFileSync(join(ROOT, file), "utf8")));
+
+  it("has exactly one caller", () => {
+    expect(callers).toEqual(["lib/booking/actions.ts"]);
+  });
+});
+
+/**
  * Spec 0004 (revised), invariant 7: `authPool()` is the only handle on the
  * `better_auth_app` role, and only Better Auth itself, the three pre
  * authentication actions, the gate they share, and the three public auth

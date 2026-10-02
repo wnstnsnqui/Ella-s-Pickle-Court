@@ -90,7 +90,7 @@ export function BoardSheet({
               : "max-h-[88vh] rounded-t-lg",
         )}
       >
-        <SheetHeader className="pr-12">
+        <SheetHeader className="pr-16">
           <SheetTitle className="text-title">{title}</SheetTitle>
           <SheetDescription className="text-caption">{description}</SheetDescription>
         </SheetHeader>

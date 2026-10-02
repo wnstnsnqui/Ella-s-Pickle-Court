@@ -5,7 +5,6 @@ import { VENUE_ADDRESS as LEGAL_ADDRESS } from "@/lib/legal/constants";
 import {
   formatPeso,
   isPlaceholder,
-  PRICE_PER_HOUR,
   smsHref,
   VENUE_ADDRESS,
   VENUE_LOCALITY,
@@ -23,10 +22,9 @@ import {
  */
 
 describe("venue facts (AC-19)", () => {
-  it("keeps the confirmed values real: the street, Minglanilla, Cebu and ₱250 an hour", () => {
+  it("keeps the confirmed values real: the street and Minglanilla, Cebu", () => {
     expect(VENUE_STREET).toBe("Cadulawan Road, Guindaruhan");
     expect(VENUE_LOCALITY).toBe("Minglanilla, Cebu");
-    expect(PRICE_PER_HOUR).toBe(250);
   });
 
   it("keeps the confirmed contact channels real", () => {

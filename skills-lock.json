@@ -139,12 +139,6 @@
       "skillPath": "skills/shadcn/SKILL.md",
       "computedHash": "f615de216e085a84e31593ad0fa9062232adc40cd87b7c7ab2b8e49abf6500be"
     },
-    "suggest-lucide-icons": {
-      "source": "nweii/agent-stuff",
-      "sourceType": "github",
-      "skillPath": "skills/suggest-lucide-icons/SKILL.md",
-      "computedHash": "bcb3bb8154e53d24ed0dc1913a9a1aa259ad17ba19c2c915228ec4fd7ec35728"
-    },
     "supabase": {
       "source": "supabase/agent-skills",
       "sourceType": "github",
@@ -174,6 +168,12 @@
       "sourceType": "github",
       "skillPath": "skills/test/SKILL.md",
       "computedHash": "87dd379cca618d8cb2ca3d5073ffa8be6755e5822e7834a3c0ebe06bd3853f1f"
+    },
+    "turnstile-spin": {
+      "source": "cloudflare/skills",
+      "sourceType": "github",
+      "skillPath": "skills/turnstile-spin/SKILL.md",
+      "computedHash": "62a5165f9a3a8c92561351529c3c4fd0d0777ad2f2c873494aed6113e024dba1"
     },
     "vitest": {
       "source": "antfu/skills",

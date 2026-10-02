@@ -18,6 +18,7 @@ const schedule = {
   now: "2026-09-29T04:00:00.000Z",
   hours: { days: [] },
   settingsVersion: 1,
+  hourlyRate: 250,
   reservations: [],
   staff: [],
 } as unknown as StaffSchedule;

@@ -40,7 +40,7 @@ export default function LandingError({
     <div data-landing className="flex min-h-full flex-col">
       <LandingHeader />
       <main className="flex-1">
-        <Hero board={null} stats={{ courts: null, earliestOpen: null }} />
+        <Hero board={null} stats={{ courts: null, earliestOpen: null, hourlyRate: null }} />
         <section id="book" aria-label="Book a court" className="bg-muted mt-10 scroll-mt-16 py-20">
           <div className="mx-auto w-full max-w-2xl px-4">
             <MessageCard onTryAgain={retry} />

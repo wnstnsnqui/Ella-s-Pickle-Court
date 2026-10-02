@@ -94,3 +94,55 @@ export const authConfigured = Boolean(process.env.BETTER_AUTH_SECRET);
  * empty; there is no separate `NODE_ENV` gate.
  */
 export const posthogConfigured = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
+
+/**
+ * The server side values online booking needs (spec 0015). Validated lazily
+ * like `serverEnv()`: a missing value fails when a hold needs it, with its
+ * own name in the message, and `next build` still works without it.
+ *
+ * `BOOKING_CLIENT_HASH_SECRET` keys the HMAC of the caller's address, so the
+ * rate limit counts a connection without storing an address anyone can
+ * reverse (32 random bytes, `openssl rand -base64 32`).
+ *
+ * `TURNSTILE_SECRET` is the widget's secret for Siteverify, and
+ * `TURNSTILE_HOSTNAMES` the comma separated hostnames Siteverify must report
+ * (AC-19). The production value never includes `localhost`.
+ */
+const bookingEnvSchema = z.object({
+  BOOKING_CLIENT_HASH_SECRET: z
+    .string()
+    .min(
+      32,
+      "BOOKING_CLIENT_HASH_SECRET must be at least 32 characters (openssl rand -base64 32).",
+    ),
+  TURNSTILE_SECRET: z.string().min(1, "TURNSTILE_SECRET is missing (the Turnstile widget secret)."),
+  TURNSTILE_HOSTNAMES: z
+    .string()
+    .transform((value) =>
+      value
+        .split(",")
+        .map((hostname) => hostname.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z
+        .array(z.string())
+        .min(1, "TURNSTILE_HOSTNAMES must name at least one hostname Siteverify may report."),
+    ),
+});
+
+export type BookingEnv = z.infer<typeof bookingEnvSchema>;
+
+export function bookingEnv(): BookingEnv {
+  return bookingEnvSchema.parse({
+    BOOKING_CLIENT_HASH_SECRET: process.env.BOOKING_CLIENT_HASH_SECRET,
+    TURNSTILE_SECRET: process.env.TURNSTILE_SECRET,
+    TURNSTILE_HOSTNAMES: process.env.TURNSTILE_HOSTNAMES ?? "",
+  });
+}
+
+/**
+ * The Turnstile widget's site key, public by design (AC-3). A literal
+ * `process.env` read so the build inlines it into the checkout sheet.
+ */
+export const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";

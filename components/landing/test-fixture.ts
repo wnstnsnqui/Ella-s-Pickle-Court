@@ -47,6 +47,7 @@ export function scheduleFixture({
   return {
     grid: buildGrid({ date, settings, courts, blocks }),
     settingsVersion: 1,
+    hourlyRate: 250,
     horizonDays,
     now,
     hours: { days },

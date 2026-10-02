@@ -26,6 +26,10 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 13 | Staff roles & admin access | Slice 5 | done |
 | 14 | Landing page | Slice 6 | done |
 | 15 | Board day switch in the browser | Slice 6 | done |
+| 16 | Online booking checkout | Slice 7 | in-progress |
+| 17 | Staff check of online bookings | Slice 7 | planned |
+| 18 | Booking receipt & lookup | Slice 7 | planned |
+| 19 | Voucher codes | Slice 7 | planned |
 
 ## Foundations
 
@@ -247,16 +251,54 @@ spec [0014](../specs/0014-board-day-switch-browser/index.md) · code in `compone
 - [x] Verify it: `/check verify board day switch` · 40 of 42 steps passed on 2026-09-29; accepted as known gaps: the PostHog `$exception` delivery (browser events are not reaching PostHog, a spec 0009 matter) and the highlight after a booking made elsewhere (needs a live booking)
 - [x] Test it: `/test board day switch` · 831 passing on 2026-09-29; accepted gap: the hook's in browser behaviour (`useScheduleChannel`, `useChangedCells`, `BoardDayViewed`) has no jsdom test, proven by `/check verify` instead
 
+## Slice 7: Book online
+
+A player picks their hours on the landing page, taps Book, and walks a short sheet to a real booking with a code they keep. No player accounts: the booking code is how they find it again. Payment is a transfer by QR with proof attached, which staff then check, not money taken inside the app. Every screen here shares the landing page's look and motion, built with the `apple-design`, `emil-design-eng` and `animate` skills.
+
+### 16. Online booking checkout · in-progress · GA
+The sheet that opens from Book once hours are picked, replacing the coming soon toast: booking details with name, phone, email and an optional voucher field, then the terms with a checkbox, then payment (the venue's QR, the last 4 digits of the reference number, and a screenshot of the transfer), then a review with Confirm booking, ending on the receipt with the booking code. This is the first time the public writes to the database, so it carries its own tier.
+**Done when:** picks on `/` open the sheet with the courts, hours and total; each step checks its fields before Next and Back keeps what was typed; the terms must be ticked to go on; Confirm books every picked slot in one go or refuses cleanly, naming the slot someone else took meanwhile; the new booking shows Booked on both boards straight away and waits as not yet checked for staff; one code covers every slot in the booking; the screenshot is stored privately and never reachable from a public page; the price is worked out on the server, never trusted from the browser; the write is rate limited and resists spam; the privacy page names the new email, reference digits and screenshot and how long each is kept; the sheet feels like the landing page, works on a phone, from the keyboard, and with reduced motion.
+spec [0015](../specs/0015-online-booking-checkout/index.md) (a 5 minute hold on the way to payment, the write through an `online_booking` role the server mints a token for after Turnstile, the price in `venue_settings.hourly_rate`; the voucher field moves to feature 19) · code in `lib/booking/`, `components/landing/checkout-sheet.tsx`
+- [x] Design it (spec): `/architect online booking checkout`
+- [x] Build it: `/develop online booking checkout`
+  - [x] The thin thread: the `booking` table, `hourly_rate`, the `online_booking` role and bucket, `hold_online_booking`, the minted token and the hold action, Details and a bare Terms; a hold proven Booked in a second browser, an upload proven under the custom role, the anon key refused (AC-1, AC-2, AC-4, AC-17, AC-18, AC-20)
+  - [x] The front door and payment: Turnstile and the database rate limit, the refusals and the clash back into the picker, the Payment step with the shrink and upload, Review, `submit_online_booking` and the full receipt (AC-3, AC-6, AC-7, AC-8, AC-9, AC-11, AC-12, AC-14, AC-19) · happy path run in a real browser at 360 pixels on the linked project with Turnstile's test keys; `submit_online_booking` already carries the retake and the slot gone path (AC-12, AC-13), proven by a direct call; a `storage.objects` trigger now locks the proof after submit, because a signed upload URL skips the storage policies
+  - [x] The hold's life and one price: the minute expiry job, update in place, the countdown's end, the retake and the refund path, release on close, the day list filter, `hourly_rate` across the landing page and the checkout switch (AC-5, AC-10, AC-13, AC-15, AC-16, AC-17, AC-26) · `expire_online_holds()` runs every minute on the linked project and `release_online_booking` is proven by `supabase/tests/online_booking_hold_life.test.ts`; with no read, the landing page leaves the price out rather than guess it; the switch now also waits on the real QR and account name, so checkout stays off until Ella supplies them
+  - [x] Staff, privacy and signals: the Online booking block in the staff details sheet, `/privacy` and `/terms`, the detail purge and the `purge-payment-proofs` Edge Function, the three analytics events (AC-21, AC-22, AC-23, AC-24) · migration applied and the function deployed on the linked project; a `pg_net` call through Vault returned 200 `{"deleted":0}` and a wrong secret 401; `supabase/tests/online_booking_retention.test.ts` passes
+  - [x] Finish: step motion and reduced motion, focus, keyboard and 360 pixel passes, database and unit tests, a real browser run of the critical scenarios, `npm run check` green (AC-25, every AC) · steps slide in 12 pixels from the side you are heading over `--dur-step` (220ms) and swap in place with reduced motion; the sheet's close button is now 44 pixels on every `BoardSheet`; `online_booking_hold` and `online_booking_submit` database tests (25 cases) on the linked project; unit tests for the schemas, the code, the shrink and upload, and all three actions; browser run at 360 pixels through Review and a released close (Confirm was not pressed, so no real booking was left on the board)
+  - [x] The checkout card (spec amendment 2026-10-02): a centered card with a soft overlay, the five segment progress bar, icon headers, the hold banner, the Selected courts and slots card, three consent boxes with the reworded first rule and `BOOKING_TERMS_VERSION` `2026-10-02`, Review in three cards, and a receipt reading "Booking confirmed" while staff still see "Payment not yet checked" (AC-1, AC-3, AC-8, AC-10, AC-11, AC-14, AC-15, AC-22, AC-25, AC-27) · a Radix dialog over `--overlay-soft` with the card's own enter and exit in `app/globals.css`; the runs card and the summary line in `components/landing/checkout-selection.tsx`; `consent` is three Zod literals; walked in a real browser at 360 and 1280 pixels through a hold, an upload, Review, the back arrow and a released close (focus returned to "Your booking"); Confirm was not pressed, so the receipt is pinned by `components/landing/checkout-receipt.test.ts` instead
+- [ ] Verify it: `/check verify online booking checkout`
+- [x] Test it: `/test online booking checkout`
+- [x] Review it (fresh model): `/check review online booking checkout`
+- [x] Document it: `/document online booking checkout`
+
+### 17. Staff check of online bookings · needs a decision
+Staff see each online booking waiting for its payment check, open the screenshot beside the reference digits and amount, and confirm it or turn it down. Without this the loop never closes, because a transfer nobody checks is not a booking anybody trusts.
+**Done when:** a new online booking reaches the staff board live and stands out from a desk booking; staff can open its proof and confirm it (payment recorded as paid) or reject it with a reason (the slots free up on both boards); every decision records who made it and is guarded by the row's version; the customer's status on the lookup page follows the decision.
+- [ ] Design it (spec): `/architect staff check of online bookings`
+
+### 18. Booking receipt & lookup · needs a decision
+The receipt shows booking details, customer details and payment, as the last step of checkout and on a new public page where a customer types their booking code to see where their booking stands. Either place can download it.
+**Done when:** a valid code shows the receipt with its current status (waiting for check, confirmed, turned down, cancelled); an unknown code says so plainly without hinting at other codes; codes cannot be guessed and lookups are rate limited; the receipt downloads as a file that reads well printed or on a phone; the lookup page is not indexed and shows only what the code's holder should see.
+- [ ] Design it (spec): `/architect booking receipt & lookup`
+
+### 19. Voucher codes · needs a decision
+Owner level staff make discount codes, and checkout applies one when the customer enters it. Kept apart from checkout so the booking path ships first and the discount thickens it after.
+**Done when:** an owner can create, pause and end a voucher (an amount or a percentage off, with an optional end date and use limit); a valid code at checkout shows the reduced total, an invalid or used up one says why; the server recomputes the discount on Confirm and counts the use in the same write; the receipt and the staff check both show the voucher and the amount taken off.
+- [ ] Design it (spec): `/architect voucher codes`
+
 ## Deferred
 Out of scope for the current build pass, kept so the plan stays honest.
+- **Booking confirmation by email or text**: send the receipt and code when a booking is made and when staff confirm or turn it down. Needs a sending service, the same one self service password reset is waiting on · needs a decision · from slice 7
+- **Customer cancel or move from the lookup page**: today a change goes through Messenger or a text to staff. Brings a refund and late cancel policy with it · needs a decision · from slice 7
 - **Takings & unpaid report**: what came in over a date range and which bookings are still unpaid. The data is already recorded from spec 0002, only the view is missing · needs a decision · from spec 0002
 - **Opening hours history**: a table recording every change to hours and courts, so a past day's utilisation uses the hours in force then. Spec 0008 uses today's hours for every day and says so on the page · needs a decision · from spec 0008
 - **One off date exceptions for opening hours**: a public holiday, a tournament day, or a typhoon closure, as a table keyed by calendar date that wins over the weekday row. Staff close the courts with a closure booking today, which works but counts as open time on the usage report. Sits naturally beside `venue_hours` · needs a decision · from spec 0007
 - **Bulk fill on the opening hours form**: a "copy Monday to all weekdays" helper, since five weekdays usually match and the form is now seven rows. Worth revisiting after Ella has used it a few times · from spec 0007
 - **Custom dates on the usage report**: the report offers presets only. A from and to pair would drop into the same range resolver · from spec 0008
 - **CSV of the day list**: the usage report downloads the numbers behind the charts, not the rows of a day · from spec 0008
-- **Player self booking**: players sign in and book a cell themselves. The grid's Selected cell state is the seam it plugs into, and the data model needs one extra column. Brings accounts, customer cancellations and no shows with it · needs a decision
-- **Payments for court time**: taking payment in the app, as opposed to recording that it was paid, which the schedule already does · needs a decision · GA
+- **Player self booking**: players sign in and book a cell themselves. The grid's Selected cell state is the seam it plugs into, and the data model needs one extra column. Brings accounts, customer cancellations and no shows with it. Guest booking with no account is slice 7 (features 16 to 19); signed in players stay here · needs a decision
+- **Payments for court time**: taking payment in the app, as opposed to recording that it was paid, which the schedule already does. A QR transfer with proof checked by staff is feature 16 and 17; a provider taking the money in the app stays here · needs a decision · GA
 - **Automatic occupancy**: sensors or cameras that mark a court in use with no human input · needs a decision
 - **Lobby display mode**: an always on screen at the venue · needs a decision
 - **Free court alerts**: tell a player when a court opens up · needs a decision
@@ -264,7 +306,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **More than one venue**: several locations under one system · needs a decision
 - **Renaming the venue without a deploy**: the venue name is a constant, because `venue_settings` has no name column. Adding one is a small change to spec 0002 plus an owner only field · from spec 0003
 - **Staff editing payments on a past booking**: today only an owner may touch a booking that has ended, so a payment settled the next day needs Ella · from spec 0002
-- **Grouping the rows of one multi court booking**: a class booked across two courts is two unrelated rows today, so cancelling it is two cancels. A `booking_group` column on `reservation` is a small forward only migration under spec 0002 · from spec 0005
+- ~~**Grouping the rows of one multi court booking**~~: pulled into feature 16 on 2026-09-30, since one online booking code covers every picked slot. A class booked across two courts is two unrelated rows today, so cancelling it is two cancels · from spec 0005
 - **Changing a booking's end time in the edit form**: today a booking edit changes details only, while a closure edit may also move its end. The same free run select would let a booking grow or shrink without cancel and rebook · from spec 0005
 - **The staff board's now marker**: spec 0006 gives the public grid a `now` prop (dimmed past rows, a Now marker, scroll to the current hour). The staff board keeps its lock only dimming until it adopts the same prop, so the two boards read slightly differently on today until then · from spec 0006
 - ~~**Closing at midnight**~~: resolved on 2026-09-15 by spec 0007, `closeTimeSchema` accepts `24:00` as an end · from spec 0005

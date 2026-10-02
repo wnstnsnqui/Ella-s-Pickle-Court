@@ -1,4 +1,4 @@
-import type { StaffName, StaffReservation } from "@/lib/schedule/queries";
+import type { BookingStatus, StaffName, StaffReservation } from "@/lib/schedule/queries";
 import {
   calendarDateInZone,
   formatSlotLabel,
@@ -24,6 +24,20 @@ export function telHref(phone: string): string {
   const trimmed = phone.trim();
   const digits = trimmed.replace(/\D/g, "");
   return `tel:${trimmed.startsWith("+") ? "+" : ""}${digits}`;
+}
+
+/**
+ * Who made or last changed a row. A null user id on a row that belongs to an
+ * online booking is the player or the system, never a staff member (spec
+ * 0015, AC-21), so it reads "online" rather than "by a staff member".
+ */
+export function writerLabel(
+  staff: readonly StaffName[],
+  userId: string | null,
+  bookingId: number | null,
+): string {
+  if (!userId && bookingId !== null) return "online";
+  return `by ${staffDisplayName(staff, userId)}`;
 }
 
 /** Who a user id is. The foreign key means a miss should not happen; it still reads sensibly. */
@@ -74,4 +88,18 @@ export const PAYMENT_LABEL: Record<StaffReservation["paymentStatus"], string> = 
   partial: "Partial",
   paid: "Paid",
   waived: "Waived",
+};
+
+/**
+ * Where an online booking stands, in words (spec 0015, AC-21). Always shown
+ * as text, never as a colour alone. The last three are written from feature
+ * 17 on; they read sensibly already.
+ */
+export const BOOKING_STATUS_LABEL: Record<BookingStatus, string> = {
+  held: "Held, not yet paid",
+  pending_check: "Payment not yet checked",
+  confirmed: "Payment confirmed",
+  rejected: "Payment turned down",
+  expired: "Expired",
+  cancelled: "Cancelled",
 };

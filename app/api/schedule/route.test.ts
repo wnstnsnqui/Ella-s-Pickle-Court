@@ -33,6 +33,7 @@ const schedule = {
     ],
   },
   settingsVersion: 1,
+  hourlyRate: 250,
   horizonDays: 14,
   now: "2026-09-15T22:30:00.000Z",
   hours: {

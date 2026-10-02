@@ -1,12 +1,13 @@
-import { formatPeso, PRICE_PER_HOUR, VENUE_LOCALITY } from "@/lib/venue";
+import { formatPeso, VENUE_LOCALITY } from "@/lib/venue";
 
 /**
  * The landing page's own words. Spec 0013, AC-17 and AC-19.
  *
  * Only this page prints these, so they live beside its components rather than
  * in `lib/venue.ts`. The copy claims nothing that is not confirmed: the town,
- * the price, the four amenities (confirmed 2026-09-26), and what the live
- * schedule does. Ella reads the whole page before launch (spec 0013,
+ * the four amenities (confirmed 2026-09-26), and what the live schedule
+ * does. The price is never written here: it is `venue_settings.hourly_rate`,
+ * handed in from the schedule read (spec 0015, AC-17). Ella reads the whole page before launch (spec 0013,
  * Follow-up).
  */
 
@@ -16,10 +17,12 @@ export const HERO = {
   lede: "See which courts are free right now, pick the hours you want, and message us to lock them in.",
 } as const;
 
-/** The one priced offer, set in the dark mark colour so the eye lands there first. */
+/**
+ * The one priced offer, set in the dark mark colour so the eye lands there
+ * first. Its price is `hourly_rate`, shown beside `unit` by the card.
+ */
 export type Offer = {
   name: string;
-  price: string;
   unit: string;
   blurb: string;
   perks: string[];
@@ -27,7 +30,6 @@ export type Offer = {
 
 export const RENTAL: Offer = {
   name: "Court rental",
-  price: formatPeso(PRICE_PER_HOUR),
   unit: "per hour",
   blurb: "A whole court for your group, booked by the hour.",
   perks: [
@@ -60,8 +62,16 @@ export const AMENITIES: Amenity[] = [
 export const OFFERS_SECTION = {
   eyebrow: "Why play here",
   title: "Come for a game. Stay till the lights.",
-  lede: `A whole court for your group at ${formatPeso(PRICE_PER_HOUR)} an hour, with free wifi, free parking and comfort rooms right by the courts.`,
 } as const;
+
+/**
+ * The offers lede, priced from `hourly_rate`. With no read to vouch for a
+ * price, the sentence simply leaves it out rather than guess.
+ */
+export function offersLede(hourlyRate: number | null): string {
+  const price = hourlyRate === null ? "" : ` at ${formatPeso(hourlyRate)} an hour`;
+  return `A whole court for your group${price}, with free wifi, free parking and comfort rooms right by the courts.`;
+}
 
 export const BOOKING_SECTION = {
   eyebrow: "Court booking",

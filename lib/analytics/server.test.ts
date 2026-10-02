@@ -98,3 +98,35 @@ describe("reportFailure (AC-7)", () => {
     expect(properties).toEqual({ action: "getSchedule", code: "XX000" });
   });
 });
+
+describe("capturePublicEvent (spec 0015, AC-24)", () => {
+  beforeEach(() => {
+    process.env.NEXT_PUBLIC_POSTHOG_KEY = "phc_test";
+  });
+
+  it("sends a fresh random id per event and no person profile", async () => {
+    const { capturePublicEvent } = await import("./server");
+    capturePublicEvent("online_booking_held", { slots: 2, courts: 1, days_ahead: 0 });
+    capturePublicEvent("online_booking_refused", { stage: "hold", reason: "bot_check" });
+    expect(capture).toHaveBeenCalledTimes(2);
+    const [first, second] = capture.mock.calls.map(([call]) => call);
+    expect(first.distinctId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(first.distinctId).not.toBe(second.distinctId);
+    expect(first).toMatchObject({
+      event: "online_booking_held",
+      properties: { slots: 2, courts: 1, days_ahead: 0, $process_person_profile: false },
+    });
+  });
+
+  it("drops a property bag that carries anything off the allow list", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { capturePublicEvent } = await import("./server");
+    capturePublicEvent(
+      "online_booking_submitted",
+      // @ts-expect-error deliberately outside the allow list
+      { slots: 1, retaken: false, code: "K7MQ3XPT" },
+    );
+    expect(capture).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+});

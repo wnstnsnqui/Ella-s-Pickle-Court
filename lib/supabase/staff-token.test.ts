@@ -64,3 +64,38 @@ describe("mintStaffToken", () => {
     await expect(jwtVerify(token, new TextEncoder().encode("another-secret"))).rejects.toThrow();
   });
 });
+
+describe("mintOnlineBookingToken", () => {
+  it("signs HS256 with role online_booking and the client hash, and no sub (spec 0015)", async () => {
+    const { mintOnlineBookingToken } = await import("./staff-token");
+    const token = await mintOnlineBookingToken("hash_1");
+
+    const { payload, protectedHeader } = await jwtVerify(token, new TextEncoder().encode(SECRET));
+    expect(protectedHeader.alg).toBe("HS256");
+    expect(payload.role).toBe("online_booking");
+    expect(payload.client_hash).toBe("hash_1");
+    expect(payload.sub).toBeUndefined();
+  });
+
+  it("carries only the named claims, nothing else", async () => {
+    const { mintOnlineBookingToken } = await import("./staff-token");
+    const payload = decodeJwt(await mintOnlineBookingToken("hash_1"));
+    expect(Object.keys(payload).sort()).toEqual(["client_hash", "exp", "iat", "role"].sort());
+  });
+
+  it("expires sixty seconds after it was issued", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-30T08:00:00Z"));
+    const { mintOnlineBookingToken, ONLINE_BOOKING_TOKEN_LIFETIME_SECONDS } =
+      await import("./staff-token");
+    const payload = decodeJwt(await mintOnlineBookingToken("hash_1"));
+    expect(ONLINE_BOOKING_TOKEN_LIFETIME_SECONDS).toBe(60);
+    expect(payload.exp).toBe(payload.iat! + 60);
+  });
+
+  it("refuses to mint anything when the secret is missing, naming it", async () => {
+    delete process.env.SUPABASE_JWT_SECRET;
+    const { mintOnlineBookingToken } = await import("./staff-token");
+    await expect(mintOnlineBookingToken("hash_1")).rejects.toThrow(/SUPABASE_JWT_SECRET/);
+  });
+});

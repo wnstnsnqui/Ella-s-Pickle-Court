@@ -21,9 +21,10 @@ import {
   formatRange,
   formatStamp,
   PAYMENT_LABEL,
-  staffDisplayName,
   telHref,
+  writerLabel,
 } from "./format";
+import { OnlineBookingBlock } from "./online-booking-block";
 
 /**
  * Who has this court. Spec 0005, AC-7, AC-9 and AC-11.
@@ -149,16 +150,29 @@ export function DetailsSheet({
         </dd>
       </dl>
 
+      {booking && reservation.bookingId !== null ? (
+        <>
+          <Separator className="my-4" />
+          <OnlineBookingBlock
+            key={reservation.bookingId}
+            bookingId={reservation.bookingId}
+            changedAt={reservation.updatedAt}
+            timeZone={timeZone}
+          />
+        </>
+      ) : null}
+
       <Separator className="my-4" />
 
       <div className="text-caption text-muted-foreground flex flex-col gap-1">
         <p>
-          {booking ? "Booked" : "Closed"} by {staffDisplayName(staff, reservation.createdBy)} at{" "}
+          {booking ? "Booked" : "Closed"}{" "}
+          {writerLabel(staff, reservation.createdBy, reservation.bookingId)} at{" "}
           {formatStamp(reservation.createdAt, timeZone)}
         </p>
         {changed ? (
           <p>
-            Last changed by {staffDisplayName(staff, reservation.changedBy)} at{" "}
+            Last changed {writerLabel(staff, reservation.changedBy, reservation.bookingId)} at{" "}
             {formatStamp(reservation.updatedAt, timeZone)}
           </p>
         ) : null}

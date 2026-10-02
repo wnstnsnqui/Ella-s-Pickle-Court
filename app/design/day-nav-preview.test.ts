@@ -1,6 +1,6 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { DayNavPreview } from "./day-nav-preview";
 
@@ -9,6 +9,15 @@ import { DayNavPreview } from "./day-nav-preview";
  * day of its own and starts on the one it is given, at rest.
  */
 describe("DayNavPreview", () => {
+  // A fixed clock a week before the date, so it never reads as "Today".
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-25T04:00:00Z"));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("starts on the day it is given, with nothing pending", () => {
     const html = renderToStaticMarkup(
       createElement(DayNavPreview, {

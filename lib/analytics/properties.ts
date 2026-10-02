@@ -68,6 +68,33 @@ const bookingIntentSchema = z
   })
   .strict();
 
+/**
+ * Spec 0015, AC-24: the online checkout, sent cookieless by
+ * `capturePublicEvent()`. Counts and fixed words only: never a code, a name,
+ * a phone, an email, the reference digits, a path or a client hash.
+ */
+const onlineBookingHeldSchema = z
+  .object({
+    slots: z.number().int().positive(),
+    courts: z.number().int().positive(),
+    days_ahead: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const onlineBookingSubmittedSchema = z
+  .object({
+    slots: z.number().int().positive(),
+    retaken: z.boolean(),
+  })
+  .strict();
+
+const onlineBookingRefusedSchema = z
+  .object({
+    stage: z.enum(["hold", "submit"]),
+    reason: z.enum(["slot_taken", "out_of_range", "rate_limited", "bot_check", "proof_missing"]),
+  })
+  .strict();
+
 const privacyNoticeAcknowledgedSchema = z
   .object({
     version: z.string(),
@@ -108,8 +135,8 @@ const staffPasswordChangedSchema = z
   .strict();
 
 /**
- * Every event `captureStaffEvent()`, `captureDayViewed()` or
- * `captureBookingIntent()` may send, and the schema its properties must pass.
+ * Every event `captureStaffEvent()`, `capturePublicEvent()`, `captureDayViewed()`
+ * or `captureBookingIntent()` may send, and the schema its properties must pass.
  * Adding an event means adding a row here first; there is no way to send an
  * event this map does not name.
  */
@@ -124,6 +151,9 @@ export const eventSchemas = {
   hours_changed: hoursChangedSchema,
   board_day_viewed: boardDayViewedSchema,
   booking_intent: bookingIntentSchema,
+  online_booking_held: onlineBookingHeldSchema,
+  online_booking_submitted: onlineBookingSubmittedSchema,
+  online_booking_refused: onlineBookingRefusedSchema,
   privacy_notice_acknowledged: privacyNoticeAcknowledgedSchema,
   staff_role_changed: staffRoleChangedSchema,
   staff_invite_created: staffInviteCreatedSchema,

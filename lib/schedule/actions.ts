@@ -14,10 +14,12 @@ import { calendarDateInZone, daysBetween, todayInZone, zonedTimeToUtc } from "@/
 
 import { countOutsideHours } from "./outside-hours";
 import {
+  getBookingForStaff,
   getOwnerSettings,
   getStaffSchedule,
   type OwnerCourt,
   type OwnerSettings,
+  type StaffBooking,
   type StaffSchedule,
 } from "./queries";
 import {
@@ -29,6 +31,7 @@ import {
   saveCourtSchema,
   saveVenueSettingsSchema,
   scheduleDateSchema,
+  staffBookingSchema,
   updateReservationSchema,
   type SaveVenueSettingsInput,
 } from "./schemas";
@@ -229,6 +232,17 @@ export async function refreshStaffSchedule(input: unknown): Promise<ActionResult
   const parsed = parseInput(scheduleDateSchema, input);
   if (!parsed.ok) return fail(parsed.error);
   return getStaffSchedule(parsed.data.date);
+}
+
+/**
+ * The online booking behind a row, for the staff details sheet (spec 0015,
+ * AC-21). A read, like `refreshStaffSchedule`: `getBookingForStaff` runs
+ * `requireStaff()` itself, and the select policy on `booking` decides.
+ */
+export async function loadStaffBooking(input: unknown): Promise<ActionResult<StaffBooking>> {
+  const parsed = parseInput(staffBookingSchema, input);
+  if (!parsed.ok) return fail(parsed.error);
+  return getBookingForStaff(parsed.data.bookingId);
 }
 
 /**

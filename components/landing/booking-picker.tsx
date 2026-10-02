@@ -11,6 +11,7 @@ import {
   RecordIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -20,7 +21,7 @@ import { closedDaysOf, type GridCourt, type GridRow } from "@/lib/schedule/grid"
 import type { Schedule } from "@/lib/schedule/queries";
 import { addDays, dayOfWeek, daysBetween, formatDayHeading, formatSlotLabel } from "@/lib/time";
 import { cn } from "@/lib/utils";
-import { formatPeso, PRICE_PER_HOUR } from "@/lib/venue";
+import { formatPeso } from "@/lib/venue";
 
 import {
   bookingTotal,
@@ -28,9 +29,16 @@ import {
   isPressable,
   pickKey,
   smsBody,
+  takenMessage,
   tileView,
   type TileView,
 } from "./booking";
+import {
+  CheckoutSheet,
+  type CheckoutOrder,
+  type CheckoutOutcome,
+  type PickerRefusal,
+} from "./checkout-sheet";
 import { MessageCard } from "./message-card";
 import { showComingSoonToast, showReadFailedToast } from "./notices";
 import { PRESS } from "./press";
@@ -108,15 +116,22 @@ type Status = "ready" | "loading" | "card";
  *
  * The clock is the server's: `schedule.now` plus whole minutes this tab has
  * held it, so a device with a wrong clock cannot move the Past tiles.
+ *
+ * With checkout on (spec 0015, AC-1), the button reads Book and opens the
+ * checkout sheet on the picks as they stand; off, it is spec 0013's Request
+ * booking and its coming soon toast, unchanged.
  */
 export function BookingPicker({
   initial,
   limited,
+  checkout,
 }: {
   /** Today's read, or null when it failed or was skipped. */
   initial: Schedule | null;
   /** The shared rate limit is spent: straight to the message card (AC-11). */
   limited: boolean;
+  /** Online checkout is on (spec 0015, AC-26). */
+  checkout: boolean;
 }) {
   const [shown, setShown] = useState<Schedule | null>(initial);
   const [week, setWeek] = useState<Week | null>(initial ? weekOf(initial) : null);
@@ -125,6 +140,14 @@ export function BookingPicker({
   const [status, setStatus] = useState<Status>(limited ? "card" : initial ? "ready" : "loading");
   const [picks, setPicks] = useState<ReadonlySet<string>>(() => new Set());
   const latest = useRef(0);
+
+  // The checkout sheet: the order is frozen when Book is pressed, and each
+  // press mounts a fresh sheet (a new key), so a new `submission_id`.
+  const [order, setOrder] = useState<CheckoutOrder | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetKey, setSheetKey] = useState(0);
+  /** Where focus lands however the card closes (spec 0015, AC-27). */
+  const summaryHeading = useRef<HTMLHeadingElement>(null);
 
   /** Read a day and land it, if it is still the newest read. Callers set `loading`. */
   const read = useCallback(async (date: string | undefined) => {
@@ -215,13 +238,58 @@ export function BookingPicker({
   const heading = grid ? formatDayHeading(grid.date) : null;
 
   function request() {
-    if (!grid || !week || !heading || livePicks.size === 0) return;
-    showComingSoonToast(smsBody(heading, groups));
+    if (!shown || !grid || !week || !heading || livePicks.size === 0) return;
+    if (checkout) {
+      setOrder({
+        date: grid.date,
+        heading,
+        groups,
+        total: bookingTotal(livePicks.size, grid.slotMinutes, shown.hourlyRate),
+        slotMinutes: grid.slotMinutes,
+        picks: [...livePicks].map((key) => {
+          const [courtId, startsAt] = key.split("|");
+          return { courtId: Number(courtId), startsAt };
+        }),
+      });
+      setSheetKey((key) => key + 1);
+      setSheetOpen(true);
+    } else {
+      showComingSoonToast(smsBody(heading, groups));
+    }
     captureBookingIntent({
       slots: livePicks.size,
       courts: groups.length,
       days_ahead: daysBetween(week.today, grid.date),
     });
+  }
+
+  /**
+   * The sheet has closed. A booking clears the picks and reads the day, so the
+   * new booking shows (AC-14); a refund reads the day so the taken hours show
+   * Booked while the rest stay picked (AC-13). Leaving keeps the picks as they
+   * were: any hold on them has been released, so they are free again (AC-15).
+   */
+  function closeSheet(outcome: CheckoutOutcome) {
+    setSheetOpen(false);
+    if (outcome === "left") return;
+    if (outcome === "booked") setPicks(new Set());
+    load(chosen);
+  }
+
+  /**
+   * A pick went while the sheet was open, or the hours changed (AC-6, AC-7):
+   * the sheet closes, the day is read again so the taken tiles read Booked
+   * while the rest stay picked, and one toast says what happened.
+   */
+  function refused(refusal: PickerRefusal) {
+    setSheetOpen(false);
+    toast(
+      refusal.kind === "slot_taken" && grid
+        ? takenMessage(grid, refusal.slots)
+        : "The hours changed. Pick your hours again.",
+      { id: "landing-checkout-refused" },
+    );
+    load(chosen);
   }
 
   const card = status === "card";
@@ -273,7 +341,9 @@ export function BookingPicker({
           aria-label="Your booking"
           className="bg-card ring-border flex flex-col gap-5 self-start rounded-3xl p-6 shadow-sm ring-1 lg:sticky lg:top-24"
         >
-          <h3 className="text-title">Your booking</h3>
+          <h3 ref={summaryHeading} tabIndex={-1} className="text-title rounded-sm">
+            Your booking
+          </h3>
           <dl className="text-body flex flex-col gap-3">
             <div className="flex justify-between gap-4">
               <dt className="text-muted-foreground">Day</dt>
@@ -295,7 +365,9 @@ export function BookingPicker({
           <div className="border-border flex items-baseline justify-between border-t pt-4">
             <span className="text-label">Total</span>
             <span className="text-display tabular-nums" aria-live="polite">
-              {formatPeso(bookingTotal(livePicks.size, grid?.slotMinutes ?? 60))}
+              {formatPeso(
+                shown ? bookingTotal(livePicks.size, shown.grid.slotMinutes, shown.hourlyRate) : 0,
+              )}
             </span>
           </div>
           <Button
@@ -305,14 +377,30 @@ export function BookingPicker({
             onClick={request}
             className={cn("bg-mark text-mark-foreground hover:bg-mark/90 h-12 w-full", PRESS)}
           >
-            Request booking
+            {checkout ? "Book" : "Request booking"}
             <ArrowRightIcon aria-hidden="true" weight="bold" data-icon="inline-end" />
           </Button>
-          <p className="text-caption text-muted-foreground">
-            {formatPeso(PRICE_PER_HOUR)} per court hour.
-          </p>
+          {shown ? (
+            <p className="text-caption text-muted-foreground">
+              {formatPeso(shown.hourlyRate)} per court hour.
+            </p>
+          ) : null}
         </aside>
       )}
+
+      {order ? (
+        <CheckoutSheet
+          key={sheetKey}
+          open={sheetOpen}
+          onClose={closeSheet}
+          order={order}
+          returnFocusTo={summaryHeading}
+          onRefused={refused}
+          describeTaken={(slots) =>
+            grid ? takenMessage(grid, slots) : "Some of your hours were just booked."
+          }
+        />
+      ) : null}
     </div>
   );
 }

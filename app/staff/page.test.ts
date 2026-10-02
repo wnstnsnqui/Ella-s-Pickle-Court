@@ -37,6 +37,7 @@ const { default: StaffPage, metadata, dynamic } = await import("./page");
 const schedule = {
   grid: { date: "2026-09-16", timezone: "Asia/Manila", courts: [], rows: [] },
   settingsVersion: 1,
+  hourlyRate: 250,
   horizonDays: 14,
   reservations: [],
   staff: [],

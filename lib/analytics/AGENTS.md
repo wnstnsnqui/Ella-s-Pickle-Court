@@ -13,7 +13,7 @@ no-op, so development and `next build` are unaffected.
 | -------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `hosts.ts`           | PostHog's US cloud hosts and the `/ingest` rewrite prefix. Constants, not env vars: the region is a decision, not a deploy setting. |
 | `properties.ts`      | The event allow list: one `.strict()` Zod schema per event name, plus `scrubError()`. Nothing reaches PostHog that isn't named here first. |
-| `server.ts`          | `captureStaffEvent()`, `reportFailure()`, and the `posthog-node` singleton. Server only (`server-only` import). |
+| `server.ts`          | `captureStaffEvent()`, `capturePublicEvent()` (the public checkout, spec 0015: cookieless, no identity), `reportFailure()`, and the `posthog-node` singleton. Server only (`server-only` import). |
 | `register-node.ts`   | The Node.js runtime half of `instrumentation.ts`'s `register()` (the SIGTERM shutdown hook), split out so `process.on` never reaches the Edge Runtime's bundle. |
 | `browser.ts`         | `identifyStaff()`, `resetIdentity()`, `captureDayViewed()`, `captureBookingIntent()` (the landing page, spec 0013), `captureBrowserException()`: thin `posthog-js` wrappers, all no-ops when unconfigured. |
 
@@ -27,6 +27,7 @@ same feature.
 - **`captureStaffEvent()` fires only after a successful write, and is never awaited by its caller.** Analytics must never change a Server Action's outcome or its latency.
 - **`reportFailure()` is for the unnamed `kind: "failed"` branch only.** A named `ActionError` (`conflict`, `forbidden`, `invalid`, `not_found`, `unauthenticated`) is an expected outcome and must never be reported as an exception.
 - **Distinct ids are always a Better Auth user id or PostHog's own anonymous id, never a shared literal.**
+- **A public Server Action sends through `capturePublicEvent()`, never `captureStaffEvent()`,** under the same rules: after a successful write, never awaited, no personal data in the properties.
 - **The public board stays cookieless; `/staff` and `/sign-in` are identified.** `instrumentation-client.ts` decides the mode once per page load, from `window.location.pathname`.
 
 ## Gotchas

@@ -84,6 +84,11 @@ export function PrivacyNoticeDialog({
           <li>
             A customer&apos;s phone number is cleared automatically after it is no longer needed.
           </li>
+          <li>
+            An online booking also carries the customer&apos;s email, the last 4 digits of their
+            transfer&apos;s reference number, and a screenshot of the transfer. Use them only to
+            check that booking; they are cleared or deleted automatically on a schedule.
+          </li>
         </ul>
         <p className="text-caption">
           <a

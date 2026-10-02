@@ -2,10 +2,19 @@ import type { Metadata } from "next";
 
 import { AppShell } from "@/components/app-shell";
 import { LegalPage, LegalSection } from "@/components/legal-page";
-import { PRIVACY_CONTACT_EMAIL, PRIVACY_NOTICE_VERSION } from "@/lib/legal/constants";
+import {
+  BOOKING_RULES,
+  BOOKING_TERMS_VERSION,
+  PRIVACY_CONTACT_EMAIL,
+  PRIVACY_NOTICE_VERSION,
+} from "@/lib/legal/constants";
 import { VENUE_NAME } from "@/lib/venue";
 
-/** Spec 0010, AC-2. Public, indexable, and read only. */
+/**
+ * Spec 0010, AC-2, and spec 0015, AC-22. Public, indexable, and read only.
+ * The booking section prints `BOOKING_RULES`, the same list the checkout's
+ * Terms step shows, so the two cannot disagree.
+ */
 export const metadata: Metadata = {
   title: "Terms of use",
   description: `The terms for using the ${VENUE_NAME} court schedule.`,
@@ -22,9 +31,19 @@ export default function TermsPage() {
           </p>
         </LegalSection>
 
-        <LegalSection heading="What this site does not do">
+        <LegalSection heading="Booking online">
           <p>
-            The site takes no bookings and no payments. A booking is made in person or by phone.
+            When you book on this site, you agree to these booking rules (version{" "}
+            {BOOKING_TERMS_VERSION}):
+          </p>
+          <ul className="list-disc space-y-2 pl-5">
+            {BOOKING_RULES.map((rule) => (
+              <li key={rule}>{rule}</li>
+            ))}
+          </ul>
+          <p>
+            Your picked hours are held for a few minutes while you pay. The site takes no payment
+            itself: you pay by QR transfer and send us proof, and staff check it.
           </p>
         </LegalSection>
 

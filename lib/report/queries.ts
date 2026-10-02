@@ -146,7 +146,12 @@ export async function getDayReservations(day: string): Promise<ActionResult<DayR
         "id, court_id, kind, status, starts_at, ends_at, customer_name, note, created_by, cancelled_by, cancelled_at",
       )
       .lt("starts_at", `${day}T23:59:59.999Z`)
-      .gt("ends_at", `${day}T00:00:00.000Z`),
+      .gt("ends_at", `${day}T00:00:00.000Z`)
+      // Spec 0015, AC-16: leave out the rows the system cancelled (an expired
+      // or released hold, a retaken booking's first rows). Those are online
+      // rows cancelled with nobody's name on them; a staff cancel always
+      // carries one, so it stays listed. Abandoned checkouts are not bookings.
+      .or("status.neq.cancelled,booking_id.is.null,cancelled_by.not.is.null"),
   ]);
 
   if (courts.error) return fail({ kind: "failed", message: courts.error.message });

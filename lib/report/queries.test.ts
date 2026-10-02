@@ -22,11 +22,18 @@ const queue = (key: string, value: Answer) =>
 const nextAnswer = (key: string): Answer =>
   (answers.get(key) ?? []).shift() ?? { data: null, error: null };
 
+/** Every `.or()` filter a query asked for, by table. */
+const orFilters: [string, string][] = [];
+
 function builder(table: string) {
   const chain: Record<string, unknown> = {};
   for (const method of ["select", "lt", "gt", "order"]) {
     chain[method] = () => chain;
   }
+  chain.or = (filter: string) => {
+    orFilters.push([table, filter]);
+    return chain;
+  };
   chain.maybeSingle = () => Promise.resolve(nextAnswer(table));
   chain.then = (resolve: (value: Answer) => void) => resolve(nextAnswer(table));
   return chain;
@@ -40,6 +47,7 @@ const { getDayReservations, getUsageReport } = await import("./queries");
 beforeEach(() => {
   vi.clearAllMocks();
   answers.clear();
+  orFilters.length = 0;
   requireStaff.mockResolvedValue({ ok: true, staffId: "user_a", supabase });
 });
 
@@ -205,6 +213,18 @@ describe("getDayReservations", () => {
     });
     const result = await getDayReservations("2026-09-17");
     expect(result.ok).toBe(false);
+  });
+
+  it("asks Postgres to leave out rows the system cancelled, never a staff cancel (spec 0015, AC-16)", async () => {
+    queue("court", COURTS_ROW);
+    queue("staff", STAFF_ROWS);
+    queue("reservation", { data: [], error: null });
+
+    await getDayReservations("2026-09-17");
+    // Kept: not cancelled, or not an online row, or cancelled by somebody.
+    expect(orFilters).toEqual([
+      ["reservation", "status.neq.cancelled,booking_id.is.null,cancelled_by.not.is.null"],
+    ]);
   });
 
   it("keeps a row that falls inside the venue local day (Asia/Manila, UTC+8)", async () => {

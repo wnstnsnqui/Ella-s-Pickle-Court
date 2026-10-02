@@ -41,6 +41,7 @@ const { default: Home, generateMetadata, dynamic } = await import("./page");
 const schedule = {
   grid: { date: "2026-09-20", timezone: "Asia/Manila", courts: [], rows: [] },
   settingsVersion: 1,
+  hourlyRate: 250,
   horizonDays: 14,
   now: "2026-09-14T10:00:00.000Z",
   hours: {

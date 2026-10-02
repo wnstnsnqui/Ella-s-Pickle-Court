@@ -52,6 +52,10 @@
    * white and on yellow alike. */
   --ring: oklch(0.421 0.095 57.708);
   --overlay: oklch(0 0 0 / 0.8);
+  /* The checkout card's dim (spec 0015, AC-27): a third of the dark neutral,
+   * so the board stays legible behind it. Weaker than `--overlay` on purpose;
+   * the staff sheets keep the dark dim that holds the grid out of the way. */
+  --overlay-soft: oklch(0.147 0.004 49.25 / 0.35);
 
   /* Accent. Primary is the preset yellow, with deep amber text on it. Yellow
    * can never be text on white (it lands near 1.5:1), so anything that reads
@@ -112,6 +116,8 @@
    * visit arrival; the curves are the strong ease-out for anything arriving
    * and the strong ease-in-out for anything moving across the screen. */
   --dur-enter: 700ms;
+  /* A checkout step arriving: UI motion, so well under 300ms. */
+  --dur-step: 220ms;
   --curve-out: cubic-bezier(0.23, 1, 0.32, 1);
   --curve-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
@@ -133,6 +139,7 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-overlay: var(--overlay);
+  --color-overlay-soft: var(--overlay-soft);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-link: var(--link);
@@ -301,7 +308,78 @@
   }
 }
 
+/*
+ * A checkout step arriving (spec 0015, AC-25). It slides in from the side the
+ * player is heading, so Next and Back read as forward and back. Enter only: the
+ * old step leaves at once, so a quick Back then Next never waits on an exit.
+ * 12px stays inside the sheet body's 16px padding, so it never flashes a
+ * sideways scrollbar, and nothing needs clipping (which would cut focus rings).
+ */
+@keyframes checkout-step {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--step-from, 1) * 12px));
+  }
+}
+
+/*
+ * The checkout card (spec 0015, AC-25, AC-27). It grows in from 96% with a
+ * fade and leaves faster than it came, because a closing card is already
+ * out of the player's mind. Reduced motion keeps only the fade.
+ */
+@keyframes checkout-card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+}
+
+@keyframes checkout-card-out {
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes checkout-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes checkout-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+[data-checkout-card][data-state="open"],
+[data-checkout-overlay][data-state="open"] {
+  animation: checkout-fade-in var(--dur-step) var(--curve-out) both;
+}
+
+[data-checkout-card][data-state="closed"],
+[data-checkout-overlay][data-state="closed"] {
+  animation: checkout-fade-out var(--dur-fast) ease-in both;
+}
+
 @media (prefers-reduced-motion: no-preference) {
+  [data-checkout-card][data-state="open"] {
+    animation-name: checkout-card-in;
+  }
+
+  [data-checkout-card][data-state="closed"] {
+    animation-name: checkout-card-out;
+  }
+
+  [data-step-enter] {
+    animation: checkout-step var(--dur-step) var(--curve-out) both;
+  }
+
+  [data-step-enter="back"] {
+    --step-from: -1;
+  }
+
   /* Anchor links glide instead of jumping, on the landing page only. */
   html:has([data-landing]) {
     scroll-behavior: smooth;

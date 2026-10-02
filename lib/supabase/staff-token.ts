@@ -13,10 +13,11 @@ import { cache } from "react";
  * function and `changed_by` value works exactly as it did before the move.
  *
  * Invariant 6: this is the only module that reads `SUPABASE_JWT_SECRET`
- * (`lib/import-boundaries.test.ts` pins that), every token it mints carries
- * `role: "authenticated"` and a five minute life, and it exports no way to
- * mint anything else. The secret can sign a `service_role` token too, which
- * is exactly why it is confined to these forty lines.
+ * (`lib/import-boundaries.test.ts` pins that), and it mints exactly two fixed
+ * token shapes: the staff token below (`role: "authenticated"`, five minutes),
+ * and the online booking token (`role: "online_booking"`, one minute, spec
+ * 0015). It exports no way to mint anything else. The secret can sign a
+ * `service_role` token too, which is exactly why it is confined to this file.
  */
 
 /** How long a minted token lives. Well past one request, well short of a shift. */
@@ -57,3 +58,24 @@ export const mintStaffToken = cache(async (subject: StaffTokenSubject): Promise<
     .setExpirationTime(issuedAt + STAFF_TOKEN_LIFETIME_SECONDS)
     .sign(secretKey());
 });
+
+/** How long an online booking token lives: one Server Action, with room to spare. */
+export const ONLINE_BOOKING_TOKEN_LIFETIME_SECONDS = 60;
+
+/**
+ * Mint the token a public checkout write runs under. Spec 0015, the Decision.
+ *
+ * `role: "online_booking"` may run the online booking functions and write one
+ * proof object per booking, and nothing else. There is no `sub`: the caller is
+ * nobody, and no staff policy can match it. The `client_hash` claim is what
+ * `hold_online_booking` counts for its rate limit. Only `lib/booking/actions.ts`
+ * calls this, after its own checks; `lib/import-boundaries.test.ts` pins that.
+ */
+export async function mintOnlineBookingToken(clientHash: string): Promise<string> {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  return new SignJWT({ role: "online_booking", client_hash: clientHash })
+    .setProtectedHeader({ alg: "HS256", typ: "JWT" })
+    .setIssuedAt(issuedAt)
+    .setExpirationTime(issuedAt + ONLINE_BOOKING_TOKEN_LIFETIME_SECONDS)
+    .sign(secretKey());
+}

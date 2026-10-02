@@ -7,7 +7,9 @@ import {
   WifiHighIcon,
 } from "@phosphor-icons/react/ssr";
 
-import { AMENITIES, OFFERS_SECTION, RENTAL, type Amenity } from "./content";
+import { formatPeso } from "@/lib/venue";
+
+import { AMENITIES, OFFERS_SECTION, offersLede, RENTAL, type Amenity } from "./content";
 import { SectionHeading } from "./section-heading";
 
 /** Typed on the id union, so an amenity added without an icon fails the typecheck. */
@@ -24,8 +26,11 @@ const AMENITY_ICONS: Record<Amenity["id"], typeof WifiHighIcon> = {
  * lands there first; the amenities beside it stay quiet. Nothing here is
  * clickable, so nothing moves on hover; each card only reveals on scroll, the
  * tiles one after another (`[data-reveal="step"]` in `app/globals.css`).
+ *
+ * The price is `hourly_rate` from today's read (spec 0015, AC-17). When that
+ * read is unavailable it is left out, never guessed, as the hero does.
  */
-export function Offers() {
+export function Offers({ hourlyRate }: { hourlyRate: number | null }) {
   return (
     <section
       id="offers"
@@ -37,11 +42,11 @@ export function Offers() {
         eyebrow={OFFERS_SECTION.eyebrow}
         title={OFFERS_SECTION.title}
       >
-        {OFFERS_SECTION.lede}
+        {offersLede(hourlyRate)}
       </SectionHeading>
 
       <div className="mt-12 grid gap-4 md:grid-cols-2">
-        <RentalCard />
+        <RentalCard hourlyRate={hourlyRate} />
 
         <ul aria-label="Amenities" className="grid auto-rows-fr grid-cols-2 gap-4">
           {AMENITIES.map((amenity, i) => {
@@ -74,7 +79,7 @@ export function Offers() {
   );
 }
 
-function RentalCard() {
+function RentalCard({ hourlyRate }: { hourlyRate: number | null }) {
   return (
     <div
       data-reveal
@@ -89,10 +94,12 @@ function RentalCard() {
         <p className="text-body text-pretty opacity-85">{RENTAL.blurb}</p>
       </div>
 
-      <p className="flex items-baseline gap-1.5">
-        <span className="text-display tabular-nums">{RENTAL.price}</span>
-        <span className="text-caption opacity-80">{RENTAL.unit}</span>
-      </p>
+      {hourlyRate === null ? null : (
+        <p className="flex items-baseline gap-1.5">
+          <span className="text-display tabular-nums">{formatPeso(hourlyRate)}</span>
+          <span className="text-caption opacity-80">{RENTAL.unit}</span>
+        </p>
+      )}
 
       <ul className="mt-auto flex flex-col gap-2">
         {RENTAL.perks.map((perk) => (
