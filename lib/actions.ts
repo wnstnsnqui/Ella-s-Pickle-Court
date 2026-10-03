@@ -44,7 +44,9 @@ export type ConflictReason =
   | "sort_order_taken"
   | "court_has_bookings"
   | "name_taken"
-  | "bookings_outside_hours";
+  | "bookings_outside_hours"
+  /** An online booking's state no longer allows the step (spec 0016, AC-14). */
+  | "wrong_state";
 
 export function ok<T>(data: T): ActionResult<T> {
   return { ok: true, data };
@@ -147,6 +149,16 @@ export function describeDatabaseError(
         message: "Another court already has that name.",
       };
     }
+  }
+  // The row guard on an online booking's rows (spec 0016, AC-11, AC-15):
+  // cancelling, repaying or repricing one outside its own decision. An
+  // answer about the request, so `invalid`, and never captured.
+  if (error.code === "23514" && error.message.startsWith("online_booking_guard:")) {
+    return {
+      kind: "invalid",
+      message: "This is an online booking. Use its own buttons in the sheet.",
+      issues: {},
+    };
   }
   // `reorder_courts` refusing a list whose versions no longer match (spec 0007,
   // AC-5), and `update_staff_role` refusing a stale role or active change

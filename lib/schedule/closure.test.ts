@@ -42,6 +42,7 @@ function reservation(partial: Partial<StaffReservation> & Pick<StaffReservation,
     createdAt: at(0),
     updatedAt: at(0),
     bookingId: null,
+    bookingStatus: null,
     ...partial,
   } satisfies StaffReservation;
 }

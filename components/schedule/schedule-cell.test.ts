@@ -24,7 +24,22 @@ describe("ScheduleCell", () => {
   it("adds the caption to the spoken name and shows it once visually, hidden from readers", () => {
     const html = render({ view: "booked", caption: "Lea" });
     expect(html).toContain("Court 1 at 9am. Booked, Lea</span>");
-    expect(html).toMatch(/<span aria-hidden="true"[^>]*>Lea<\/span>/);
+    expect(html).toMatch(/<span aria-hidden="true"[^>]*><span[^>]*>Lea<\/span><\/span>/);
+  });
+
+  it("marks an online booking with a globe, a word while unchecked, and says so (spec 0016, AC-4)", () => {
+    const unchecked = render({ view: "booked", caption: { text: "Lea", online: "unchecked" } });
+    expect(unchecked).toContain("Check payment · Lea");
+    expect(unchecked).toContain("Booked, Lea, online booking, payment not yet checked</span>");
+    expect(unchecked).toContain("<svg");
+
+    const held = render({ view: "booked", caption: { text: "Lea", online: "held" } });
+    expect(held).toContain("Held · Lea");
+
+    const checked = render({ view: "booked", caption: { text: "Lea", online: "checked" } });
+    expect(checked).toContain(">Lea</span>");
+    expect(checked).toContain("Booked, Lea, online booking</span>");
+    expect(checked).toContain('data-view="booked"');
   });
 
   it("says a locked or ended slot has ended", () => {

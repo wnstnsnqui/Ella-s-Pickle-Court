@@ -62,11 +62,6 @@ export const scheduleDateSchema = z.object({
   date: calendarDateSchema.optional(),
 });
 
-/** Which online booking the staff details sheet asks about (spec 0015, AC-21). */
-export const staffBookingSchema = z.object({
-  bookingId: z.number().int().positive(),
-});
-
 /** What a customer is called on a booking. Spec 0005 AC-4: required on a booking. */
 export const customerNameSchema = z
   .string()

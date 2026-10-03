@@ -11,6 +11,7 @@ import { StaffToolbar } from "@/components/staff/staff-toolbar";
 import { StaffMenu } from "@/components/staff-menu";
 import { Button } from "@/components/ui/button";
 import { currentSession } from "@/lib/auth/session";
+import { getOnlineChecks } from "@/lib/online-checks/queries";
 import { getStaffSchedule } from "@/lib/schedule/queries";
 import { currentStaff } from "@/lib/staff";
 import { VENUE_NAME } from "@/lib/venue";
@@ -81,7 +82,13 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
     );
   }
 
-  const [session, result] = await Promise.all([currentSession(), getStaffSchedule(date)]);
+  // The chip and list read beside the day (spec 0016, AC-1). A failure here
+  // never blocks the board: the browser asks again and the list says so.
+  const [session, result, checks] = await Promise.all([
+    currentSession(),
+    getStaffSchedule(date),
+    getOnlineChecks(),
+  ]);
 
   if (!result.ok) {
     return (
@@ -103,6 +110,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
     // and the provider's `DayBoundary` gives each landed day its fresh board.
     <StaffScheduleProvider
       initial={result.data}
+      initialChecks={checks.ok ? checks.data : null}
       date={date}
       viewer={{ userId: session?.user.id ?? "", role: current.staff.role }}
     >

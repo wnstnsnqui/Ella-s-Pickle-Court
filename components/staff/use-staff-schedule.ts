@@ -28,6 +28,9 @@ import { staffTransportThrew, toStaffTransportResult } from "./staff-transport";
  */
 
 export type StaffScheduleState = ScheduleChannelState<StaffSchedule>;
+
+/** The staff board also hears an online booking change (spec 0016, AC-5). */
+const STAFF_EVENTS = ["booking_changed"] as const;
 export type ScheduleListener = (fresh: StaffSchedule) => void;
 
 /** `date` is where the board starts, undefined for today; the hook owns the day after that. */
@@ -43,5 +46,11 @@ export function useStaffSchedule(initial: StaffSchedule, date?: string): StaffSc
     }
   }, []);
 
-  return useScheduleChannel<StaffSchedule>({ client, initial, date, transport });
+  return useScheduleChannel<StaffSchedule>({
+    client,
+    initial,
+    date,
+    transport,
+    extraEvents: STAFF_EVENTS,
+  });
 }

@@ -70,12 +70,21 @@ export function toCustomerFields(values: BookFormValues) {
   };
 }
 
-/** The same fields for an edit, where a cleared field must reach the row as null. */
-export function toCustomerPatch(values: BookFormValues) {
-  return {
+/**
+ * The same fields for an edit, where a cleared field must reach the row as
+ * null. `withPayment` is false on an online booking's row: its payment and
+ * amount are never sent, because only the staff check may change them (spec
+ * 0016, AC-11).
+ */
+export function toCustomerPatch(values: BookFormValues, withPayment = true) {
+  const contact = {
     customerName: values.customerName,
     customerPhone: values.customerPhone === "" ? null : values.customerPhone,
     note: values.note === "" ? null : values.note,
+  };
+  if (!withPayment) return contact;
+  return {
+    ...contact,
     paymentStatus: values.paymentStatus,
     amount: values.amount === "" ? null : Number(values.amount),
   };

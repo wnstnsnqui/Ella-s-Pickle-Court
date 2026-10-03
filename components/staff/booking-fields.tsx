@@ -37,10 +37,16 @@ export function BookingFields({
   form,
   fresh,
   autoFocusName = false,
+  withPayment = true,
 }: {
   form: UseFormReturn<BookFormValues>;
   fresh?: BookFormValues | null;
   autoFocusName?: boolean;
+  /**
+   * False on an online booking's row, whose payment is the staff check's to
+   * record and whose amount is what the player paid (spec 0016, AC-11).
+   */
+  withPayment?: boolean;
 }) {
   const now = (field: keyof BookFormValues, label?: (value: string) => string) => {
     if (!fresh) return null;
@@ -93,50 +99,52 @@ export function BookingFields({
           </FormItem>
         )}
       />
-      <div className="grid grid-cols-2 gap-3">
-        <FormField
-          control={form.control}
-          name="paymentStatus"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Payment</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
+      {withPayment ? (
+        <div className="grid grid-cols-2 gap-3">
+          <FormField
+            control={form.control}
+            name="paymentStatus"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Payment</FormLabel>
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <FormControl>
+                    <SelectTrigger className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {PAYMENT_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {PAYMENT_LABEL[status]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {now(
+                  "paymentStatus",
+                  (value) => PAYMENT_LABEL[value as BookFormValues["paymentStatus"]],
+                )}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amount (₱)</FormLabel>
                 <FormControl>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
+                  <Input {...field} inputMode="decimal" placeholder="Optional" />
                 </FormControl>
-                <SelectContent>
-                  {PAYMENT_STATUSES.map((status) => (
-                    <SelectItem key={status} value={status}>
-                      {PAYMENT_LABEL[status]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {now(
-                "paymentStatus",
-                (value) => PAYMENT_LABEL[value as BookFormValues["paymentStatus"]],
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="amount"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Amount (₱)</FormLabel>
-              <FormControl>
-                <Input {...field} inputMode="decimal" placeholder="Optional" />
-              </FormControl>
-              {now("amount")}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+                {now("amount")}
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      ) : null}
       <FormField
         control={form.control}
         name="note"

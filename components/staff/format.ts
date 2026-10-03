@@ -1,4 +1,5 @@
-import type { BookingStatus, StaffName, StaffReservation } from "@/lib/schedule/queries";
+import type { BookingStatus } from "@/lib/online-checks/types";
+import type { StaffName, StaffReservation } from "@/lib/schedule/queries";
 import {
   calendarDateInZone,
   formatSlotLabel,

@@ -113,6 +113,12 @@ export type ScheduleChannelOptions<T extends Schedule> = {
   prepare?: () => Promise<void>;
   /** Re read the day this often while the channel is not live. Absent means never. */
   pollWhileDownMs?: number;
+  /**
+   * Events on the topic beyond the three every board hears, read once at
+   * subscribe time. The staff board adds `booking_changed` (spec 0016, AC-5);
+   * the public boards never hear it.
+   */
+  extraEvents?: readonly string[];
 };
 
 export type ScheduleChannelState<T extends Schedule> = {
@@ -148,6 +154,7 @@ export function useScheduleChannel<T extends Schedule>({
   transport,
   prepare,
   pollWhileDownMs,
+  extraEvents,
 }: ScheduleChannelOptions<T>): ScheduleChannelState<T> {
   const [schedule, setSchedule] = useState(initial);
   const [date, setDate] = useState(initialDate);
@@ -407,7 +414,7 @@ export function useScheduleChannel<T extends Schedule>({
         }
       }
       if (cancelled) return;
-      for (const event of SCHEDULE_EVENTS) {
+      for (const event of [...SCHEDULE_EVENTS, ...(extraEvents ?? [])]) {
         channel.on("broadcast", { event }, () => {
           gate.current?.request();
         });
@@ -430,7 +437,7 @@ export function useScheduleChannel<T extends Schedule>({
       document.removeEventListener("visibilitychange", onVisible);
       void client.removeChannel(channel);
     };
-    // `prepare` is read once at subscribe time on purpose.
+    // `prepare` and `extraEvents` are read once at subscribe time on purpose.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client]);
 

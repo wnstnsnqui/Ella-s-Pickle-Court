@@ -181,7 +181,11 @@ function BookingEditForm({
           }
         })}
       >
-        <BookingFields form={form} fresh={stale ? toBookValues(reservation) : null} />
+        <BookingFields
+          form={form}
+          fresh={stale ? toBookValues(reservation) : null}
+          withPayment={reservation.bookingId === null}
+        />
       </form>
     </Form>
   );

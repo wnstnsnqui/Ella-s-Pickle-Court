@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { cellKey } from "@/components/schedule/cell-key";
 import { CELL_VIEWS } from "@/components/schedule/cell-view";
 import { ScheduleGrid, type GridView } from "@/components/schedule/schedule-grid";
+import type { CellCaption } from "@/components/schedule/schedule-cell";
 import { useChangedCells } from "@/components/schedule/use-changed-cells";
 import type { ActionResult } from "@/lib/actions";
 import { cancelReservation, createReservations, updateReservation } from "@/lib/schedule/actions";
@@ -37,6 +38,7 @@ import { ConfirmDialog } from "./confirm-dialog";
 import { DetailsSheet } from "./details-sheet";
 import { EditSheet, type EditOutcome, type EditPatch } from "./edit-sheet";
 import { formatRange } from "./format";
+import { OnlineBookingSheet } from "./online-booking-sheet";
 import { toCustomerFields, toCustomerPatch } from "./forms";
 import { SelectionBar } from "./selection-bar";
 import { useStaffBoard } from "./staff-schedule-context";
@@ -76,7 +78,7 @@ type SheetState =
   | { kind: "edit"; id: number; version: number };
 
 export function StaffBoard() {
-  const { schedule, refetch, subscribe, viewer, dayNavPending } = useStaffBoard();
+  const { schedule, refetch, subscribe, viewer, dayNavPending, checks } = useStaffBoard();
   const { grid } = schedule;
 
   const [selection, setSelection] = useState<Selection>(EMPTY_SELECTION);
@@ -89,6 +91,9 @@ export function StaffBoard() {
 
   // Mirrors `pendingCells` for the listener below, which runs outside a render.
   const pendingRef = useRef<ReadonlySet<string>>(EMPTY_SELECTION);
+  // Set while this board's own decision on an online booking is in flight, so
+  // its own turn down is never read back as somebody else's (spec 0016).
+  const decidingRef = useRef(false);
   const setPending = useCallback((keys: ReadonlySet<string>) => {
     pendingRef.current = keys;
     setPendingCells(keys);
@@ -174,7 +179,7 @@ export function StaffBoard() {
           setSheet({ kind: "none" });
         }
       }
-      if (sheet.kind === "details" || sheet.kind === "edit") {
+      if ((sheet.kind === "details" || sheet.kind === "edit") && !decidingRef.current) {
         const row = fresh.reservations.find((candidate) => candidate.id === sheet.id);
         if (!row || row.status === "cancelled") {
           setSheet({ kind: "none" });
@@ -351,7 +356,7 @@ export function StaffBoard() {
       if (!row || version === null) return;
       const input =
         patch.kind === "booking"
-          ? { id: row.id, version, ...toCustomerPatch(patch.values) }
+          ? { id: row.id, version, ...toCustomerPatch(patch.values, row.bookingId === null) }
           : {
               id: row.id,
               version,
@@ -393,7 +398,24 @@ export function StaffBoard() {
     [openRow, sheet, refetch],
   );
 
-  /** Cancel a booking, or reopen a closed court: the same one way transition. */
+  /**
+   * A decision on an online booking landed in its sheet (spec 0016). The day
+   * and the chip read again; a turn down or cancel took the row off the board,
+   * so its sheet closes, already told why by its own toast.
+   */
+  const onOnlineDecided = useCallback(
+    (kind: "confirmed" | "rejected" | "cancelled" | "settled") => {
+      if (kind === "rejected" || kind === "cancelled") setSheet({ kind: "none" });
+      void refetch();
+      void checks.refetch();
+    },
+    [refetch, checks],
+  );
+  const onOnlineBusy = useCallback((busy: boolean) => {
+    decidingRef.current = busy;
+  }, []);
+
+  /** Cancel a desk booking, or reopen a closed court: the same one way transition. */
   const confirmCancel = useCallback(
     async (row: StaffReservation | null = openRow) => {
       if (!row) return;
@@ -553,7 +575,11 @@ export function StaffBoard() {
         }
         onCancel={() => setConfirming(true)}
         returnFocusTo={openerRef}
+        liveTick={checks.tick}
+        onOnlineDecided={onOnlineDecided}
+        onOnlineBusy={onOnlineBusy}
       />
+      <OnlineBookingSheet timeZone={grid.timezone} />
       <EditSheet
         open={sheet.kind === "edit"}
         onOpenChange={(open) =>
@@ -595,18 +621,31 @@ function endedCells(grid: Grid, now: number): ReadonlySet<string> {
   return keys;
 }
 
-/** The customer's name on every cell a booking covers (AC-2). */
+/**
+ * The customer's name on every cell a booking covers (AC-2), with the online
+ * marker on a row of an online booking (spec 0016, AC-4).
+ */
 function captionsFor(
   grid: Grid,
   reservations: readonly StaffReservation[],
-): ReadonlyMap<string, string> {
-  const captions = new Map<string, string>();
+): ReadonlyMap<string, CellCaption> {
+  const captions = new Map<string, CellCaption>();
   for (const row of grid.rows) {
     for (const cell of row.cells) {
       if (cell.state !== "booked") continue;
       const found = reservationAt(reservations, cell.courtId, row.startsAt, row.endsAt);
-      if (found?.customerName)
-        captions.set(cellKey(cell.courtId, row.startsAt), found.customerName);
+      if (!found?.customerName) continue;
+      captions.set(cellKey(cell.courtId, row.startsAt), {
+        text: found.customerName,
+        online:
+          found.bookingId === null
+            ? undefined
+            : found.bookingStatus === "held"
+              ? "held"
+              : found.bookingStatus === "pending_check"
+                ? "unchecked"
+                : "checked",
+      });
     }
   }
   return captions;

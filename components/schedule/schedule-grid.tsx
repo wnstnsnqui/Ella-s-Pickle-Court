@@ -12,7 +12,7 @@ import { cellViewFor } from "./cell-view";
 import { EmptyState } from "./empty-state";
 import { ErrorState } from "./error-state";
 import { GridSkeleton } from "./grid-skeleton";
-import { ScheduleCell } from "./schedule-cell";
+import { ScheduleCell, type CellCaption } from "./schedule-cell";
 import { StateLegend } from "./state-legend";
 import type { CellView } from "./cell-view";
 
@@ -47,7 +47,7 @@ export type ScheduleGridProps = {
    */
   lockedCells?: ReadonlySet<string>;
   /** The one line under a cell's icon, by key: the customer's name on a Booked cell. */
-  cellCaptions?: ReadonlyMap<string, string>;
+  cellCaptions?: ReadonlyMap<string, string | CellCaption>;
   /**
    * The board's clock, a UTC instant (spec 0006, AC-4). When given, rows that
    * have ended are dimmed and a Now marker sits before the first row that has

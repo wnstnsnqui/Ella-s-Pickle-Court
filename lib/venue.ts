@@ -75,6 +75,14 @@ export function smsHref(body?: string): string {
   return body ? `${to}?body=${encodeURIComponent(body)}` : to;
 }
 
+/**
+ * An `sms:` link to a player, with the message already written (spec 0016,
+ * AC-9). The same `?body=` form as `smsHref`, which is the venue's own number.
+ */
+export function smsToHref(phone: string, body: string): string {
+  return `sms:${phone.replace(/[^\d+]/g, "")}?body=${encodeURIComponent(body)}`;
+}
+
 /** Whole pesos, comma grouped, no decimals: `₱1,000`. */
 export function formatPeso(amount: number): string {
   return `₱${Math.round(amount).toLocaleString("en-US")}`;

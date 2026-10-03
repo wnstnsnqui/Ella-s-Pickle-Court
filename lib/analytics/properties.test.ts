@@ -135,3 +135,55 @@ describe("booking_intent", () => {
     expect(result.ok).toBe(false);
   });
 });
+
+/** Spec 0016, AC-19: the four decision events carry no code, name, amount or URL. */
+describe("the staff check's decision events", () => {
+  const VALID = {
+    online_booking_confirmed: { minutes_waiting: 42 },
+    online_booking_rejected: { reason: "amount_mismatch", refund_owed: true, was_confirmed: false },
+    online_booking_cancelled: { reason: "player_asked", refund_owed: true, was_confirmed: true },
+    online_booking_refund_settled: { outcome: "refunded" },
+  } as const;
+  const EVENTS = Object.keys(VALID) as (keyof typeof VALID)[];
+
+  it.each(EVENTS)("accepts %s with exactly its own properties", (event) => {
+    expect(parseEventProperties(event, VALID[event] as never).ok).toBe(true);
+  });
+
+  it.each(
+    EVENTS.flatMap((event) =>
+      ["code", "customer_name", "amount", "url"].map((key) => [event, key]),
+    ),
+  )("refuses %s carrying %s", (event, key) => {
+    const result = parseEventProperties(
+      event as keyof typeof VALID,
+      {
+        ...VALID[event as keyof typeof VALID],
+        [key]: "leak",
+      } as never,
+    );
+    expect(result.ok).toBe(false);
+  });
+
+  it("refuses a reason from neither list, and a refund outcome other than the two", () => {
+    expect(
+      parseEventProperties("online_booking_rejected", {
+        ...VALID.online_booking_rejected,
+        reason: "Sent 500 instead",
+      } as never).ok,
+    ).toBe(false);
+    expect(
+      parseEventProperties("online_booking_refund_settled", { outcome: "owed" } as never).ok,
+    ).toBe(false);
+  });
+
+  it("takes whole, non negative minutes waiting only", () => {
+    expect(parseEventProperties("online_booking_confirmed", { minutes_waiting: 1.5 }).ok).toBe(
+      false,
+    );
+    expect(parseEventProperties("online_booking_confirmed", { minutes_waiting: -1 }).ok).toBe(
+      false,
+    );
+    expect(parseEventProperties("online_booking_confirmed", { minutes_waiting: 0 }).ok).toBe(true);
+  });
+});

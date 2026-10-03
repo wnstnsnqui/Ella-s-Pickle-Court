@@ -117,7 +117,8 @@ export default function PrivacyPage() {
             </li>
             <li>
               The last 4 digits of your transfer&apos;s reference number are cleared{" "}
-              {REFERENCE_RETENTION_DAYS} days after your last booked hour ends.
+              {REFERENCE_RETENTION_DAYS} days after your last booked hour ends. Any note our staff
+              wrote when checking your payment is cleared at the same time.
             </li>
             <li>
               Your payment screenshot is deleted {PROOF_RETENTION_DAYS_AFTER_DECISION} days after

@@ -18,6 +18,9 @@ const currentSession = vi.hoisted(() => vi.fn(async () => ({ user: { id: "user_o
 vi.mock("@/lib/auth/session", () => ({ currentSession }));
 vi.mock("@/lib/staff", () => ({ currentStaff }));
 vi.mock("@/lib/schedule/queries", () => ({ getStaffSchedule }));
+vi.mock("@/lib/online-checks/queries", () => ({
+  getOnlineChecks: async () => ({ ok: false, error: { kind: "failed", message: "test" } }),
+}));
 vi.mock("@/components/app-shell", () => ({
   AppShell: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-shell": true }, children),

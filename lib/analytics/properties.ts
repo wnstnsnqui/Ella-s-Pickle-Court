@@ -95,6 +95,39 @@ const onlineBookingRefusedSchema = z
   })
   .strict();
 
+/**
+ * Spec 0016, AC-19: the staff check. How long a check waited and why a
+ * booking ended, never a code, a name, an amount or a note.
+ */
+const onlineBookingConfirmedSchema = z
+  .object({
+    minutes_waiting: z.number().int().nonnegative(),
+  })
+  .strict();
+
+const onlineBookingEndedSchema = z
+  .object({
+    reason: z.enum([
+      "no_payment",
+      "amount_mismatch",
+      "reference_mismatch",
+      "invalid_proof",
+      "player_asked",
+      "payment_reversed",
+      "venue_issue",
+      "other",
+    ]),
+    refund_owed: z.boolean(),
+    was_confirmed: z.boolean(),
+  })
+  .strict();
+
+const onlineBookingRefundSettledSchema = z
+  .object({
+    outcome: z.enum(["refunded", "not_owed"]),
+  })
+  .strict();
+
 const privacyNoticeAcknowledgedSchema = z
   .object({
     version: z.string(),
@@ -154,6 +187,10 @@ export const eventSchemas = {
   online_booking_held: onlineBookingHeldSchema,
   online_booking_submitted: onlineBookingSubmittedSchema,
   online_booking_refused: onlineBookingRefusedSchema,
+  online_booking_confirmed: onlineBookingConfirmedSchema,
+  online_booking_rejected: onlineBookingEndedSchema,
+  online_booking_cancelled: onlineBookingEndedSchema,
+  online_booking_refund_settled: onlineBookingRefundSettledSchema,
   privacy_notice_acknowledged: privacyNoticeAcknowledgedSchema,
   staff_role_changed: staffRoleChangedSchema,
   staff_invite_created: staffInviteCreatedSchema,

@@ -27,7 +27,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 14 | Landing page | Slice 6 | done |
 | 15 | Board day switch in the browser | Slice 6 | done |
 | 16 | Online booking checkout | Slice 7 | in-progress |
-| 17 | Staff check of online bookings | Slice 7 | planned |
+| 17 | Staff check of online bookings | Slice 7 | in-progress |
 | 18 | Booking receipt & lookup | Slice 7 | planned |
 | 19 | Voucher codes | Slice 7 | planned |
 
@@ -272,10 +272,20 @@ spec [0015](../specs/0015-online-booking-checkout/index.md) (a 5 minute hold on 
 - [x] Review it (fresh model): `/check review online booking checkout`
 - [x] Document it: `/document online booking checkout`
 
-### 17. Staff check of online bookings · needs a decision
+### 17. Staff check of online bookings · in-progress
 Staff see each online booking waiting for its payment check, open the screenshot beside the reference digits and amount, and confirm it or turn it down. Without this the loop never closes, because a transfer nobody checks is not a booking anybody trusts.
 **Done when:** a new online booking reaches the staff board live and stands out from a desk booking; staff can open its proof and confirm it (payment recorded as paid) or reject it with a reason (the slots free up on both boards); every decision records who made it and is guarded by the row's version; the customer's status on the lookup page follows the decision.
-- [ ] Design it (spec): `/architect staff check of online bookings`
+spec [0016](../specs/0016-staff-check-online-bookings/index.md) (a To check chip and list on the staff board; only owner, admin or superadmin confirm, turn down or cancel, through role checking Postgres functions that always write a `booking_event`; refunds owed tracked with Mark refunded; a prefilled text to the player; a row guard trigger keeps online rows in step) · code in `lib/online-checks/`, `components/staff/`, `lib/schedule/queries.ts`, `supabase/migrations/`
+- [x] Design it (spec): `/architect staff check of online bookings`
+- [ ] Build it: `/develop staff check of online bookings`
+  - [ ] The thin thread: confirm. `booking_event`, the refund columns, `confirm_online_booking`, the `booking_changed` broadcast, the staff proof policy, the chip, the To check list and the sheet with the screenshot and Confirm, proven live from a player's submit to a second board (AC-1, AC-2, AC-6, AC-7, AC-15, AC-17)
+  - [x] Turn down, cancel and the message: the row guard trigger with its transaction flag, `reject_online_booking`, `cancel_online_booking`, the sheet owning the online footer, the reason steps, the refund checkbox and the prefilled text (AC-8, AC-9, AC-10, AC-15) · migrations applied on the linked project; `supabase/tests/online_checks.test.ts` passes (13 cases, every AC-15 refusal); the step, refund default and message checked in a browser at 360 pixels, not submitted
+  - [x] Refunds owed: `settle_online_refund`, the paid after hold trigger and backfill, the Refunds owed section, Mark refunded and No refund needed (AC-12, AC-13) · applied; the backfill marked 9 existing paid after hold bookings owed; settle and the late submit trigger pass the database tests
+  - [ ] The board and the edges: the globe and captions, the toast, find by code, time tags, History, the contact copy, the stale refresh (AC-3, AC-4, AC-5, AC-11, AC-14, AC-16)
+  - [ ] Retention, signals and finish: the proof purge kept while a refund is owed, notes purged, the four events, keyboard and 360 pixel passes, database and unit tests, a browser run with an admin and a plain staff account (AC-18, AC-19, AC-20)
+- [x] Verify it: `/check verify staff check of online bookings` · ticked by the engineer on 2026-10-03 after a partly blocked run; the chip, list, find by code, check view, screenshot, 360 pixel list and sheet, `npm run check`, database tests and advisors passed in a real run; the decision buttons, the plain staff view, the live toast and the board marker were not exercised (see `verify.md`, unticked steps)
+- [ ] Test it: `/test staff check of online bookings`
+- [x] Review it (fresh model): `/check review staff check of online bookings` · ran on 2026-10-03, verdict Blocked: the uncommitted `lib/venue.ts` turns checkout back on (undoes `81dec21`), and the row guard leaves a decided booking's `payment_status` and `amount` open (AC-11 vs AC-15); see `docs/reviews/2026-10-03-main.md`
 
 ### 18. Booking receipt & lookup · needs a decision
 The receipt shows booking details, customer details and payment, as the last step of checkout and on a new public page where a customer types their booking code to see where their booking stands. Either place can download it.
@@ -305,6 +315,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Maintenance log**: net, surface, and lighting issues per court · needs a decision
 - **More than one venue**: several locations under one system · needs a decision
 - **Renaming the venue without a deploy**: the venue name is a constant, because `venue_settings` has no name column. Adding one is a small change to spec 0002 plus an owner only field · from spec 0003
+- **Plain staff confirming payments**: spec 0016 lets only an owner, admin or superadmin decide. If checks pile up on shifts without a manager, let plain staff confirm (never turn down), which is one change inside `confirm_online_booking` · from spec 0016
 - **Staff editing payments on a past booking**: today only an owner may touch a booking that has ended, so a payment settled the next day needs Ella · from spec 0002
 - ~~**Grouping the rows of one multi court booking**~~: pulled into feature 16 on 2026-09-30, since one online booking code covers every picked slot. A class booked across two courts is two unrelated rows today, so cancelling it is two cancels · from spec 0005
 - **Changing a booking's end time in the edit form**: today a booking edit changes details only, while a closure edit may also move its end. The same free run select would let a booking grow or shrink without cancel and rebook · from spec 0005

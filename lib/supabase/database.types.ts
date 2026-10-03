@@ -25,6 +25,10 @@ export type Database = {
           id: number;
           proof_path: string | null;
           reference_last4: string | null;
+          refund_amount: number | null;
+          refund_status: string | null;
+          refunded_at: string | null;
+          refunded_by: string | null;
           source: string;
           status: string;
           submission_id: string;
@@ -50,6 +54,10 @@ export type Database = {
           id?: never;
           proof_path?: string | null;
           reference_last4?: string | null;
+          refund_amount?: number | null;
+          refund_status?: string | null;
+          refunded_at?: string | null;
+          refunded_by?: string | null;
           source?: string;
           status: string;
           submission_id: string;
@@ -75,6 +83,10 @@ export type Database = {
           id?: never;
           proof_path?: string | null;
           reference_last4?: string | null;
+          refund_amount?: number | null;
+          refund_status?: string | null;
+          refunded_at?: string | null;
+          refunded_by?: string | null;
           source?: string;
           status?: string;
           submission_id?: string;
@@ -95,6 +107,64 @@ export type Database = {
           {
             foreignKeyName: "booking_decided_by_fkey";
             columns: ["decided_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["user_id"];
+          },
+          {
+            foreignKeyName: "booking_refunded_by_fkey";
+            columns: ["refunded_by"];
+            isOneToOne: false;
+            referencedRelation: "staff";
+            referencedColumns: ["user_id"];
+          },
+        ];
+      };
+      booking_event: {
+        Row: {
+          amount: number | null;
+          booking_id: number;
+          created_at: string;
+          id: number;
+          kind: string;
+          note: string | null;
+          reason: string | null;
+          refund_owed: boolean | null;
+          staff_id: string;
+        };
+        Insert: {
+          amount?: number | null;
+          booking_id: number;
+          created_at?: string;
+          id?: never;
+          kind: string;
+          note?: string | null;
+          reason?: string | null;
+          refund_owed?: boolean | null;
+          staff_id: string;
+        };
+        Update: {
+          amount?: number | null;
+          booking_id?: number;
+          created_at?: string;
+          id?: never;
+          kind?: string;
+          note?: string | null;
+          reason?: string | null;
+          refund_owed?: boolean | null;
+          staff_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "booking_event_booking_id_fkey";
+            columns: ["booking_id"];
+            isOneToOne: false;
+            referencedRelation: "booking";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "booking_event_staff_id_fkey";
+            columns: ["staff_id"];
             isOneToOne: false;
             referencedRelation: "staff";
             referencedColumns: ["user_id"];
@@ -491,11 +561,25 @@ export type Database = {
         Args: { p_version: string };
         Returns: string;
       };
+      cancel_online_booking: {
+        Args: {
+          p_booking_id: number;
+          p_note: string;
+          p_reason: string;
+          p_refund_owed: boolean;
+          p_version: number;
+        };
+        Returns: Json;
+      };
       claim_staff_invite: {
         Args: { p_token_hash: string; p_username: string };
         Returns: string;
       };
       claim_staff_reset: { Args: { p_token_hash: string }; Returns: string };
+      confirm_online_booking: {
+        Args: { p_booking_id: number; p_version: number };
+        Returns: Json;
+      };
       court_usage: {
         Args: { for_court_id?: number; from_date: string; to_date: string };
         Returns: {
@@ -543,6 +627,7 @@ export type Database = {
         }[];
       };
       expire_online_holds: { Args: never; Returns: number };
+      forget_payment_proofs: { Args: { p_paths: string[] }; Returns: number };
       hold_online_booking: {
         Args: {
           p_day: string;
@@ -555,6 +640,13 @@ export type Database = {
         };
         Returns: Json;
       };
+      payment_proofs_due: {
+        Args: { p_limit?: number };
+        Returns: {
+          booking_id: number;
+          proof_path: string;
+        }[];
+      };
       peek_staff_invite: {
         Args: { p_token_hash: string };
         Returns: {
@@ -563,6 +655,17 @@ export type Database = {
         }[];
       };
       purge_customer_phones: { Args: never; Returns: number };
+      purge_online_booking_details: { Args: never; Returns: number };
+      reject_online_booking: {
+        Args: {
+          p_booking_id: number;
+          p_note: string;
+          p_reason: string;
+          p_refund_owed: boolean;
+          p_version: number;
+        };
+        Returns: Json;
+      };
       release_online_booking: {
         Args: { p_submission_id: string };
         Returns: Json;
@@ -580,6 +683,16 @@ export type Database = {
           slot_minutes: number;
         };
         Returns: undefined;
+      };
+      settle_online_refund: {
+        Args: {
+          p_amount: number;
+          p_booking_id: number;
+          p_note: string;
+          p_outcome: string;
+          p_version: number;
+        };
+        Returns: Json;
       };
       submit_online_booking: {
         Args: { p_reference_last4: string; p_submission_id: string };

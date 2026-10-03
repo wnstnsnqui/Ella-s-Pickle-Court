@@ -37,7 +37,7 @@ function migrationSql(): string {
  * original; the last match across every migration, in file order, is the
  * constraint actually live today. `constraint` narrows the match to one named
  * constraint, for a column name two tables share (`booking` has a `status`
- * too since spec 0015).
+ * too since spec 0015, and `booking_event` a `kind` since spec 0016).
  */
 function checkedValues(sql: string, column: string, constraint?: string): string[] {
   const prefix = constraint ? `${constraint}\\s+` : "";
@@ -56,7 +56,8 @@ describe("the value lists and the database agree", () => {
   const sql = migrationSql();
 
   it("keeps reservation kinds in step", () => {
-    expect(checkedValues(sql, "kind")).toEqual([...RESERVATION_KINDS]);
+    // `booking_event` has a `kind` too since spec 0016.
+    expect(checkedValues(sql, "kind", "reservation_kind_check")).toEqual([...RESERVATION_KINDS]);
   });
 
   it("keeps reservation statuses in step", () => {
