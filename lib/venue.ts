@@ -11,7 +11,7 @@
  * bracketed placeholder, so an unfinished page is obviously unfinished. Ella
  * supplies the real ones (spec 0013, Follow-up).
  */
-export const VENUE_NAME = "Ella's Picklecourt";
+export const VENUE_NAME = "Ella's Pickle Court";
 
 /** The short line under the wordmark and in the page description. */
 export const VENUE_TAGLINE = "See which courts are free before you drive over.";
@@ -60,14 +60,14 @@ export const VENUE_EMAIL = "loriemariejaybual@gmail.com";
  * (spec 0015, AC-8). A placeholder until Ella supplies it; checkout stays off
  * while it is one (AC-26, build plan task 5).
  */
-export const PAYMENT_ACCOUNT_NAME = "[Lorie Marie]";
+export const PAYMENT_ACCOUNT_NAME = "Lorie Marie";
 
 /**
  * The venue's QR Ph image, served from `public/` (spec 0015, AC-8). A
  * placeholder until Ella supplies it; the Payment step draws a marked empty
  * frame in its place rather than a broken image.
  */
-export const PAYMENT_QR_SRC = "[/payment-qr.JPG]";
+export const PAYMENT_QR_SRC = "/payment-qr.JPG";
 
 /** An `sms:` link to the front desk, with the message already written when given one. */
 export function smsHref(body?: string): string {

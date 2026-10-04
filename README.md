@@ -1,4 +1,4 @@
-# Ella's Picklecourt
+# Ella's Pickle Court
 
 A live court status board. Staff on shift keep each court current, players check it from their phones, and Ella looks back at how the courts were used.
 

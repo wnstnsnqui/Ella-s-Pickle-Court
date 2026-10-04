@@ -1,6 +1,6 @@
-# Scope: Ella's Picklecourt Court Monitor
+# Scope: Ella's Pickle Court Court Monitor
 
-A court booking schedule for Ella's Picklecourt. Pick a day and see time down the side and a column per court, with every cell reading Booked, Available or Unavailable. Staff keep it, players read it before they come, and Ella can look back at how the courts were used.
+A court booking schedule for Ella's Pickle Court. Pick a day and see time down the side and a column per court, with every cell reading Booked, Available or Unavailable. Staff keep it, players read it before they come, and Ella can look back at how the courts were used.
 
 **Build approach:** Tracer Bullet (prove the whole path works end to end, narrow but real, before thickening any part of it).
 **Workflow:** Beta (after `/develop`, run `/check verify`, then `/test`). The project default level of rigor. `/architect` is the recommended first stop for a feature with a real decision, but skippable when you already know the build. Any feature can carry its own tag (e.g. `· GA`) to do more or less.
@@ -28,7 +28,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 15 | Board day switch in the browser | Slice 6 | done |
 | 16 | Online booking checkout | Slice 7 | in-progress |
 | 17 | Staff check of online bookings | Slice 7 | in-progress |
-| 18 | Booking receipt & lookup | Slice 7 | planned |
+| 18 | Booking receipt & lookup | Slice 7 | in-progress |
 | 19 | Voucher codes | Slice 7 | planned |
 
 ## Foundations
@@ -253,10 +253,10 @@ spec [0014](../specs/0014-board-day-switch-browser/index.md) · code in `compone
 
 ## Slice 7: Book online
 
-A player picks their hours on the landing page, taps Book, and walks a short sheet to a real booking with a code they keep. No player accounts: the booking code is how they find it again. Payment is a transfer by QR with proof attached, which staff then check, not money taken inside the app. Every screen here shares the landing page's look and motion, built with the `apple-design`, `emil-design-eng` and `animate` skills.
+A player picks their hours on the landing page, taps Book, and walks a short sheet to a real booking with a code they keep. No player accounts: the booking code is how they find it again. Payment is a GCash transfer (the player scans the venue's GCash QR) with proof attached, which staff then check, not money taken inside the app. Every screen here shares the landing page's look and motion, built with the `apple-design`, `emil-design-eng` and `animate` skills.
 
 ### 16. Online booking checkout · in-progress · GA
-The sheet that opens from Book once hours are picked, replacing the coming soon toast: booking details with name, phone, email and an optional voucher field, then the terms with a checkbox, then payment (the venue's QR, the last 4 digits of the reference number, and a screenshot of the transfer), then a review with Confirm booking, ending on the receipt with the booking code. This is the first time the public writes to the database, so it carries its own tier.
+The sheet that opens from Book once hours are picked, replacing the coming soon toast: booking details with name, phone, email and an optional voucher field, then the terms with a checkbox, then payment (the venue's GCash QR, the last 4 digits of the reference number, and a screenshot of the transfer), then a review with Confirm booking, ending on the receipt with the booking code. This is the first time the public writes to the database, so it carries its own tier.
 **Done when:** picks on `/` open the sheet with the courts, hours and total; each step checks its fields before Next and Back keeps what was typed; the terms must be ticked to go on; Confirm books every picked slot in one go or refuses cleanly, naming the slot someone else took meanwhile; the new booking shows Booked on both boards straight away and waits as not yet checked for staff; one code covers every slot in the booking; the screenshot is stored privately and never reachable from a public page; the price is worked out on the server, never trusted from the browser; the write is rate limited and resists spam; the privacy page names the new email, reference digits and screenshot and how long each is kept; the sheet feels like the landing page, works on a phone, from the keyboard, and with reduced motion.
 spec [0015](../specs/0015-online-booking-checkout/index.md) (a 5 minute hold on the way to payment, the write through an `online_booking` role the server mints a token for after Turnstile, the price in `venue_settings.hourly_rate`; the voucher field moves to feature 19) · code in `lib/booking/`, `components/landing/checkout-sheet.tsx`
 - [x] Design it (spec): `/architect online booking checkout`
@@ -287,10 +287,19 @@ spec [0016](../specs/0016-staff-check-online-bookings/index.md) (a To check chip
 - [ ] Test it: `/test staff check of online bookings`
 - [x] Review it (fresh model): `/check review staff check of online bookings` · ran on 2026-10-03, verdict Blocked: the uncommitted `lib/venue.ts` turns checkout back on (undoes `81dec21`), and the row guard leaves a decided booking's `payment_status` and `amount` open (AC-11 vs AC-15); see `docs/reviews/2026-10-03-main.md`
 
-### 18. Booking receipt & lookup · needs a decision
+### 18. Booking receipt & lookup · in-progress
 The receipt shows booking details, customer details and payment, as the last step of checkout and on a new public page where a customer types their booking code to see where their booking stands. Either place can download it.
-**Done when:** a valid code shows the receipt with its current status (waiting for check, confirmed, turned down, cancelled); an unknown code says so plainly without hinting at other codes; codes cannot be guessed and lookups are rate limited; the receipt downloads as a file that reads well printed or on a phone; the lookup page is not indexed and shows only what the code's holder should see.
-- [ ] Design it (spec): `/architect booking receipt & lookup`
+**Done when:** a valid code shows the receipt with where the booking stands (Confirmed, Cancelled with a reason, or Not booked, and any refund); an unknown code says so plainly without hinting at other codes; codes cannot be guessed and lookups are rate limited; the receipt downloads as a file that reads well printed or on a phone; the lookup page is not indexed and shows only what the code's holder should see.
+spec [0017](../specs/0017-booking-receipt-lookup/index.md) (`/booking` by code through a server minted `booking_lookup` role; contact masked; Confirmed, Cancelled with a reason, or Not booked, plus refunds; 5 wrong codes per 15 minutes counted in Postgres; ended 30 days after the last slot; Save as PDF through print) · code in `app/booking/`, `components/receipt/`, `lib/booking/`, `supabase/migrations/`
+- [x] Design it (spec): `/architect booking receipt & lookup`
+- [x] Build it: `/develop booking receipt & lookup` · built 2026-10-04; `npm run check` green, migration `20261003153632_booking_lookup.sql` applied and live, 12 database tests passing
+  - [x] The thin thread: the `booking_lookup` role, `booking_lookup_miss`, `lookup_online_booking` (found and not found), the third minter, `lookupBooking` and a bare `/booking`, proven against a real submitted booking with the anon key refused (AC-1, AC-2, AC-3, AC-8, AC-18)
+  - [x] Every state on one receipt: `components/receipt/` and `buildReceiptView()` with checkout switched onto it, masked contact, Cancelled with its reason, refund lines, Not booked, Ended (AC-3, AC-4, AC-5, AC-6, AC-7, AC-9)
+  - [x] The limit and the edges: the miss count under its lock, the limited and failure cards, Check again and the read on return (AC-10, AC-12, AC-13)
+  - [x] Downloads and ways in: the print stylesheet and Save as PDF on both receipts, Save as image on the lookup, Track this booking, the Find my booking links, the staff text line (AC-11, AC-14, AC-15, AC-16, AC-17) · checkout's Save as PDF and Track this booking are pinned by `checkout-receipt.test.ts`, not printed from a live checkout (checkout is off)
+  - [x] Privacy, signals and finish: the miss purge, the `/privacy` line, the `booking_lookup` event, motion, keyboard and 360 pixel passes, database and unit tests, a browser run with a printed PDF (AC-19, AC-20, AC-21) · walked in a real browser at 360 and 1280 pixels against three existing test bookings (Confirmed, Cancelled and refunded, Not booked), the fragment handoff, and a one page A4 PDF; the 8 at once limit is proven in Postgres
+- [ ] Verify it: `/check verify booking receipt & lookup`
+- [x] Test it: `/test booking receipt & lookup` · 2026-10-04; 26 tests added (action edge answers, the checkout receipt view, the 30 day pin against the SQL, the `booking_lookup` allow list), `npm run check` green at 1195
 
 ### 19. Voucher codes · needs a decision
 Owner level staff make discount codes, and checkout applies one when the customer enters it. Kept apart from checkout so the booking path ships first and the discount thickens it after.
@@ -308,7 +317,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Custom dates on the usage report**: the report offers presets only. A from and to pair would drop into the same range resolver · from spec 0008
 - **CSV of the day list**: the usage report downloads the numbers behind the charts, not the rows of a day · from spec 0008
 - **Player self booking**: players sign in and book a cell themselves. The grid's Selected cell state is the seam it plugs into, and the data model needs one extra column. Brings accounts, customer cancellations and no shows with it. Guest booking with no account is slice 7 (features 16 to 19); signed in players stay here · needs a decision
-- **Payments for court time**: taking payment in the app, as opposed to recording that it was paid, which the schedule already does. A QR transfer with proof checked by staff is feature 16 and 17; a provider taking the money in the app stays here · needs a decision · GA
+- **Payments for court time**: taking payment in the app, as opposed to recording that it was paid, which the schedule already does. A GCash transfer with proof checked by staff is feature 16 and 17; a provider taking the money in the app stays here · needs a decision · GA
 - **Automatic occupancy**: sensors or cameras that mark a court in use with no human input · needs a decision
 - **Lobby display mode**: an always on screen at the venue · needs a decision
 - **Free court alerts**: tell a player when a court opens up · needs a decision
@@ -331,6 +340,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Retention hint in the Book sheet**: one line under the phone field ("Kept 90 days after the booking") if staff want a script for what to tell customers · from spec 0010
 - **A check that the purge ran**: `pg_cron` failures are invisible from the app. When uptime monitoring lands, add a check that `cron.job_run_details` shows a successful `purge_customer_phones` run in the last two days · from spec 0010
 - **Direct Postgres for the staff path**: spec 0004 mints a Supabase token from the Better Auth session so every policy keeps working, which puts `SUPABASE_JWT_SECRET` in the app. Reading and writing over the same `pg` pool with `set local role authenticated` and the claims set per transaction removes that secret and the PostgREST hop, at the cost of moving six query and action modules off supabase-js. Worth doing with the Docker move · needs a decision · from spec 0004
+- **Turnstile on the lookup page**: `/booking` is guarded only by the miss limit in Postgres (5 wrong codes per 15 minutes). If the `booking_lookup` event's `not_found` or `rate_limited` counts spike in the month after checkout goes live, add a Turnstile check once the limit trips · from spec 0017
 - **Self service password reset by email**: today a forgotten password waits for an owner to make a reset link. Adding an email service (Resend or similar) would let Better Auth's own reset and emailed invites take over · needs a decision · from spec 0004
 
 ## Legend

@@ -117,7 +117,7 @@ describe("/schedule", () => {
 
   it("puts the day in the title on a dated link, canonical to /schedule (AC-11)", async () => {
     const meta = await generateMetadata(props("2026-09-20"));
-    expect(meta.title).toBe("Court schedule for Sun 20 Sep · Ella's Picklecourt");
+    expect(meta.title).toBe("Court schedule for Sun 20 Sep · Ella's Pickle Court");
     expect(meta.alternates).toEqual({ canonical: "/schedule" });
   });
 

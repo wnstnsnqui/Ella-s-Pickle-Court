@@ -187,3 +187,36 @@ describe("the staff check's decision events", () => {
     expect(parseEventProperties("online_booking_confirmed", { minutes_waiting: 0 }).ok).toBe(true);
   });
 });
+
+describe("booking_lookup (spec 0017, AC-20)", () => {
+  it("takes found with its view, and every other answer with only its result", () => {
+    for (const view of ["confirmed", "cancelled", "not_booked"] as const) {
+      expect(parseEventProperties("booking_lookup", { result: "found", view }).ok).toBe(true);
+    }
+    for (const result of ["not_found", "ended", "rate_limited"] as const) {
+      expect(parseEventProperties("booking_lookup", { result }).ok).toBe(true);
+    }
+  });
+
+  it.each(["code", "client_hash", "customer_name", "email_masked", "amount"])(
+    "refuses a bag carrying %s",
+    (key) => {
+      expect(
+        parseEventProperties("booking_lookup", { result: "found", [key]: "leak" } as never).ok,
+      ).toBe(false);
+    },
+  );
+
+  it("refuses invalid and failed, which are logged and reported instead", () => {
+    for (const result of ["invalid", "failed"]) {
+      expect(parseEventProperties("booking_lookup", { result } as never).ok).toBe(false);
+    }
+  });
+
+  it("refuses a view the page never shows", () => {
+    expect(
+      parseEventProperties("booking_lookup", { result: "found", view: "pending_check" } as never)
+        .ok,
+    ).toBe(false);
+  });
+});

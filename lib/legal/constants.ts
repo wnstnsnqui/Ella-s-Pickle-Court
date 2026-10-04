@@ -7,8 +7,8 @@
  * the public link is shared (spec 0010, Follow-up).
  */
 
-export const VENUE_LEGAL_NAME = "[Venue legal name]";
-export const PRIVACY_CONTACT_EMAIL = "[privacy contact email]";
+export const VENUE_LEGAL_NAME = "Ella's Pickle Court";
+export const PRIVACY_CONTACT_EMAIL = "loriemariejaybual@gmail.com";
 
 /** Read from `lib/venue.ts` so the privacy page and the landing page agree (spec 0013, AC-19). */
 export { VENUE_ADDRESS } from "@/lib/venue";
@@ -54,8 +54,9 @@ export const PRIVACY_NOTICE_VERSION = "2026-09-30";
  * action sets it, never the browser. Bump it whenever the rules change.
  * `2026-10-02`: the first rule now confirms at checkout (spec 0015, the
  * 2026-10-02 amendment); bookings made before keep `2026-09-30`.
+ * `2026-10-04`: payment is named GCash transfer, not QR transfer.
  */
-export const BOOKING_TERMS_VERSION = "2026-10-02";
+export const BOOKING_TERMS_VERSION = "2026-10-04";
 
 /**
  * The booking rules a player agrees to at checkout, shown as a short list on
@@ -65,7 +66,7 @@ export const BOOKING_TERMS_VERSION = "2026-10-02";
  */
 export const BOOKING_RULES = [
   "Your booking is confirmed when you finish checkout. Staff check every payment afterwards, and may cancel a booking whose payment doesn't match; we'll message you first, and refund anything you paid.",
-  "Pay the exact amount shown by QR transfer, and keep your booking code.",
+  "Pay the exact amount shown by GCash transfer, and keep your booking code.",
   "To change or cancel, or for a refund, message us on Messenger or by text.",
   "Please arrive on time. Your hours end when they end, even if you start late.",
 ] as const;

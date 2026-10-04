@@ -18,3 +18,17 @@ export const PROOF_MAX_CHOSEN_BYTES = 10 * 1024 * 1024;
 
 /** The long edge the browser shrinks a screenshot to, at most (AC-9). */
 export const PROOF_MAX_EDGE = 1600;
+
+/**
+ * How long after its last slot a booking can still be looked up by its code
+ * (spec 0017, AC-9). The same number is written into `lookup_online_booking`;
+ * `supabase/tests/booking_lookup.test.ts` seeds a day either side to keep the
+ * two equal.
+ */
+export const LOOKUP_DAYS_AFTER_LAST_SLOT = 30;
+
+/**
+ * How a player pays, in words: the Method line on every receipt and on the
+ * staff check view. The venue's code is a GCash QR.
+ */
+export const PAYMENT_METHOD_LABEL = "GCash transfer";

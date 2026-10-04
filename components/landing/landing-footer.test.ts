@@ -29,6 +29,13 @@ describe("LandingFooter", () => {
     expect(page).toMatch(/href="\/sign-in"[^>]*>Staff sign in</);
   });
 
+  it("roots its section links at / and links Find my booking only while checkout is on (spec 0017, AC-17)", () => {
+    expect(html()).toMatch(/href="\/#book"[^>]*>Book a court</);
+    expect(html()).not.toContain("Find my booking");
+    const on = renderToStaticMarkup(createElement(LandingFooter, { findBooking: true }));
+    expect(on).toMatch(/href="\/booking"[^>]*>Find my booking</);
+  });
+
   it("contacts the venue through Messenger and a text, as plain links", () => {
     const page = html();
     const messenger = VENUE_MESSENGER_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

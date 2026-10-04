@@ -204,7 +204,7 @@ export function PaymentStep({
         {isPlaceholder(PAYMENT_QR_SRC) ? (
           <div
             role="img"
-            aria-label="The venue's QR code will appear here"
+            aria-label="The venue's GCash QR code will appear here"
             className="border-input text-muted-foreground flex size-60 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed"
           >
             <QrCodeIcon aria-hidden="true" className="size-10" />
@@ -213,7 +213,7 @@ export function PaymentStep({
         ) : (
           <Image
             src={PAYMENT_QR_SRC}
-            alt={`QR code to pay ${PAYMENT_ACCOUNT_NAME}`}
+            alt={`GCash QR code to pay ${PAYMENT_ACCOUNT_NAME}`}
             width={240}
             height={240}
             className="bg-background size-60 rounded-xl"
@@ -241,7 +241,7 @@ export function PaymentStep({
           className="h-11 w-32 tracking-widest tabular-nums"
         />
         <p id={`${digitsId}-hint`} className="text-caption text-muted-foreground">
-          From your bank or e-wallet receipt.
+          From your GCash receipt.
         </p>
       </div>
 

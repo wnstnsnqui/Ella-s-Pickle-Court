@@ -171,6 +171,24 @@ export type Database = {
           },
         ];
       };
+      booking_lookup_miss: {
+        Row: {
+          client_hash: string;
+          created_at: string;
+          id: number;
+        };
+        Insert: {
+          client_hash: string;
+          created_at?: string;
+          id?: never;
+        };
+        Update: {
+          client_hash?: string;
+          created_at?: string;
+          id?: never;
+        };
+        Relationships: [];
+      };
       court: {
         Row: {
           changed_by: string | null;
@@ -640,6 +658,7 @@ export type Database = {
         };
         Returns: Json;
       };
+      lookup_online_booking: { Args: { p_code: string }; Returns: Json };
       payment_proofs_due: {
         Args: { p_limit?: number };
         Returns: {

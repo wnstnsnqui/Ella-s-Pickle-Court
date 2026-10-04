@@ -9,12 +9,12 @@ import { boardHref, boardTitle, DEFAULT_TITLE } from "./board-day";
 
 describe("boardTitle", () => {
   it("names the day on a dated board", () => {
-    expect(boardTitle("2026-09-29")).toBe("Court schedule for Tue 29 Sep · Ella's Picklecourt");
+    expect(boardTitle("2026-09-29")).toBe("Court schedule for Tue 29 Sep · Ella's Pickle Court");
   });
 
   it("is the site default on an undated board", () => {
     expect(boardTitle()).toBe(DEFAULT_TITLE);
-    expect(DEFAULT_TITLE).toBe("Ella's Picklecourt · Court schedule");
+    expect(DEFAULT_TITLE).toBe("Ella's Pickle Court · Court schedule");
   });
 });
 

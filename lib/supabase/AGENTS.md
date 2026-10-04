@@ -13,7 +13,7 @@ the public board, so this is not a place to be clever.
 | ------------ | ------------------------------------------------------------------------------------------------------------------- |
 | `public.ts`  | Server side public reads. Anon key, no session token, so the database sees an anonymous caller.                     |
 | `staff.ts`   | Server side writes as the signed in staff member. Anon key plus a token minted for that person, built fresh per request. |
-| `staff-token.ts` | `mintStaffToken()`, the bridge from the Better Auth session to Supabase: a five minute HS256 token signed with `SUPABASE_JWT_SECRET`, `sub` = the user id, `role: "authenticated"`, once per request via React `cache()`. Also `mintOnlineBookingToken()` (spec 0015): `role: "online_booking"`, a `client_hash` claim, no `sub`, 60 seconds, called only from `lib/booking/actions.ts`. |
+| `staff-token.ts` | `mintStaffToken()`, the bridge from the Better Auth session to Supabase: a five minute HS256 token signed with `SUPABASE_JWT_SECRET`, `sub` = the user id, `role: "authenticated"`, once per request via React `cache()`. Also `mintOnlineBookingToken()` (spec 0015): `role: "online_booking"`, a `client_hash` claim, no `sub`, 60 seconds, called only from `lib/booking/actions.ts`. And `mintBookingLookupToken()` (spec 0017): `role: "booking_lookup"`, the same shape, called only from `lookupBooking`. |
 | `browser.ts` | The browser's connection, used for listening to court broadcasts on both boards. Anon key, one instance per tab.    |
 
 ## Conventions
@@ -27,7 +27,7 @@ the public board, so this is not a place to be clever.
 
 - **Never merge these into one shared client.** `staffSupabase()` carries one particular person's token, so caching it in a module level singleton would hand their identity to the next request.
 - **The service role key is not available here on purpose.** If you find yourself wanting it, the real problem is usually a missing policy.
-- **`SUPABASE_JWT_SECRET` is read by `staff-token.ts` and nowhere else.** It could sign a `service_role` token, which is why the module exports exactly two fixed shapes, the five minute `authenticated` staff token and the 60 second `online_booking` one; `lib/import-boundaries.test.ts` pins the single reader, and pins `mintOnlineBookingToken()` to `lib/booking/actions.ts`.
+- **`SUPABASE_JWT_SECRET` is read by `staff-token.ts` and nowhere else.** It could sign a `service_role` token, which is why the module exports exactly three fixed shapes, the five minute `authenticated` staff token and the 60 second `online_booking` and `booking_lookup` ones; `lib/import-boundaries.test.ts` pins the single reader, and pins both public minters to `lib/booking/actions.ts`.
 - `browser.ts` memoizes its client because a second one would open a second websocket for nothing.
 - A private realtime channel needs `supabase.realtime.setAuth()` before `subscribe()`, even for anon, so the policy on `realtime.messages` can be evaluated at join time.
 

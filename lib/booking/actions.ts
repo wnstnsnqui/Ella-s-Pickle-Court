@@ -12,21 +12,34 @@ import { BOOKING_TERMS_VERSION } from "@/lib/legal/constants";
 import { clientAddress } from "@/lib/rate-limit";
 import type { Database } from "@/lib/supabase/database.types";
 import { publicSupabase } from "@/lib/supabase/public";
-import { mintOnlineBookingToken } from "@/lib/supabase/staff-token";
+import { mintBookingLookupToken, mintOnlineBookingToken } from "@/lib/supabase/staff-token";
 import { daysBetween, todayInZone } from "@/lib/time";
 
 import { countSlots, heldEventProperties } from "./analytics";
 import { hashClient } from "./client-hash";
+import { endedMessage, limitedMessage, LOOKUP_FAILED_MESSAGE, NOT_FOUND_MESSAGE } from "./lookup";
 import {
+  BOOKING_CODE_HINT,
   holdAnswerSchema,
   holdInputSchema,
+  lookupAnswerSchema,
+  lookupInputSchema,
   releaseAnswerSchema,
   releaseInputSchema,
   submitAnswerSchema,
   submitInputSchema,
 } from "./schemas";
 import { verifyTurnstile } from "./turnstile";
-import type { HoldRefusal, HoldResult, ReleaseResult, SubmitRefusal, SubmitResult } from "./types";
+import type {
+  BookingLookup,
+  HoldRefusal,
+  HoldResult,
+  LookupRefusal,
+  LookupResult,
+  ReleaseResult,
+  SubmitRefusal,
+  SubmitResult,
+} from "./types";
 
 /**
  * The public checkout's Server Actions. Spec 0015.
@@ -351,4 +364,127 @@ export async function releaseOnlineBooking(input: unknown): Promise<ReleaseResul
     return { released: false };
   }
   return { released: answer.data.released };
+}
+
+/**
+ * A client for one lookup, carrying a token minted for this caller's client
+ * hash. Built fresh per call and never shared; it can run one function.
+ */
+function bookingLookupSupabase(clientHash: string): SupabaseClient<Database> {
+  const env = publicEnv();
+  const token = mintBookingLookupToken(clientHash);
+  return createClient<Database>(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+    accessToken: () => token,
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
+/** Past this the page says it couldn't check, rather than spin (AC-13). */
+const LOOKUP_TIMEOUT_MS = 10_000;
+
+const LOOKUP_FAILED: LookupRefusal = { kind: "failed", message: LOOKUP_FAILED_MESSAGE };
+
+/**
+ * Find a booking by the code on its receipt (spec 0017). The code arrives in
+ * the request body, never a URL, and leaves this function only inside the
+ * answer to the one caller who typed it: no log line or event carries it
+ * (AC-11). A code that cannot be one is refused before the database, and is
+ * not a miss (AC-2). Everything else, the limit included, Postgres decides.
+ */
+export async function lookupBooking(input: unknown): Promise<LookupResult> {
+  const parsed = lookupInputSchema.safeParse(input);
+  if (!parsed.success) {
+    console.warn("lookupBooking: refused a code that cannot be one");
+    return { ok: false, error: { kind: "invalid", message: BOOKING_CODE_HINT } };
+  }
+
+  const supabase = bookingLookupSupabase(hashClient(clientAddress(await headers())));
+
+  const { data, error } = await supabase
+    .rpc("lookup_online_booking", { p_code: parsed.data.code })
+    .abortSignal(AbortSignal.timeout(LOOKUP_TIMEOUT_MS));
+  if (error) {
+    reportFailure(error, { action: "lookupBooking" });
+    return { ok: false, error: LOOKUP_FAILED };
+  }
+
+  const answer = lookupAnswerSchema.safeParse(data);
+  if (!answer.success) {
+    reportFailure(
+      { message: "lookup_online_booking answered in an unexpected shape" },
+      { action: "lookupBooking" },
+    );
+    return { ok: false, error: LOOKUP_FAILED };
+  }
+
+  const found = answer.data;
+  if (!found.ok) {
+    switch (found.reason) {
+      case "not_found":
+        capturePublicEvent("booking_lookup", { result: "not_found" });
+        return { ok: false, error: { kind: "not_found", message: NOT_FOUND_MESSAGE } };
+      case "ended":
+        if (!found.ended_at) {
+          reportFailure(
+            { message: "lookup_online_booking answered ended with no date" },
+            { action: "lookupBooking" },
+          );
+          return { ok: false, error: LOOKUP_FAILED };
+        }
+        capturePublicEvent("booking_lookup", { result: "ended" });
+        return {
+          ok: false,
+          error: { kind: "ended", message: endedMessage(found.ended_at), endedAt: found.ended_at },
+        };
+      case "rate_limited": {
+        const retryAfterSeconds = found.retry_after_seconds ?? 900;
+        capturePublicEvent("booking_lookup", { result: "rate_limited" });
+        return {
+          ok: false,
+          error: {
+            kind: "rate_limited",
+            message: limitedMessage(retryAfterSeconds),
+            retryAfterSeconds,
+          },
+        };
+      }
+    }
+  }
+
+  capturePublicEvent("booking_lookup", { result: "found", view: found.view });
+
+  const refund: BookingLookup["refund"] =
+    found.refund_status === "owed"
+      ? { status: "owed", amount: found.amount }
+      : found.refund_status === "refunded" && found.refunded_at
+        ? {
+            status: "refunded",
+            amount: found.refund_amount ?? found.amount,
+            refundedAt: found.refunded_at,
+          }
+        : null;
+
+  return {
+    ok: true,
+    data: {
+      view: found.view,
+      code: found.code,
+      reason: found.reason,
+      refund,
+      customer: {
+        firstName: found.first_name,
+        phoneLast4: found.phone_last4,
+        emailMasked: found.email_masked,
+      },
+      amount: found.amount,
+      submittedAt: found.submitted_at,
+      runs: found.runs.map((run) => ({
+        courtId: run.court_id,
+        courtName: run.court_name,
+        startsAt: run.starts_at,
+        endsAt: run.ends_at,
+        amount: run.amount,
+      })),
+    },
+  };
 }

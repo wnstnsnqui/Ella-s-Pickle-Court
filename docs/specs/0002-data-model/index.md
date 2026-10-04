@@ -5,7 +5,7 @@
 
 ## Summary
 
-Ella's Picklecourt is a booking schedule, not a live status board. A player or a staff member picks a day and sees a grid: time down the side, one column per court, and every cell reading Booked, Available or Unavailable. The whole thing rests on one table of time ranges. A row says "court 2 is taken from 4pm to 5pm", either because somebody booked it or because it is closed, and Postgres itself refuses to accept a second row that overlaps, so a double booking is physically impossible. Available is simply the absence of a row inside opening hours, so nothing has to be generated in advance and no second copy of the truth can drift.
+Ella's Pickle Court is a booking schedule, not a live status board. A player or a staff member picks a day and sees a grid: time down the side, one column per court, and every cell reading Booked, Available or Unavailable. The whole thing rests on one table of time ranges. A row says "court 2 is taken from 4pm to 5pm", either because somebody booked it or because it is closed, and Postgres itself refuses to accept a second row that overlaps, so a double booking is physically impossible. Available is simply the absence of a row inside opening hours, so nothing has to be generated in advance and no second copy of the truth can drift.
 
 Four tables: `staff`, `court`, `reservation` and `venue_settings`. Bookings carry a customer name, a phone number, a note and a payment record, and none of that ever reaches the public page.
 

@@ -5,19 +5,22 @@ import { smsHref, VENUE_ADDRESS, VENUE_MESSENGER_URL, VENUE_NAME } from "@/lib/v
 
 import { FOOTER_LINE } from "./content";
 
-const COLUMNS = [
+type FooterLink = { href: string; label: string };
+
+/** Section links are rooted at `/`, so the footer works from `/booking` too (spec 0017, AC-17). */
+const COLUMNS: { title: string; links: FooterLink[] }[] = [
   {
     title: "Play",
     links: [
-      { href: "#offers", label: "Offers" },
-      { href: "#book", label: "Book a court" },
+      { href: "/#offers", label: "Offers" },
+      { href: "/#book", label: "Book a court" },
       { href: "/schedule", label: "Live schedule" },
     ],
   },
   {
     title: "Venue",
     links: [
-      { href: "#visit", label: "Location and hours" },
+      { href: "/#visit", label: "Location and hours" },
       { href: VENUE_MESSENGER_URL, label: "Messenger" },
       { href: smsHref(), label: "Text us" },
     ],
@@ -30,12 +33,22 @@ const COLUMNS = [
       { href: "/sign-in", label: "Staff sign in" },
     ],
   },
-] as const;
+];
 
 const LINK = "text-body text-muted-foreground hover:text-foreground transition-colors duration-150";
 
-/** The landing page's foot: the mark, a line of voice, and every way onward. */
-export function LandingFooter() {
+/**
+ * The landing page's foot: the mark, a line of voice, and every way onward.
+ * "Find my booking" sits under Play only while checkout is on (spec 0017, AC-17).
+ */
+export function LandingFooter({ findBooking = false }: { findBooking?: boolean }) {
+  const columns = findBooking
+    ? COLUMNS.map((col) =>
+        col.title === "Play"
+          ? { ...col, links: [...col.links, { href: "/booking", label: "Find my booking" }] }
+          : col,
+      )
+    : COLUMNS;
   return (
     <footer className="border-border border-t">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-14 md:grid-cols-[1.5fr_repeat(3,1fr)]">
@@ -43,7 +56,7 @@ export function LandingFooter() {
           <Wordmark />
           <p className="text-body text-muted-foreground max-w-[32ch]">{FOOTER_LINE}</p>
         </div>
-        {COLUMNS.map((col) => (
+        {columns.map((col) => (
           <nav key={col.title} aria-label={col.title} className="flex flex-col gap-3">
             <h2 className="text-label">{col.title}</h2>
             <ul className="flex flex-col gap-2">

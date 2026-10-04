@@ -5,7 +5,7 @@
 
 ## Summary
 
-Ella's Picklecourt runs as a single Next.js 16 application, deployed on Vercel for now with a move to a self hosted container planned, with Supabase Cloud as the database and live update channel, and Clerk for staff sign in. Staff changes are written by Server Actions that carry the signed in staff member's Clerk token, so the database itself, through row level security (rules stored in Postgres that decide who may read or write each row), refuses any write from someone not signed in. A database trigger broadcasts every court change, so open public boards update themselves within a second or two with no page reload. It is one deployable app, one database, two vendors, and everything is on a free tier except the small server.
+Ella's Pickle Court runs as a single Next.js 16 application, deployed on Vercel for now with a move to a self hosted container planned, with Supabase Cloud as the database and live update channel, and Clerk for staff sign in. Staff changes are written by Server Actions that carry the signed in staff member's Clerk token, so the database itself, through row level security (rules stored in Postgres that decide who may read or write each row), refuses any write from someone not signed in. A database trigger broadcasts every court change, so open public boards update themselves within a second or two with no page reload. It is one deployable app, one database, two vendors, and everything is on a free tier except the small server.
 
 ## Decision
 

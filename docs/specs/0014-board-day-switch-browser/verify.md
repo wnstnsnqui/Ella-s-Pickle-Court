@@ -20,7 +20,7 @@ _Steps derived from spec 0014 acceptance criteria and its Value sourcing table. 
 - [x] On tomorrow, tap Previous to today → the grid scrolls to the now marker once; with PostHog configured, `board_day_viewed` is captured once per landed day and not on a re read of the same day → AC-7
 - [x] Trigger a broadcast (book a cell elsewhere) while a throttled day read is pending → no `/api/schedule` read until the day lands, then exactly one read for the landed day → AC-8
 - [x] Leave an undated `/schedule` open across venue midnight (or fake the clock) → it moves to the new day; a board on a dated day stays → AC-9
-- [x] On `/schedule`, land tomorrow → the tab title reads `Court schedule for <Day D Mon> · Ella's Picklecourt`, and back on today it reads `Ella's Picklecourt · Court schedule`; on `/staff` the title stays `Staff schedule · Ella's Picklecourt` → AC-10
+- [x] On `/schedule`, land tomorrow → the tab title reads `Court schedule for <Day D Mon> · Ella's Pickle Court`, and back on today it reads `Ella's Pickle Court · Court schedule`; on `/staff` the title stays `Staff schedule · Ella's Pickle Court` → AC-10
 - [x] Reload `/schedule?date=<tomorrow>` and `/staff?date=<tomorrow>` → rendered on the server with the route skeleton, showing tomorrow → AC-11
 - [x] On `/staff` showing the last bookable day, shrink the booking horizon in Settings so that day falls outside it → the toast "That day is no longer open for booking. Showing today." and today is read in the browser (one Server Action, no RSC request), with `date` removed from the URL. Restore the horizon afterwards → AC-11
 - [x] On `/staff?date=<tomorrow>`, use the menu's Schedule link to `/staff` → today is shown (the fresh server render wins over the hook's day) → AC-11

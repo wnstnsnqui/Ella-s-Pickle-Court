@@ -46,8 +46,22 @@ describe("the receipt", () => {
     expect(html).toContain("Staff check every payment. If yours doesn&#x27;t match");
   });
 
-  it("offers to save the receipt as an image", () => {
+  it("offers to save the receipt as an image or a PDF (spec 0017, AC-16)", () => {
     expect(html).toContain("Save as image");
+    expect(html).toContain("Save as PDF");
+  });
+
+  it("links Track this booking to /booking in a new tab, the code in the fragment (spec 0017, AC-11)", () => {
+    expect(html).toMatch(
+      /<a[^>]*href="\/booking#K7MQ3XPT"[^>]*target="_blank"[^>]*>Track this booking/,
+    );
+  });
+
+  it("keeps its own contact in full, and the receipt is what prints (spec 0017, AC-14, AC-16)", () => {
+    expect(html).toContain("Ana Reyes");
+    expect(html).toContain("+639171234567");
+    expect(html).toContain("ana@example.com");
+    expect(html).toContain("data-receipt");
   });
 
   it("lists each run under Selected courts and slots, with the fee line and total", () => {
@@ -83,7 +97,7 @@ describe("review", () => {
       expect(html).toContain(label);
     }
     expect(html.match(/>Edit</g)).toHaveLength(2);
-    expect(html).toContain("QR transfer");
+    expect(html).toContain("GCash transfer");
     expect(html).toContain("•••• 1234");
   });
 });

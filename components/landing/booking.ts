@@ -203,3 +203,11 @@ export function runHours(runs: readonly Pick<BookingRun, "startsAt" | "endsAt">[
 export function refundSmsBody(code: string, referenceLast4: string): string {
   return `Hi! My online booking ${formatBookingCode(code)} didn't go through after I paid (reference ending ${referenceLast4}). Can you refund me or move my booking?`;
 }
+
+/**
+ * The text a player sends about a booking they already hold (spec 0017,
+ * AC-3, AC-13), so staff can find it from the message alone.
+ */
+export function bookingCodeSmsBody(code: string): string {
+  return `Hi! It's about my booking ${formatBookingCode(code)}.`;
+}

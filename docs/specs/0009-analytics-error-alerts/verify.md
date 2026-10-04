@@ -59,7 +59,7 @@ project settings and dashboard in AC-11/AC-12.** These stay open until someone r
       only on issue created/reopened, not per occurrence → AC-8, AC-11, AC-12 · **not run**
 - [ ] Confirm cookieless mode is enabled in the PostHog project settings (`cookieless_mode:
       "always"` is silently ignored by PostHog's ingestion otherwise) → AC-1 · **not run**
-- [ ] Build and pin the "Ella's Picklecourt" dashboard (the seven insights in AC-11), invite Ella
+- [ ] Build and pin the "Ella's Pickle Court" dashboard (the seven insights in AC-11), invite Ella
       as a project member, and record the settings above in this file once confirmed → AC-11,
       AC-12 · **not run**
 

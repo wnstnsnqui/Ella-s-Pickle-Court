@@ -8,7 +8,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 <!-- END:nextjs-agent-rules -->
 
-# Ella's Picklecourt
+# Ella's Pickle Court
 
 A live court status board. Staff on shift keep each court current, players check it
 from their phones, and Ella looks back at how the courts were used.
@@ -73,7 +73,7 @@ Stored in `docs/specs/`. Format: `docs/specs/NNNN-title/index.md`.
 - **Two Supabase clients, never merged.** `publicSupabase()` is anon and read only; `staffSupabase()` carries a five minute Supabase token minted from the signed in staff member's Better Auth session and is built fresh per request. Merging them into a shared singleton breaks the read only guarantee on the public board.
 - **The service role key never reaches application code.** It is for migrations and admin tooling only. Nothing under `app/` or `lib/` may read it.
 - **Authorization is a row level security policy, never an `if` in a Server Action.** An app level check is fine for a friendlier error, but Postgres is the enforcement point.
-- **Every Server Action calls `requireStaff()` first, then validates with Zod, then writes.** Server Actions accept whatever the network sends. The one named exception is `lib/auth/actions.ts` (`redeemInvite`, `resetPassword`): no session exists yet, and a link claimed in Postgres is their gate. The second is `lib/booking/actions.ts` (the public checkout): Turnstile or the `submission_id` is its gate, then Zod, then a minted `online_booking` token; see `lib/booking/AGENTS.md`.
+- **Every Server Action calls `requireStaff()` first, then validates with Zod, then writes.** Server Actions accept whatever the network sends. The one named exception is `lib/auth/actions.ts` (`redeemInvite`, `resetPassword`): no session exists yet, and a link claimed in Postgres is their gate. The second is `lib/booking/actions.ts` (the public checkout): Turnstile or the `submission_id` is its gate, then Zod, then a minted `online_booking` token, and `lookupBooking` is gated by the miss limit in Postgres under a minted `booking_lookup` token; see `lib/booking/AGENTS.md`.
 - **`SUPABASE_JWT_SECRET` is read by `lib/supabase/staff-token.ts` and nowhere else, and `lib/auth/pool.ts` is imported only by the auth core.** The secret can sign a `service_role` token and the pool runs as the `better_auth_app` role, so both are confined; `lib/import-boundaries.test.ts` pins each.
 - **Every write that changes state is conditional on the row's `version` and records `changed_by`.** A zero row result means somebody else got there first; refetch and show the fresh state rather than swallowing it. The public checkout is the exception: its writes are keyed on `submission_id` and have no staff member to record.
 - **All timestamps are `timestamptz` in UTC.** Local time exists only when showing something to a person, and it is always `Asia/Manila`, never the reader's device.
@@ -117,6 +117,7 @@ Declined: prettier (the setup is done and the available skills are all scaffolde
 - [lib/staff/AGENTS.md](lib/staff/AGENTS.md): the Server Actions behind `/staff/admin/users`, role and active status writes and invite links
 - [lib/auth/AGENTS.md](lib/auth/AGENTS.md): Better Auth, the invite gate, the session read, and the `pg` pool boundary
 - [lib/booking/AGENTS.md](lib/booking/AGENTS.md): the public checkout's Server Actions, the Turnstile gate, the minted `online_booking` token, and the screenshot upload
+- [components/receipt/AGENTS.md](components/receipt/AGENTS.md): the one receipt checkout and `/booking` share, the lookup, printing and the saved image
 - [components/landing/AGENTS.md](components/landing/AGENTS.md): the landing page at `/`, its one server read, the booking picker, quiet failure, and where its words live
 - Design system: build all UI to [docs/design.md](docs/design.md) (art direction and the build mandate); token values live in `app/globals.css`.
 

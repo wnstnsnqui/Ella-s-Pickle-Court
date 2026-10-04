@@ -37,7 +37,7 @@ describe("/privacy", () => {
     const html = renderToStaticMarkup(PrivacyPage());
     expect(html).toContain(String(PHONE_RETENTION_DAYS));
     expect(html).toContain(PRIVACY_CONTACT_EMAIL);
-    expect(html).toContain(VENUE_LEGAL_NAME);
+    expect(html).toContain(VENUE_LEGAL_NAME.replace("'", "&#x27;"));
   });
 
   it("names the online booking data and how long each is kept (spec 0015, AC-22)", () => {

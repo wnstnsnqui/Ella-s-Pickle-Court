@@ -134,7 +134,7 @@ async function toPayment() {
   tickAll();
   giveToken();
   fireEvent.click(button("Next: Pay"));
-  await heading("Pay by QR");
+  await heading("Pay by GCash");
 }
 
 async function uploadScreenshot() {
@@ -315,7 +315,7 @@ describe("the hold", () => {
     const before = widget?.attempt ?? 0;
 
     fireEvent.click(button("Next: Pay"));
-    await heading("Pay by QR");
+    await heading("Pay by GCash");
 
     fireEvent.click(button("Back"));
     await heading("Booking rules");
@@ -336,7 +336,7 @@ describe("the hold", () => {
     await heading("Booking rules");
     giveToken("token-2");
     fireEvent.click(button("Next: Pay"));
-    await heading("Pay by QR");
+    await heading("Pay by GCash");
 
     const [first, second] = actions.holdOnlineBooking.mock.calls.map((call) => call[0]);
     expect(second.submissionId).toBe(first.submissionId);

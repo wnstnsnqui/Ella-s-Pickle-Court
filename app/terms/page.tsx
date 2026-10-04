@@ -43,7 +43,7 @@ export default function TermsPage() {
           </ul>
           <p>
             Your picked hours are held for a few minutes while you pay. The site takes no payment
-            itself: you pay by QR transfer and send us proof, and staff check it.
+            itself: you pay by GCash transfer and send us proof, and staff check it.
           </p>
         </LegalSection>
 

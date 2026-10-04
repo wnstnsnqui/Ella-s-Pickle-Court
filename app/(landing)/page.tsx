@@ -69,6 +69,7 @@ async function heroBoard(today: Schedule): Promise<HeroBoardData | null> {
 }
 
 export default async function Landing() {
+  const checkout = checkoutEnabled();
   const limited = (await headers()).get(PUBLIC_READ_LIMITED_HEADER) === "1";
   const today = await readToday(limited);
   const board = today ? await heroBoard(today) : null;
@@ -76,7 +77,7 @@ export default async function Landing() {
   return (
     <div data-landing className="flex min-h-full flex-col">
       {today ? <VenueJsonLd hours={today.hours} url={SITE_URL} /> : null}
-      <LandingHeader />
+      <LandingHeader findBooking={checkout} />
       <main className="flex-1">
         <Hero
           board={board}
@@ -87,10 +88,10 @@ export default async function Landing() {
           }}
         />
         <Offers hourlyRate={today ? today.hourlyRate : null} />
-        <BookingSection initial={today} limited={limited} checkout={checkoutEnabled()} />
+        <BookingSection initial={today} limited={limited} checkout={checkout} />
         <Location hours={today?.hours ?? null} />
       </main>
-      <LandingFooter />
+      <LandingFooter findBooking={checkout} />
     </div>
   );
 }

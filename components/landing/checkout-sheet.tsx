@@ -109,8 +109,8 @@ const STEPS: Record<Step, { name: string; heading: string; subtitle: string; ico
   },
   payment: {
     name: "Payment",
-    heading: "Pay by QR",
-    subtitle: "Scan with your bank or e-wallet app.",
+    heading: "Pay by GCash",
+    subtitle: "Scan with your GCash app.",
     icon: QrCodeIcon,
   },
   review: {

@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import { formatBookingCode } from "./code";
 import {
+  bookingCodeSchema,
   bookingDetailsSchema,
   holdInputSchema,
+  lookupAnswerSchema,
   normalizePhilippineMobile,
   referenceLast4Schema,
   submitInputSchema,
@@ -143,5 +145,59 @@ describe("formatBookingCode (AC-18)", () => {
 
   it("leaves anything that is not 8 characters as it is", () => {
     expect(formatBookingCode("K7MQ")).toBe("K7MQ");
+  });
+});
+
+/** Spec 0017, AC-2 and AC-18: the code as typed, and the lookup's answer kept to its keys. */
+describe("bookingCodeSchema", () => {
+  it("takes the code with any case, spaces or dashes, and gives it back as stored", () => {
+    for (const typed of ["K7MQ3XPT", "k7mq-3xpt", " K7MQ 3XPT ", "k7-mq-3x-pt"]) {
+      expect(bookingCodeSchema.parse(typed)).toBe("K7MQ3XPT");
+    }
+  });
+
+  it("refuses a code of the wrong length or with a letter the alphabet leaves out", () => {
+    for (const typed of [
+      "",
+      "K7MQ3XP",
+      "K7MQ3XPTA",
+      "K7MQ3XP0",
+      "K7MQ3XP1",
+      "K7MQ3XPI",
+      "K7MQ3XPL",
+      "K7MQ3XPO",
+      "K7MQ3XP!",
+    ]) {
+      expect(bookingCodeSchema.safeParse(typed).success).toBe(false);
+    }
+  });
+});
+
+describe("lookupAnswerSchema", () => {
+  const found = {
+    ok: true,
+    view: "confirmed",
+    code: "K7MQ3XPT",
+    reason: null,
+    refund_status: null,
+    refund_amount: null,
+    refunded_at: null,
+    first_name: "Ana",
+    phone_last4: "4567",
+    email_masked: "a•••@example.com",
+    amount: "250.00",
+    submitted_at: "2026-10-01T01:03:00+00:00",
+    runs: [],
+  };
+
+  it("accepts exactly the keys the spec allows", () => {
+    expect(lookupAnswerSchema.safeParse(found).success).toBe(true);
+  });
+
+  it("refuses an answer carrying anything more, a booking id or a full phone", () => {
+    expect(lookupAnswerSchema.safeParse({ ...found, booking_id: 41 }).success).toBe(false);
+    expect(
+      lookupAnswerSchema.safeParse({ ...found, customer_phone: "+639171234567" }).success,
+    ).toBe(false);
   });
 });

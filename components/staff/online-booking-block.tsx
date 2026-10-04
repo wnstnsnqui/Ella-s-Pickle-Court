@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatBookingCode } from "@/lib/booking/code";
+import { PAYMENT_METHOD_LABEL } from "@/lib/booking/constants";
 import { reasonLabel } from "@/lib/online-checks/constants";
 import {
   formatAmount,
@@ -162,6 +163,9 @@ function BookingDetails({
 
           <dt className="text-label text-muted-foreground">Amount due</dt>
           <dd className="tabular-nums">{formatAmount(booking.amount)}</dd>
+
+          <dt className="text-label text-muted-foreground">Method</dt>
+          <dd>{PAYMENT_METHOD_LABEL}</dd>
 
           <dt className="text-label text-muted-foreground">Reference</dt>
           <dd>

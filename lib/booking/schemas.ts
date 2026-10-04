@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { CANCEL_REASON_VALUES, REJECT_REASON_VALUES } from "@/lib/online-checks/constants";
 import { calendarDateSchema } from "@/lib/schedule/schemas";
 
 /**
@@ -179,4 +180,71 @@ export const releaseInputSchema = z.object({
 export const releaseAnswerSchema = z.discriminatedUnion("ok", [
   z.object({ ok: z.literal(true), released: z.boolean() }),
   z.object({ ok: z.literal(false), reason: z.literal("invalid") }),
+]);
+
+/**
+ * The 8 characters a booking code is made of, from the 31 letter alphabet
+ * with no 0, 1, I, L or O (spec 0015, AC-18). The same pattern as the
+ * `booking_code_check` constraint.
+ */
+export const BOOKING_CODE_PATTERN = /^[2-9A-HJKMNP-Z]{8}$/;
+
+/** A code as typed, made comparable: uppercase, with spaces and dashes taken out (spec 0017, AC-2). */
+export function normalizeBookingCode(input: string): string {
+  return input.toUpperCase().replace(/[\s-]/g, "");
+}
+
+export const BOOKING_CODE_HINT = "A booking code is 8 letters and numbers, like K7MQ-3XPT.";
+
+/** A booking code in any form a player might type it, coming out as stored. */
+export const bookingCodeSchema = z
+  .string()
+  .max(64, BOOKING_CODE_HINT)
+  .transform(normalizeBookingCode)
+  .pipe(z.string().regex(BOOKING_CODE_PATTERN, BOOKING_CODE_HINT));
+
+/** What `lookupBooking` accepts (spec 0017, the API surface). */
+export const lookupInputSchema = z.object({ code: bookingCodeSchema });
+
+const lookupRunSchema = z
+  .object({
+    court_id: z.number(),
+    court_name: z.string(),
+    starts_at: z.string(),
+    ends_at: z.string(),
+    amount: z.coerce.number(),
+  })
+  .strict();
+
+/**
+ * What `lookup_online_booking` answers with (spec 0017, AC-18). Strict, so a
+ * key the spec does not allow (a full phone, a booking id) turns the answer
+ * into a `failed` rather than reaching the page.
+ */
+export const lookupAnswerSchema = z.discriminatedUnion("ok", [
+  z
+    .object({
+      ok: z.literal(true),
+      view: z.enum(["confirmed", "cancelled", "not_booked"]),
+      code: z.string(),
+      reason: z.enum([...REJECT_REASON_VALUES, ...CANCEL_REASON_VALUES]).nullable(),
+      refund_status: z.enum(["owed", "refunded", "not_owed"]).nullable(),
+      refund_amount: z.coerce.number().nullable(),
+      refunded_at: z.string().nullable(),
+      first_name: z.string().nullable(),
+      phone_last4: z.string().nullable(),
+      email_masked: z.string().nullable(),
+      amount: z.coerce.number(),
+      submitted_at: z.string(),
+      runs: z.array(lookupRunSchema),
+    })
+    .strict(),
+  z
+    .object({
+      ok: z.literal(false),
+      reason: z.enum(["not_found", "ended", "rate_limited"]),
+      ended_at: z.string().optional(),
+      retry_after_seconds: z.number().optional(),
+    })
+    .strict(),
 ]);

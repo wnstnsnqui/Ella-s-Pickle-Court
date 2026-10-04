@@ -28,6 +28,7 @@ same feature.
 - **`reportFailure()` is for the unnamed `kind: "failed"` branch only.** A named `ActionError` (`conflict`, `forbidden`, `invalid`, `not_found`, `unauthenticated`) is an expected outcome and must never be reported as an exception.
 - **Distinct ids are always a Better Auth user id or PostHog's own anonymous id, never a shared literal.**
 - **A public Server Action sends through `capturePublicEvent()`, never `captureStaffEvent()`,** under the same rules: after a successful write, never awaited, no personal data in the properties.
+- **`booking_lookup` is the one event sent after a read, not a write** (spec 0017): `lookupBooking` sends it once the lookup answers, with only `result` and `view`, never the code.
 - **The public board stays cookieless; `/staff` and `/sign-in` are identified.** `instrumentation-client.ts` decides the mode once per page load, from `window.location.pathname`.
 
 ## Gotchas

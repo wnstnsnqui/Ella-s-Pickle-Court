@@ -122,7 +122,7 @@ describe("/ on a live read", () => {
 
   it("carries the landing title, description and canonical (AC-20)", () => {
     expect(metadata.title).toEqual({
-      absolute: "Ella's Picklecourt · Pickleball courts in Minglanilla, Cebu",
+      absolute: "Ella's Pickle Court · Pickleball courts in Minglanilla, Cebu",
     });
     expect(metadata.description).toMatch(/\.$/);
     expect(metadata.alternates).toEqual({ canonical: "/" });

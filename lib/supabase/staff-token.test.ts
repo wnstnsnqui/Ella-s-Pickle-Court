@@ -99,3 +99,27 @@ describe("mintOnlineBookingToken", () => {
     await expect(mintOnlineBookingToken("hash_1")).rejects.toThrow(/SUPABASE_JWT_SECRET/);
   });
 });
+
+describe("mintBookingLookupToken", () => {
+  it("signs HS256 with role booking_lookup and the client hash, and no sub (spec 0017, AC-18)", async () => {
+    const { mintBookingLookupToken } = await import("./staff-token");
+    const token = await mintBookingLookupToken("hash_1");
+
+    const { payload, protectedHeader } = await jwtVerify(token, new TextEncoder().encode(SECRET));
+    expect(protectedHeader.alg).toBe("HS256");
+    expect(payload.role).toBe("booking_lookup");
+    expect(payload.client_hash).toBe("hash_1");
+    expect(payload.sub).toBeUndefined();
+  });
+
+  it("carries only the named claims and expires sixty seconds after it was issued", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-03T08:00:00Z"));
+    const { mintBookingLookupToken, BOOKING_LOOKUP_TOKEN_LIFETIME_SECONDS } =
+      await import("./staff-token");
+    const payload = decodeJwt(await mintBookingLookupToken("hash_1"));
+    expect(Object.keys(payload).sort()).toEqual(["client_hash", "exp", "iat", "role"].sort());
+    expect(BOOKING_LOOKUP_TOKEN_LIFETIME_SECONDS).toBe(60);
+    expect(payload.exp).toBe(payload.iat! + 60);
+  });
+});

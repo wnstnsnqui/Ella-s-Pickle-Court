@@ -16,7 +16,7 @@ const ALL = {
   BOOKING_CLIENT_HASH_SECRET: "x".repeat(44),
 };
 
-const REAL = { accountName: "Ella's Picklecourt", qrSrc: "/payment-qr.png" };
+const REAL = { accountName: "Ella's Pickle Court", qrSrc: "/payment-qr.png" };
 
 afterEach(() => {
   vi.unstubAllEnvs();

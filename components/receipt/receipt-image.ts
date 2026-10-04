@@ -1,75 +1,56 @@
-import { formatBookingCode } from "@/lib/booking/code";
-import type { BookingReceipt } from "@/lib/booking/types";
-import { formatAtVenue } from "@/lib/time";
-import { formatPeso, VENUE_ADDRESS, VENUE_NAME, VENUE_PHONE_DISPLAY } from "@/lib/venue";
+import { hoursChip, runHours, runLabel, sortRuns } from "@/components/landing/booking";
+import { VENUE_ADDRESS, VENUE_NAME, VENUE_PHONE_DISPLAY } from "@/lib/venue";
 
-import { hoursChip, runHours, runLabel, sortRuns } from "./booking";
-
-/** A court as the receipt names it. */
-type CourtName = { id: number; name: string };
-
-/** One row of a facts group: a term on the left, its value on the right. */
-export type ImageFact = { term: string; value: string };
+import type { ReceiptFact, ReceiptView } from "./receipt-view";
 
 /** Everything the saved image prints, worked out before a pixel is drawn. */
 export type ReceiptImageModel = {
   venue: string;
+  status: ReceiptView["status"];
+  /** The badge's word, on the chip beside the total. */
+  word: string;
+  title: string;
+  /** Under the title: the lookup's status, reason and refund lines. The checkout's line is in the footer. */
+  notes: string[];
   code: string;
   runs: { court: string; when: string; chip: string }[];
-  customer: ImageFact[];
-  payment: ImageFact[];
+  customer: ReceiptFact[];
+  payment: ReceiptFact[];
+  totalLabel: string;
   total: string;
   footer: string[];
   fileName: string;
 };
 
 /**
- * The receipt as the saved image reads it (spec 0015, AC-14): the same facts
- * as the receipt step, in the same order, and nothing the step does not show.
+ * The receipt as the saved image reads it (spec 0015, AC-14; spec 0017,
+ * AC-15): the same `ReceiptView` the screen and the print read, in the same
+ * order, and nothing the screen does not show.
  */
-export function receiptImageModel(
-  receipt: BookingReceipt,
-  heading: string,
-  courts: readonly CourtName[],
-): ReceiptImageModel {
-  const code = formatBookingCode(receipt.code);
+export function receiptImageModel(view: ReceiptView): ReceiptImageModel {
   const runs = sortRuns(
-    receipt.runs,
-    courts.map((court) => court.id),
+    view.runs,
+    view.courts.map((court) => court.id),
   ).map((run) => ({
-    court: courts.find((court) => court.id === run.courtId)?.name ?? `Court ${run.courtId}`,
-    when: `${heading} · ${runLabel(run)}`,
+    court: view.courts.find((court) => court.id === run.courtId)?.name ?? `Court ${run.courtId}`,
+    when: `${view.heading} · ${runLabel(run)}`,
     chip: hoursChip(runHours([run])),
   }));
-  const customer: ImageFact[] = [{ term: "Name", value: receipt.customer.name }];
-  if (receipt.customer.phone) customer.push({ term: "Mobile", value: receipt.customer.phone });
-  if (receipt.customer.email) customer.push({ term: "Email", value: receipt.customer.email });
+  const venue = `${VENUE_ADDRESS} · ${VENUE_PHONE_DISPLAY}`;
   return {
     venue: VENUE_NAME,
-    code,
+    status: view.status,
+    word: view.word,
+    title: view.title,
+    notes: view.source === "lookup" ? view.lines : [],
+    code: view.code,
     runs,
-    customer,
-    payment: [
-      { term: "Method", value: "QR transfer" },
-      { term: "Reference", value: `•••• ${receipt.payment.referenceLast4}` },
-      { term: "Proof", value: "Screenshot received" },
-      {
-        term: "Submitted",
-        value: formatAtVenue(receipt.payment.submittedAt, {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-          hour: "numeric",
-          minute: "2-digit",
-        }),
-      },
-    ],
-    total: formatPeso(receipt.amount),
-    footer: [
-      "Staff check every payment. If yours doesn't match, we'll message you.",
-      `${VENUE_ADDRESS} · ${VENUE_PHONE_DISPLAY}`,
-    ],
-    fileName: `booking-${code}.png`,
+    customer: view.customer,
+    payment: view.payment,
+    totalLabel: view.totalLabel,
+    total: view.total,
+    footer: view.source === "checkout" ? [...view.lines, venue] : [venue],
+    fileName: `booking-${view.code}.png`,
   };
 }
 
@@ -96,10 +77,43 @@ function readTheme() {
     available: token("--state-available"),
     availableForeground: token("--state-available-fg"),
     availableBorder: token("--state-available-border"),
+    unavailable: token("--state-unavailable"),
+    unavailableForeground: token("--state-unavailable-fg"),
+    unavailableBorder: token("--state-unavailable-border"),
   };
 }
 
 type Theme = ReturnType<typeof readTheme>;
+
+/** The badge's colours: teal with a check while the booking stands, quiet grey with an X once it does not. */
+function badgeColors(theme: Theme, status: ReceiptView["status"]) {
+  return status === "confirmed"
+    ? { fill: theme.available, ink: theme.availableForeground, edge: theme.availableBorder }
+    : { fill: theme.unavailable, ink: theme.unavailableForeground, edge: theme.unavailableBorder };
+}
+
+/** A check, or an X, centred on (x, y) and `size` across. */
+function mark(
+  ctx: CanvasRenderingContext2D,
+  status: ReceiptView["status"],
+  x: number,
+  y: number,
+  size: number,
+) {
+  const h = size / 2;
+  ctx.beginPath();
+  if (status === "confirmed") {
+    ctx.moveTo(x - h, y);
+    ctx.lineTo(x - h * 0.3, y + h * 0.7);
+    ctx.lineTo(x + h, y - h * 0.7);
+  } else {
+    ctx.moveTo(x - h * 0.75, y - h * 0.75);
+    ctx.lineTo(x + h * 0.75, y + h * 0.75);
+    ctx.moveTo(x + h * 0.75, y - h * 0.75);
+    ctx.lineTo(x - h * 0.75, y + h * 0.75);
+  }
+  ctx.stroke();
+}
 
 /** Cuts a value to fit its width with an ellipsis, so a long email never runs off the card. */
 function fit(ctx: CanvasRenderingContext2D, text: string, width: number): string {
@@ -155,25 +169,33 @@ function draw(ctx: CanvasRenderingContext2D, model: ReceiptImageModel, theme: Th
   ctx.textAlign = "center";
   ctx.fillText(model.venue, WIDTH / 2, 35);
 
-  // The check badge and title.
+  // The status badge, the title, and the lookup's lines under it.
+  const badge = badgeColors(theme, model.status);
   let y = 84;
-  ctx.fillStyle = theme.available;
+  ctx.fillStyle = badge.fill;
   ctx.beginPath();
   ctx.arc(WIDTH / 2, y + 24, 24, 0, Math.PI * 2);
   ctx.fill();
-  ctx.strokeStyle = theme.availableForeground;
+  ctx.strokeStyle = badge.ink;
   ctx.lineWidth = 3.5;
   ctx.lineCap = "round";
   ctx.lineJoin = "round";
-  ctx.beginPath();
-  ctx.moveTo(WIDTH / 2 - 10, y + 24);
-  ctx.lineTo(WIDTH / 2 - 3, y + 31);
-  ctx.lineTo(WIDTH / 2 + 11, y + 17);
-  ctx.stroke();
+  mark(ctx, model.status, WIDTH / 2, y + 24, 21);
   y += 84;
   ctx.fillStyle = theme.foreground;
   ctx.font = font(600, 24);
-  ctx.fillText("Booking confirmed", WIDTH / 2, y);
+  ctx.fillText(model.title, WIDTH / 2, y);
+  if (model.notes.length > 0) {
+    y += 8;
+    ctx.fillStyle = theme.mutedForeground;
+    ctx.font = font(400, 14);
+    for (const note of model.notes) {
+      for (const line of wrap(ctx, note, inner)) {
+        y += 21;
+        ctx.fillText(line, WIDTH / 2, y);
+      }
+    }
+  }
 
   // The code.
   y += 20;
@@ -200,7 +222,7 @@ function draw(ctx: CanvasRenderingContext2D, model: ReceiptImageModel, theme: Th
     y += 12;
   };
 
-  const facts = (rows: ImageFact[]) => {
+  const facts = (rows: ReceiptFact[]) => {
     const rowHeight = 28;
     const height = rows.length * rowHeight + 16;
     ctx.strokeStyle = theme.border;
@@ -259,35 +281,31 @@ function draw(ctx: CanvasRenderingContext2D, model: ReceiptImageModel, theme: Th
   label("Payment");
   facts(model.payment);
 
-  // Total paid and the Confirmed chip.
+  // The total, and the badge's word on a chip beside it.
   ctx.strokeStyle = theme.border;
+  ctx.lineWidth = 1;
   roundRect(ctx, PAD + 0.5, y + 0.5, inner - 1, 71, 16);
   ctx.stroke();
   ctx.textAlign = "left";
   ctx.fillStyle = theme.mutedForeground;
   ctx.font = font(400, 13);
-  ctx.fillText("Total paid", PAD + 16, y + 28);
+  ctx.fillText(model.totalLabel, PAD + 16, y + 28);
   ctx.fillStyle = theme.foreground;
   ctx.font = font(600, 22);
   ctx.fillText(model.total, PAD + 16, y + 54);
   ctx.font = font(500, 14);
-  const chip = "Confirmed";
-  const chipWidth = ctx.measureText(chip).width + 44;
+  const chipWidth = ctx.measureText(model.word).width + 44;
   const chipX = WIDTH - PAD - 16 - chipWidth;
-  ctx.fillStyle = theme.available;
+  ctx.fillStyle = badge.fill;
   roundRect(ctx, chipX, y + 21, chipWidth, 30, 15);
   ctx.fill();
-  ctx.strokeStyle = theme.availableBorder;
+  ctx.strokeStyle = badge.edge;
   ctx.stroke();
-  ctx.strokeStyle = theme.availableForeground;
+  ctx.strokeStyle = badge.ink;
   ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(chipX + 13, y + 36);
-  ctx.lineTo(chipX + 17, y + 40);
-  ctx.lineTo(chipX + 25, y + 32);
-  ctx.stroke();
-  ctx.fillStyle = theme.availableForeground;
-  ctx.fillText(chip, chipX + 31, y + 41);
+  mark(ctx, model.status, chipX + 19, y + 36, 10);
+  ctx.fillStyle = badge.ink;
+  ctx.fillText(model.word, chipX + 31, y + 41);
   y += 72 + 24;
 
   // The footer.

@@ -128,6 +128,17 @@ const onlineBookingRefundSettledSchema = z
   })
   .strict();
 
+/**
+ * Spec 0017, AC-20: one per lookup answer. Counts only: never the code, never
+ * the client hash. `view` only when a booking was found.
+ */
+const bookingLookupSchema = z
+  .object({
+    result: z.enum(["found", "not_found", "ended", "rate_limited"]),
+    view: z.enum(["confirmed", "cancelled", "not_booked"]).optional(),
+  })
+  .strict();
+
 const privacyNoticeAcknowledgedSchema = z
   .object({
     version: z.string(),
@@ -191,6 +202,7 @@ export const eventSchemas = {
   online_booking_rejected: onlineBookingEndedSchema,
   online_booking_cancelled: onlineBookingEndedSchema,
   online_booking_refund_settled: onlineBookingRefundSettledSchema,
+  booking_lookup: bookingLookupSchema,
   privacy_notice_acknowledged: privacyNoticeAcknowledgedSchema,
   staff_role_changed: staffRoleChangedSchema,
   staff_invite_created: staffInviteCreatedSchema,

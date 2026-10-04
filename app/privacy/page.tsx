@@ -60,8 +60,8 @@ export default function PrivacyPage() {
             hold your court and reach you about the booking. We never use your email for marketing.
           </p>
           <p>
-            To pay, you send a QR transfer and give us the last 4 digits of its reference number and
-            a screenshot of the transfer, so staff can match your payment to your booking. The
+            To pay, you send a GCash transfer and give us the last 4 digits of its reference number
+            and a screenshot of the transfer, so staff can match your payment to your booking. The
             screenshot may show your name, account number or balance, so it is stored privately:
             only our staff can open it, and never from a public page.
           </p>
@@ -69,6 +69,11 @@ export default function PrivacyPage() {
             To keep bots from holding every court, the booking form runs a Cloudflare Turnstile
             check, and we keep a scrambled (hashed) form of your connection&apos;s address to limit
             how many bookings one connection can start in a short time.
+          </p>
+          <p>
+            When you look up a booking by its code, a wrong code records the same one way hash of
+            your connection for {CLIENT_HASH_RETENTION_DAYS} day, so nobody can guess their way to
+            somebody else&apos;s booking.
           </p>
         </LegalSection>
 

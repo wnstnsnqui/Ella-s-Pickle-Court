@@ -16,9 +16,9 @@ describe("LandingHeader", () => {
   it("links the sections on the page", () => {
     const html = renderToStaticMarkup(createElement(LandingHeader));
     for (const [href, label] of [
-      ["#offers", "Offers"],
-      ["#book", "Book"],
-      ["#visit", "Visit"],
+      ["/#offers", "Offers"],
+      ["/#book", "Book"],
+      ["/#visit", "Visit"],
     ]) {
       expect(html).toMatch(new RegExp(`<a[^>]*href="${href}"[^>]*>${label}</a>`));
     }
@@ -26,6 +26,13 @@ describe("LandingHeader", () => {
 
   it("calls to book a court, pointing at the booking section", () => {
     const html = renderToStaticMarkup(createElement(LandingHeader));
-    expect(html).toMatch(/<a[^>]*href="#book"[^>]*>Book a court/);
+    expect(html).toMatch(/<a[^>]*href="\/#book"[^>]*>Book a court/);
+  });
+
+  it("links Find my booking only while checkout is on (spec 0017, AC-17)", () => {
+    expect(renderToStaticMarkup(createElement(LandingHeader))).not.toContain("Find my booking");
+    expect(renderToStaticMarkup(createElement(LandingHeader, { findBooking: true }))).toMatch(
+      /<a[^>]*href="\/booking"[^>]*>Find my booking<\/a>/,
+    );
   });
 });

@@ -23,6 +23,16 @@ export const PLAYER_MESSAGES: Record<DecisionReason, string> = {
   other: "We've had to cancel your booking. Message us if you have any questions.",
 };
 
+/**
+ * The closing line on every message (spec 0017, AC-17), so the player can
+ * check their booking themselves. The site address is inlined at build time.
+ */
+export function lookupClosingLine(
+  site: string = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+): string {
+  return `See your booking any time at ${site.replace(/\/+$/, "")}/booking`;
+}
+
 /** The first word of the trimmed name, or all of it when it is one word. */
 export function playerFirstName(customerName: string): string {
   const trimmed = customerName.trim();
@@ -46,10 +56,10 @@ export function buildPlayerMessage({
   amount: number;
   refundOwed: boolean;
 }): string {
-  const opening = `Hi ${playerFirstName(customerName)}, this is Ella's Picklecourt about your booking ${code} (${firstRun}).`;
+  const opening = `Hi ${playerFirstName(customerName)}, this is Ella's Pickle Court about your booking ${code} (${firstRun}).`;
   const body = PLAYER_MESSAGES[reason].replace("{amount}", formatAmount(amount));
   const refund = refundOwed
     ? ` We'll send ${formatAmount(amount)} back to the account you paid from.`
     : "";
-  return `${opening} ${body}${refund}`;
+  return `${opening} ${body}${refund} ${lookupClosingLine()}`;
 }

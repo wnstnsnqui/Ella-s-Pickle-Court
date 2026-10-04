@@ -127,6 +127,28 @@ describe("mintOnlineBookingToken is called from lib/booking/actions.ts and nowhe
 });
 
 /**
+ * Spec 0017, AC-18: `mintBookingLookupToken()` hands out the `booking_lookup`
+ * role, the public read of a booking by its code. Only `lookupBooking` may
+ * call it, after its own checks, so the miss limit is never skipped.
+ */
+describe("mintBookingLookupToken is called from lib/booking/actions.ts and nowhere else", () => {
+  const callsMinter = (source: string) =>
+    source
+      .split("\n")
+      .filter((line) => !/^\s*(\/\/|\/?\*)/.test(line))
+      .some((line) => line.includes("mintBookingLookupToken"));
+
+  const callers = files
+    .map((file) => relative(ROOT, file))
+    .filter((file) => file !== "lib/supabase/staff-token.ts")
+    .filter((file) => callsMinter(readFileSync(join(ROOT, file), "utf8")));
+
+  it("has exactly one caller", () => {
+    expect(callers).toEqual(["lib/booking/actions.ts"]);
+  });
+});
+
+/**
  * Spec 0004 (revised), invariant 7: `authPool()` is the only handle on the
  * `better_auth_app` role, and only Better Auth itself, the three pre
  * authentication actions, the gate they share, and the three public auth

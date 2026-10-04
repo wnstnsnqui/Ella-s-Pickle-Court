@@ -34,7 +34,7 @@ _Steps derived from spec 0013 acceptance criteria. `/check verify` runs these; `
 - [x] `curl -sI "http://localhost:3000/?date=2026-10-01"` → `308` with `location: /schedule?date=2026-10-01` → AC-21
 - [x] `curl -s http://localhost:3000/robots.txt` and `/sitemap.xml` → the four public pages allowed and listed; `/staff`, `/sign-in`, `/sign-up`, `/reset`, `/design`, `/api` disallowed → AC-22
 - [x] `curl -s http://localhost:3000/ | grep -ciE 'customer|phone"|payment|amount'` → `0` → AC-24
-- [x] `curl -s http://localhost:3000/ | grep -o '<title>[^<]*'` → "Ella's Picklecourt · Pickleball courts in Minglanilla, Cebu"; one `application/ld+json` block with `addressLocality` and no `streetAddress`; `/schedule` has none → AC-20
+- [x] `curl -s http://localhost:3000/ | grep -o '<title>[^<]*'` → "Ella's Pickle Court · Pickleball courts in Minglanilla, Cebu"; one `application/ld+json` block with `addressLocality` and no `streetAddress`; `/schedule` has none → AC-20
 - [x] Force a server read failure (bad anon key in `.env.local` for one run) → the server log has one `landing:` error line, PostHog gets `reportFailure`, the page renders the skeleton then retries in the browser → AC-8, AC-23
 - [x] `npm run check` → green → AC-24 and the unit tests
 
