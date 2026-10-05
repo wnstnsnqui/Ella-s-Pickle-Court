@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { VENUE_NAME } from "@/lib/venue";
 
+import { AppShell } from "./app-shell";
+
 /**
  * Spec 0003, AC-10: one shell for both boards, with the wordmark and a staff slot that renders only for a signed in staff member.
  *
@@ -27,7 +29,6 @@ async function render(props: {
   muted?: boolean;
   className?: string;
 }) {
-  const { AppShell } = await import("./app-shell");
   const element = await AppShell({ children: props.children ?? "board", ...props });
   return renderToStaticMarkup(element);
 }

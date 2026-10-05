@@ -3,6 +3,7 @@
 import {
   ArrowClockwiseIcon,
   CheckCircleIcon,
+  DownloadSimpleIcon,
   ImageIcon,
   QrCodeIcon,
   SpinnerIcon,
@@ -18,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { PROOF_ACCEPTED_TYPES } from "@/lib/booking/constants";
 import { proofFileProblem, shrinkProof, uploadProof } from "@/lib/booking/proof";
 import type { HeldBooking } from "@/lib/booking/types";
+import { saveImage } from "@/lib/save-image";
 import { cn } from "@/lib/utils";
 import { formatPeso, isPlaceholder, PAYMENT_ACCOUNT_NAME, PAYMENT_QR_SRC } from "@/lib/venue";
 
@@ -219,6 +221,7 @@ export function PaymentStep({
             className="bg-background size-60 rounded-xl"
           />
         )}
+        {isPlaceholder(PAYMENT_QR_SRC) ? null : <SaveQrButton />}
         <div className="flex flex-col gap-1">
           <p className="text-caption text-muted-foreground">Pay to</p>
           <p className="text-label">{PAYMENT_ACCOUNT_NAME}</p>
@@ -292,6 +295,85 @@ export function PaymentStep({
       </div>
     </div>
   );
+}
+
+/**
+ * The name the saved QR lands under in Photos or Downloads. The extension is
+ * the source's own, because the file is saved byte for byte, never re-encoded.
+ */
+const QR_FILE_NAME = `ellas-pickle-court-gcash-qr${PAYMENT_QR_SRC.match(/\.\w+$/)?.[0] ?? ""}`;
+
+/**
+ * Save QR code, for a player paying from the phone they are booking on: they
+ * save the code, then upload it in GCash's Pay QR. The file is fetched as the
+ * step appears, not on the press, because iOS refuses a share sheet opened too
+ * long after the tap.
+ */
+function SaveQrButton() {
+  const [file, setFile] = useState<File | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveFailed, setSaveFailed] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    fetchQr().then(
+      (fetched) => {
+        if (live) setFile(fetched);
+      },
+      () => console.warn("checkout: the payment QR could not be fetched"),
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  async function save() {
+    setSaving(true);
+    setSaveFailed(false);
+    try {
+      await saveImage(file ?? (await fetchQr()));
+    } catch {
+      console.warn("checkout: the payment QR could not be saved");
+      setSaveFailed(true);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <Button
+        type="button"
+        variant="outline"
+        onClick={save}
+        disabled={saving}
+        className={cn("h-11 px-4", PRESS)}
+      >
+        {saving ? (
+          <SpinnerIcon
+            aria-hidden="true"
+            data-icon="inline-start"
+            className="animate-spin motion-reduce:animate-none"
+          />
+        ) : (
+          <DownloadSimpleIcon aria-hidden="true" weight="bold" data-icon="inline-start" />
+        )}
+        Save QR code
+      </Button>
+      <p aria-live="polite" className="text-caption text-muted-foreground max-w-60">
+        {saveFailed
+          ? "We couldn't save the QR code. Take a screenshot of it instead."
+          : "Paying on this phone? Save it, then upload it in GCash."}
+      </p>
+    </div>
+  );
+}
+
+async function fetchQr(): Promise<File> {
+  const response = await fetch(PAYMENT_QR_SRC);
+  if (!response.ok) throw new Error(`the payment QR answered ${response.status}`);
+  const blob = await response.blob();
+  return new File([blob], QR_FILE_NAME, { type: blob.type });
 }
 
 /** The thumbnail of what will be sent, once there is one. */

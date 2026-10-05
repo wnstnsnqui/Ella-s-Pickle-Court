@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CurrentStaff } from "@/lib/staff";
 
+import { StaffMenu } from "./staff-menu";
+
 /**
  * Spec 0004, AC-4, AC-5 and AC-8: one rendering per answer from
  * `currentStaff()`. Sign out sits in the header only for the two states that
@@ -23,7 +25,6 @@ vi.mock("@/components/staff-controls", () => ({
 }));
 
 async function render() {
-  const { StaffMenu } = await import("./staff-menu");
   return renderToStaticMarkup(await StaffMenu());
 }
 

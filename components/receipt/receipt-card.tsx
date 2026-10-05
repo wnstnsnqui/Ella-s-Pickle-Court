@@ -15,10 +15,11 @@ import { useEffect, useMemo, useState, type Ref } from "react";
 import { Fact, SelectedCourts } from "@/components/landing/checkout-selection";
 import { PRESS } from "@/components/landing/press";
 import { Button } from "@/components/ui/button";
+import { saveImage } from "@/lib/save-image";
 import { cn } from "@/lib/utils";
 import { VENUE_ADDRESS, VENUE_NAME, VENUE_PHONE_DISPLAY } from "@/lib/venue";
 
-import { receiptImageModel, renderReceiptImage, saveReceiptImage } from "./receipt-image";
+import { receiptImageModel, renderReceiptImage } from "./receipt-image";
 import type { ReceiptFact, ReceiptView } from "./receipt-view";
 
 /**
@@ -258,7 +259,7 @@ export function SaveButtons({ view, logLabel }: { view: ReceiptView; logLabel: s
     setSaving(true);
     setSaveFailed(false);
     try {
-      await saveReceiptImage(image ?? (await renderReceiptImage(model)));
+      await saveImage(image ?? (await renderReceiptImage(model)));
     } catch {
       console.warn(`${logLabel}: the receipt image could not be saved`);
       setSaveFailed(true);

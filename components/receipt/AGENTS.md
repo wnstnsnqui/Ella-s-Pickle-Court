@@ -26,6 +26,7 @@ in `app/globals.css` under `@media print`.
 - **The checkout shows contact in full; the lookup masks it.** `ReceiptView.source` decides, and the masking happens in Postgres before the answer arrives.
 - **The code never sits in a URL query, `localStorage`, a log line or an event.** "Track this booking" hands it to `/booking` in the fragment, which no request carries to a server; the page reads it once and clears it.
 - **On paper only the `data-receipt` card prints.** Anything inside the card that should not print takes `data-print-hide`. `print-styles.test.ts` reads the compiled CSS, so change the print rules in `app/globals.css` with it.
+- **Handing a player an image goes through `saveImage()` in `lib/save-image.ts`**: the share sheet on a touch screen (its "Save Image" reaches Photos, where GCash looks), a download anywhere else. Save as image and checkout's Save QR code both use it. Have the file ready before the press, because iOS refuses a share sheet opened too long after the tap.
 - `/booking` is `noindex` and kept out of the sitemap, but never disallowed in `robots.txt`, so a crawler can read the noindex.
 
 ## Related specs

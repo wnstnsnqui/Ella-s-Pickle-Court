@@ -21,7 +21,7 @@ to `/schedule`.
 | `channels.tsx`                          | Messenger and Text us, the only two ways to book the page offers.                                       |
 | `press.ts`                              | `PRESS`, the tap feedback class every landing button wears.                                             |
 | `checkout-sheet.tsx`                    | The checkout card (spec 0015): a centered Radix dialog over `--overlay-soft`, the steps, the hold, Confirm and release. Mounted fresh per Book press. |
-| `checkout-payment.tsx`, `checkout-receipt.tsx`, `checkout-selection.tsx` | The Payment step, the screenshot upload hook and the hold banner; Review and the receipt (drawn by `components/receipt/`); the Selected courts and slots card and the summary line. |
+| `checkout-payment.tsx`, `checkout-receipt.tsx`, `checkout-selection.tsx` | The Payment step (with Save QR code, which saves `PAYMENT_QR_SRC` byte for byte under its own extension), the screenshot upload hook and the hold banner; Review and the receipt (drawn by `components/receipt/`); the Selected courts and slots card and the summary line. |
 | `turnstile-widget.tsx`                  | The Turnstile widget on the Terms step, retried once quietly before checkout gives up on this device. |
 | `test-fixture.ts`                       | `scheduleFixture()`, a real `Schedule` built through `buildGrid`, for the tests.                       |
 

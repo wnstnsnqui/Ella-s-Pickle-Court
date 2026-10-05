@@ -35,6 +35,10 @@ describe("the payment step", () => {
     expect(html).toContain(`Send exactly ${formatPeso(750)}`);
   });
 
+  it("offers to save the QR, for a player paying on the same phone", () => {
+    expect(html).toContain("Save QR code");
+  });
+
   it("does not show the booking code", () => {
     expect(html).not.toContain("K7MQ");
     expect(html).not.toContain("booking code");

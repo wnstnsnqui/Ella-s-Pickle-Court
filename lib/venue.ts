@@ -82,7 +82,7 @@ export const PAYMENT_ACCOUNT_NAME = "Lorie Marie Bual";
  * placeholder until Ella supplies it; the Payment step draws a marked empty
  * frame in its place rather than a broken image.
  */
-export const PAYMENT_QR_SRC = "/image.png";
+export const PAYMENT_QR_SRC = "/ws-qr.jpg";
 
 /** An `sms:` link to the front desk, with the message already written when given one. */
 export function smsHref(body?: string): string {
