@@ -20,8 +20,8 @@ export function LinkNotPending({
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-start gap-3">
-        <span className="bg-secondary text-secondary-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-md">
-          <LinkIcon aria-hidden="true" className="size-4" />
+        <span aria-hidden="true" className="chip-icon">
+          <LinkIcon weight="duotone" className="size-6" />
         </span>
         <div className="flex flex-col gap-1">
           <p className="text-title">{title}</p>
@@ -29,7 +29,7 @@ export function LinkNotPending({
         </div>
       </div>
       <p className="text-body">{STAFF_ONLY_LINE}</p>
-      <Button asChild variant="outline" className="w-full">
+      <Button asChild variant="outline" className="press h-12 w-full">
         <Link href="/sign-in">I already have an account</Link>
       </Button>
     </div>

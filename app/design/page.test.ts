@@ -25,7 +25,7 @@ vi.mock("next/navigation", async (importOriginal) => ({
   useRouter: () => ({ push: () => {} }),
 }));
 
-type Props = { children?: ReactNode; toolbar?: ReactNode; staff?: ReactNode };
+type Props = { children?: ReactNode; staff?: ReactNode };
 
 /** The `<AppShell>` element the page renders, with its props. */
 function shellOf(tree: ReactNode): ReactElement<Props> {
@@ -52,11 +52,8 @@ describe("/design route config", () => {
 describe("DesignPage", () => {
   const shell = shellOf(DesignPage());
 
-  it("gives the shell a toolbar with day navigation and the live indicator (AC-10)", () => {
-    const toolbar = renderToStaticMarkup(shell.props.toolbar as ReactElement);
-    expect(toolbar).toContain('aria-label="Previous day"');
-    expect(toolbar).toContain('aria-label="Next day"');
-    expect(toolbar).toMatch(/role="status"[^>]*aria-live="polite"/);
+  it("gives the shell no toolbar: a board's controls live in its board card (spec 0018, AC-3)", () => {
+    expect(shell.props).not.toHaveProperty("toolbar");
   });
 
   it("gives the shell a staff control so the signed in gate has something to show (AC-10)", () => {
@@ -68,6 +65,7 @@ describe("DesignPage", () => {
     const html = renderToStaticMarkup(shell.props.children as ReactElement);
     for (const id of [
       "contrast",
+      "recipes",
       "color",
       "type",
       "space",
@@ -75,6 +73,10 @@ describe("DesignPage", () => {
       "legend",
       "grid",
       "live",
+      "sheet",
+      "page",
+      "calendar",
+      "day-nav",
       "components",
     ]) {
       expect(html).toMatch(new RegExp(`<section id="${id}" aria-labelledby="${id}-title"`));

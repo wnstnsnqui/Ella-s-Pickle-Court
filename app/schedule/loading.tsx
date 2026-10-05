@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
-import { GridSkeleton } from "@/components/schedule/grid-skeleton";
+import { BOARD_PAGE, BoardPageSkeleton } from "@/components/board-card";
 import { StaffMenu } from "@/components/staff-menu";
 
 /**
@@ -11,6 +11,8 @@ import { StaffMenu } from "@/components/staff-menu";
 export default function Loading() {
   return (
     <AppShell
+      muted
+      className={BOARD_PAGE}
       staff={
         <Suspense fallback={null}>
           <StaffMenu />
@@ -21,7 +23,7 @@ export default function Loading() {
       <p role="status" className="sr-only">
         Loading the schedule
       </p>
-      <GridSkeleton className="mt-4" />
+      <BoardPageSkeleton />
     </AppShell>
   );
 }

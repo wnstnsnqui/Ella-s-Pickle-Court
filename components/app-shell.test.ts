@@ -5,8 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VENUE_NAME } from "@/lib/venue";
 
 /**
- * Spec 0003, AC-10: one shell for both boards, with the wordmark, a toolbar slot,
- * and a staff slot that renders only for a signed in staff member.
+ * Spec 0003, AC-10: one shell for both boards, with the wordmark and a staff slot that renders only for a signed in staff member.
  *
  * The shell is a server component that reads the session once through
  * `currentSession()` (spec 0004, revised), a boundary mocked here, and the
@@ -24,8 +23,8 @@ beforeEach(() => {
 
 async function render(props: {
   children?: ReactNode;
-  toolbar?: ReactNode;
   staff?: ReactNode;
+  muted?: boolean;
   className?: string;
 }) {
   const { AppShell } = await import("./app-shell");
@@ -48,16 +47,17 @@ describe("AppShell", () => {
     expect(html).toMatch(/<footer/);
   });
 
-  it("renders the toolbar strip only when a toolbar is given", async () => {
-    const without = await render({});
-    expect(without).not.toContain("toolbar-probe");
+  it("is the glass header with no toolbar of its own (spec 0018, AC-3)", async () => {
+    const html = await render({});
+    expect(html).toMatch(/<header[^>]*data-shell-header[^>]*class="[^"]*surface-glass/);
+    // No yellow band: a board's day controls live in its board card now.
+    expect(html).not.toContain("bg-brand");
+    expect(html).toContain("max-w-6xl");
+  });
 
-    const withToolbar = await render({
-      toolbar: createElement("nav", { "data-probe": "toolbar-probe" }, "day nav"),
-    });
-    expect(withToolbar).toContain("toolbar-probe");
-    // The toolbar sits inside the sticky header so it scrolls with the brand band.
-    expect(withToolbar).toMatch(/<header[^>]*>[\s\S]*toolbar-probe[\s\S]*<\/header>/);
+  it("sits the page on the muted grey only when asked", async () => {
+    expect(await render({})).not.toMatch(/^<div class="[^"]*bg-muted/);
+    expect(await render({ muted: true })).toMatch(/^<div class="[^"]*bg-muted/);
   });
 
   it("omits the staff control from the page source when nobody is signed in (AC-10)", async () => {

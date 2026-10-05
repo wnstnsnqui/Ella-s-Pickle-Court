@@ -1,9 +1,8 @@
 import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
-import { GridSkeleton } from "@/components/schedule/grid-skeleton";
+import { BOARD_PAGE, BoardPageSkeleton } from "@/components/board-card";
 import { StaffMenu } from "@/components/staff-menu";
-import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * The staff board's shape while the day is on its way.
@@ -12,21 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
  * link from settings, reports, users or account showed nothing until the
  * server had answered, and the app looked as if it had not registered the
  * tap. With it, Next swaps the page in at once and streams the real board
- * into place. The toolbar placeholder is the `DayNav`'s footprint: two icon
- * buttons, the day label, and the calendar button, so nothing jumps when the
- * real strip arrives.
+ * into place, in the board card's shape (spec 0018).
  */
 export default function Loading() {
   return (
     <AppShell
-      toolbar={
-        <div aria-hidden="true" className="flex w-fit items-center gap-2">
-          <Skeleton className="size-9 rounded-md" />
-          <Skeleton className="h-5 w-32" />
-          <Skeleton className="size-9 rounded-md" />
-          <Skeleton className="size-9 rounded-md" />
-        </div>
-      }
+      muted
+      className={BOARD_PAGE}
       staff={
         <Suspense fallback={null}>
           <StaffMenu />
@@ -37,7 +28,7 @@ export default function Loading() {
       <p role="status" className="sr-only">
         Loading the schedule
       </p>
-      <GridSkeleton className="mt-4" />
+      <BoardPageSkeleton summary />
     </AppShell>
   );
 }

@@ -29,17 +29,14 @@ export function RetiredCourts({
   const listId = useId();
 
   return (
-    <section
-      aria-labelledby={`${listId}-heading`}
-      className="border-border bg-card rounded-lg border"
-    >
+    <section aria-labelledby={`${listId}-heading`} className="surface-card">
       <h2 id={`${listId}-heading`} className="text-title">
         <button
           type="button"
           aria-expanded={open}
           aria-controls={listId}
           onClick={() => setOpen((value) => !value)}
-          className="focus-visible:ring-ring/50 flex w-full items-center justify-between gap-3 rounded-lg p-4 text-left outline-none focus-visible:ring-[3px] sm:px-6"
+          className="focus-visible:outline-foreground flex w-full items-center justify-between gap-3 rounded-3xl p-5 text-left outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid sm:px-6"
         >
           <span className="flex flex-col gap-0.5">
             <span>
@@ -81,6 +78,7 @@ export function RetiredCourts({
               type="button"
               variant="outline"
               size="sm"
+              className="press rounded-full"
               disabled={pendingId !== null}
               onClick={() => onRestore(court)}
             >

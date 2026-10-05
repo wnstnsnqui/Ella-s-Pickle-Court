@@ -129,7 +129,7 @@ export function CreateAccountForm({ mode }: { mode: CreateAccountMode }) {
               <FormItem>
                 <FormLabel>Your name</FormLabel>
                 <FormControl>
-                  <Input {...field} autoComplete="name" autoFocus maxLength={80} />
+                  <Input {...field} autoComplete="name" autoFocus maxLength={80} className="h-11" />
                 </FormControl>
                 <FormDescription>Shown on the board and on every change you make.</FormDescription>
                 <FormMessage />
@@ -151,6 +151,7 @@ export function CreateAccountForm({ mode }: { mode: CreateAccountMode }) {
                     autoCorrect="off"
                     spellCheck={false}
                     maxLength={USERNAME_MAX_LENGTH}
+                    className="h-11"
                   />
                 </FormControl>
                 <FormDescription>
@@ -168,7 +169,7 @@ export function CreateAccountForm({ mode }: { mode: CreateAccountMode }) {
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" autoComplete="new-password" />
+                  <Input {...field} type="password" autoComplete="new-password" className="h-11" />
                 </FormControl>
                 <FormDescription>At least {PASSWORD_MIN_LENGTH} characters.</FormDescription>
                 <FormMessage />
@@ -182,7 +183,7 @@ export function CreateAccountForm({ mode }: { mode: CreateAccountMode }) {
               <FormItem>
                 <FormLabel>Password again</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" autoComplete="new-password" />
+                  <Input {...field} type="password" autoComplete="new-password" className="h-11" />
                 </FormControl>
                 <FormMessage />
               </FormItem>

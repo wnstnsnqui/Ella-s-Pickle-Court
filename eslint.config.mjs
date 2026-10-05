@@ -35,6 +35,24 @@ const tokenDiscipline = [
   { selector: `TemplateElement[value.raw=/${DARK_VARIANT}/]`, message: darkVariantMessage },
 ];
 
+/**
+ * The landing look rule for spec 0018, AC-17.
+ *
+ * Every transition names its properties (AC-14), and surfaces are round
+ * (`rounded-2xl`, `rounded-3xl`, `rounded-full`, `rounded-cell`), so the two
+ * small radii and `transition-all` mark a screen still in the old face. A
+ * class only, with or without a variant (`sm:rounded-lg`). The look, never the
+ * formatting: Prettier still owns layout.
+ */
+const OLD_LOOK = "(?:^|\\s|:)(?:transition-all|rounded-(?:md|lg))(?=$|\\s)";
+const oldLookMessage =
+  "Spec 0018, AC-17: name the transition's properties (or use `press`), and use the landing's radii (rounded-2xl, rounded-3xl, rounded-full, rounded-cell) or a recipe (surface-card).";
+
+const lookDiscipline = [
+  { selector: `Literal[value=/${OLD_LOOK}/]`, message: oldLookMessage },
+  { selector: `TemplateElement[value.raw=/${OLD_LOOK}/]`, message: oldLookMessage },
+];
+
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
@@ -42,6 +60,25 @@ const eslintConfig = defineConfig([
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": ["error", ...tokenDiscipline],
+    },
+  },
+  {
+    // The look rule joins the token rule everywhere a screen is built, except
+    // the registry primitives, the frozen landing, the design page, and the
+    // shared modules the landing imports, which AC-1 forbids changing.
+    files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
+    ignores: [
+      "**/*.test.ts",
+      "components/ui/**",
+      "components/landing/**",
+      "app/(landing)/**",
+      "app/design/**",
+      "components/wordmark.tsx",
+      "components/staff/confirm-dialog.tsx",
+      "components/receipt/**",
+    ],
+    rules: {
+      "no-restricted-syntax": ["error", ...tokenDiscipline, ...lookDiscipline],
     },
   },
   {

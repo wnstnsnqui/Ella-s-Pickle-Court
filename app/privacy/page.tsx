@@ -56,8 +56,9 @@ export default function PrivacyPage() {
 
         <LegalSection heading="What we collect when you book online">
           <p>
-            When you book on this site you give us your name, mobile number and email, so we can
-            hold your court and reach you about the booking. We never use your email for marketing.
+            When you book on this site you give us your name and mobile number, and your email if
+            you choose to, so we can hold your court and reach you about the booking. We never use
+            your email for marketing.
           </p>
           <p>
             To pay, you send a GCash transfer and give us the last 4 digits of its reference number

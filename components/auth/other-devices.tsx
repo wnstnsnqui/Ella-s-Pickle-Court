@@ -34,7 +34,13 @@ export function OtherDevices() {
         every session but this one.
       </p>
       <FormFooter>
-        <Button type="button" variant="outline" disabled={pending} onClick={() => void revoke()}>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending}
+          onClick={() => void revoke()}
+          className="press h-11 rounded-full px-4"
+        >
           {pending ? "Signing out" : "Sign out other devices"}
         </Button>
       </FormFooter>

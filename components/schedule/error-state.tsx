@@ -20,7 +20,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
       <AlertDescription>
         <p>{message}</p>
         {onRetry ? (
-          <Button variant="outline" size="sm" onClick={onRetry} className="mt-2">
+          <Button variant="outline" onClick={onRetry} className="press mt-2 h-11 rounded-full">
             <ArrowsClockwiseIcon aria-hidden="true" />
             Try again
           </Button>

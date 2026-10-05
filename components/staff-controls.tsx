@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { NAV_PILL } from "@/components/nav-pill";
 import { firstName } from "@/components/staff/format";
 import { Button } from "@/components/ui/button";
 import { resetIdentity } from "@/lib/analytics/browser";
@@ -23,7 +24,7 @@ import { ACCOUNT_PAGE } from "@/lib/auth/constants";
 /** The signed in person's first name. Pressing it opens the account page. */
 export function AccountButton({ name }: { name: string }) {
   return (
-    <Button asChild variant="ghost" size="sm" title={`Your account (${name})`}>
+    <Button asChild variant="ghost" className={NAV_PILL} title={`Your account (${name})`}>
       <Link href={ACCOUNT_PAGE}>
         <UserIcon aria-hidden="true" />
         <span className="max-w-32 truncate">{firstName(name)}</span>

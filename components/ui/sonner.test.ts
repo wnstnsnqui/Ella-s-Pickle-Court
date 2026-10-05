@@ -3,8 +3,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 /**
- * Spec 0003, AC-1 and AC-14: the toast reads our tokens and never carries a
- * theme of its own.
+ * Spec 0003, AC-1 and AC-14: the toast reads our tokens and stays light
+ * whatever the device's theme.
  *
  * Sonner itself is a boundary, so it is replaced with a spy that records what the
  * wrapper hands it.
@@ -26,9 +26,15 @@ async function render(extra: Record<string, unknown> = {}) {
 }
 
 describe("Toaster", () => {
-  it("tells sonner not to add a theme class of its own (AC-1)", async () => {
+  it("pins sonner to light, so a device in dark mode cannot repaint the toast (AC-1)", async () => {
     const props = await render();
-    expect(props.theme).toBe("system");
+    expect(props.theme).toBe("light");
+  });
+
+  it("colours the description from the token layer, not sonner's own grey (AC-1)", async () => {
+    const props = await render();
+    const options = props.toastOptions as { classNames: Record<string, string> };
+    expect(options.classNames.description).toBe("text-muted-foreground!");
   });
 
   it("paints from the popover, border and radius tokens rather than fixed colours (AC-1)", async () => {

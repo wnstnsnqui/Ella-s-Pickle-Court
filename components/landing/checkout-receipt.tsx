@@ -71,7 +71,7 @@ export function ReviewStep({
         <Facts>
           <Fact term="Name">{details.name}</Fact>
           <Fact term="Mobile">{details.phone}</Fact>
-          <Fact term="Email">{details.email}</Fact>
+          {details.email ? <Fact term="Email">{details.email}</Fact> : null}
         </Facts>
       </InfoCard>
       <InfoCard title="Payment" action={<EditButton label="payment" onClick={onEditPayment} />}>

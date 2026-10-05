@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SpinnerIcon } from "@phosphor-icons/react";
+import { CalendarPlusIcon, SpinnerIcon } from "@phosphor-icons/react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
@@ -52,6 +52,7 @@ export function BookSheet({
 
   return (
     <BoardSheet
+      icon={CalendarPlusIcon}
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}

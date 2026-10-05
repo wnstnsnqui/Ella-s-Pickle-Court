@@ -25,15 +25,30 @@ export const VENUE_REGION = "Cebu";
 export const VENUE_COUNTRY = "PH";
 export const VENUE_LOCALITY = `${VENUE_CITY}, ${VENUE_REGION}`;
 
-/** Confirmed real: read off the venue's Google Maps pin (Sitio Vito, Guindaruhan). */
-export const VENUE_STREET = "Cadulawan Road, Guindaruhan";
+/** Confirmed real (2026-10-05): the venue's purok and barangay. */
+export const VENUE_STREET = "Purok 13 Cadulawan";
+
+/** Confirmed real: Minglanilla's postal code. */
+export const VENUE_POSTAL_CODE = "6046";
+
+/** The country, spelled out for the printed address. */
+export const VENUE_COUNTRY_NAME = "Philippines";
+
+/**
+ * The name the venue's pin carries on Google Maps, which is not the venue's own
+ * name, so a player following directions recognises the place they arrive at.
+ */
+export const VENUE_MAPS_LABEL = "RELLM BASKETBALL COURT";
 
 /** Confirmed real: the venue's pin, for the JSON-LD. */
 export const VENUE_LATITUDE = 10.2691812;
 export const VENUE_LONGITUDE = 123.7750599;
 
+/** The town line of the address: `Minglanilla, Cebu 6046, Philippines`. */
+export const VENUE_TOWN_LINE = `${VENUE_LOCALITY} ${VENUE_POSTAL_CODE}, ${VENUE_COUNTRY_NAME}`;
+
 /** The one address line every page prints. */
-export const VENUE_ADDRESS = `${VENUE_STREET}, ${VENUE_LOCALITY}`;
+export const VENUE_ADDRESS = `${VENUE_STREET}, ${VENUE_TOWN_LINE}`;
 
 /** Whether a venue fact is still a placeholder rather than the real value. */
 export function isPlaceholder(value: string): boolean {
@@ -60,14 +75,14 @@ export const VENUE_EMAIL = "loriemariejaybual@gmail.com";
  * (spec 0015, AC-8). A placeholder until Ella supplies it; checkout stays off
  * while it is one (AC-26, build plan task 5).
  */
-export const PAYMENT_ACCOUNT_NAME = "Lorie Marie";
+export const PAYMENT_ACCOUNT_NAME = "Lorie Marie Bual";
 
 /**
  * The venue's QR Ph image, served from `public/` (spec 0015, AC-8). A
  * placeholder until Ella supplies it; the Payment step draws a marked empty
  * frame in its place rather than a broken image.
  */
-export const PAYMENT_QR_SRC = "/payment-qr.JPG";
+export const PAYMENT_QR_SRC = "/image.png";
 
 /** An `sms:` link to the front desk, with the message already written when given one. */
 export function smsHref(body?: string): string {

@@ -6,10 +6,17 @@ import { currentSession } from "@/lib/auth/session";
 import { cn } from "@/lib/utils";
 
 /**
- * The one shell both boards sit in. Spec 0003, AC-10.
+ * The one shell every working screen sits in. Spec 0003, AC-10, restyled by
+ * spec 0018, AC-3.
  *
  * It is a server component and it renders on the server, so the first paint is
  * the real page rather than a shrug that fills in later (invariant 6).
+ *
+ * The header is the landing page's glass bar: the page scrolls under it, clear
+ * at the top and given a hairline once content passes beneath it
+ * (`[data-shell-header]` in `app/globals.css`, a scroll timeline, no script).
+ * It holds the mark and, signed in, the staff links; a board's own controls
+ * live in its board card, never up here.
  *
  * `staff` is a slot rather than a prop bag: the shell knows nothing about what a
  * staff control does, only that it renders solely when there is a Better Auth
@@ -20,72 +27,64 @@ import { cn } from "@/lib/utils";
  */
 export async function AppShell({
   children,
-  toolbar,
   staff,
+  muted = false,
   className,
 }: {
   children: React.ReactNode;
-  /** Day navigation and the live indicator: the per board strip under the brand. */
-  toolbar?: React.ReactNode;
   /** Controls only a signed in staff member ever sees. */
   staff?: React.ReactNode;
+  /** The page sits on the muted grey, as the landing's booking band does, so its cards stand out. */
+  muted?: boolean;
   className?: string;
 }) {
   const signedIn = (await currentSession()) !== null;
   return (
-    <div className="flex min-h-full flex-col">
-      <header className="border-border sticky top-0 z-30 border-b shadow-sm">
-        {/* The brand band, golden. */}
-        <div className="bg-brand text-brand-foreground">
-          <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 py-3">
-            <Wordmark />
-            {staff && signedIn ? (
-              <div className="flex flex-wrap items-center gap-2">
-                {/* Signed in: everything collapses behind one menu below
-                    1024px, where showing every item inline wraps and
-                    crowds the band; at 1024px and up they stay inline. */}
-                <div className="hidden items-center gap-2 lg:flex">{staff}</div>
-                <NavMenu>{staff}</NavMenu>
-              </div>
-            ) : null}
-          </div>
+    <div
+      className={cn(
+        // Every button on a working screen presses (spec 0018, AC-4), named once.
+        "[&_[data-slot=button]]:press flex min-h-svh flex-col",
+        muted && "bg-muted",
+      )}
+    >
+      <header data-shell-header className="surface-glass sticky top-0 z-30 border-b">
+        <div className="mx-auto flex h-16 w-full max-w-6xl items-center justify-between gap-3 px-4">
+          <Wordmark />
+          {staff && signedIn ? (
+            <nav aria-label="Staff" className="flex items-center gap-1">
+              {/* Signed in: every link folds behind one menu below 1024px,
+                  where showing them inline crowds the bar; from 1024px they
+                  sit inline as pills. */}
+              <div className="hidden items-center gap-1 lg:flex">{staff}</div>
+              <NavMenu>{staff}</NavMenu>
+            </nav>
+          ) : null}
         </div>
-        {toolbar ? (
-          <div className="bg-background">
-            <div className="mx-auto w-full max-w-5xl px-4 py-2">{toolbar}</div>
-          </div>
-        ) : null}
       </header>
 
-      <main className={cn("mx-auto w-full max-w-5xl flex-1 px-4 py-4", className)}>{children}</main>
+      <main className={cn("mx-auto w-full max-w-6xl flex-1 px-4 py-6", className)}>{children}</main>
 
-      <footer className="border-border text-caption text-muted-foreground mt-8 border-t">
-        <div className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-end gap-x-6 gap-y-2 px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/privacy"
-              className="text-foreground rounded-sm underline-offset-4 hover:underline"
-            >
-              Privacy
-            </Link>
-            <Link
-              href="/terms"
-              className="text-foreground rounded-sm underline-offset-4 hover:underline"
-            >
-              Terms
-            </Link>
+      <footer className="border-border text-caption text-muted-foreground border-t">
+        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-end gap-x-6 gap-y-2 px-4 py-4">
+          <div className="flex items-center gap-1">
+            <FooterLink href="/privacy">Privacy</FooterLink>
+            <FooterLink href="/terms">Terms</FooterLink>
             {/* The one quiet door for staff. A signed in person already has the menu above. */}
-            {signedIn ? null : (
-              <Link
-                href="/sign-in"
-                className="text-foreground rounded-sm underline-offset-4 hover:underline"
-              >
-                Staff sign in
-              </Link>
-            )}
+            {signedIn ? null : <FooterLink href="/sign-in">Staff sign in</FooterLink>}
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+function FooterLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="text-foreground rounded-sm px-2 py-2 underline-offset-4 hover:underline"
+    >
+      {children}
+    </Link>
   );
 }

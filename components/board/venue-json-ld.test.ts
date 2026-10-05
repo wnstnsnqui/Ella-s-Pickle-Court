@@ -73,12 +73,13 @@ describe("venueJsonLd", () => {
 
 /** Spec 0013, AC-20: the address, with the street once it is real, and the pin. */
 describe("venueJsonLd address", () => {
-  it("names the street, locality, region and country", () => {
+  it("names the street, locality, region, postal code and country", () => {
     expect(venueJsonLd({ days: uniform }, "https://example.test").address).toEqual({
       "@type": "PostalAddress",
-      streetAddress: "Cadulawan Road, Guindaruhan",
+      streetAddress: "Purok 13 Cadulawan",
       addressLocality: "Minglanilla",
       addressRegion: "Cebu",
+      postalCode: "6046",
       addressCountry: "PH",
     });
   });

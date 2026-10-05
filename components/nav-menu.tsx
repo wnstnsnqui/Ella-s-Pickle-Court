@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 /**
  * The staff header's controls, collapsed behind one button below the `lg`
  * breakpoint (1024px), where showing every item inline wraps and crowds the
- * brand band. Opens a dropdown with the same items, stacked and fully labelled.
+ * glass header. Opens a dropdown with the same items, stacked and fully labelled.
  *
  * Closing on any click inside covers the theme toggle and the Sign out a
  * switched off account still gets here, which do not navigate away on their
@@ -37,7 +37,7 @@ export function NavMenu({
           type="button"
           variant="ghost"
           size="icon"
-          className={cn("lg:hidden", className)}
+          className={cn("press size-10 rounded-full lg:hidden", className)}
           aria-label="Menu"
         >
           <ListIcon aria-hidden="true" />

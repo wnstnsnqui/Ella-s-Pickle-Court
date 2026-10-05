@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SpinnerIcon, WarningIcon } from "@phosphor-icons/react";
+import { PencilSimpleIcon, SpinnerIcon, WarningIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 
@@ -85,6 +85,7 @@ export function EditSheet({
 
   return (
     <BoardSheet
+      icon={PencilSimpleIcon}
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}

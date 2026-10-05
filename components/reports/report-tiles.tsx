@@ -22,7 +22,7 @@ export function ReportTiles({ totals }: { totals: ReportTotals }) {
 
 function Tile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
+    <div className="surface-card p-5">
       <p className="text-caption text-muted-foreground">{label}</p>
       <p className="text-title mt-1 tabular-nums">{value}</p>
     </div>

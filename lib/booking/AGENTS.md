@@ -3,7 +3,7 @@
 ## Overview
 
 The public write path behind the checkout card on `/` (spec 0015): a player holds
-their picked hours for 5 minutes, pays by GCash (the venue's GCash QR), uploads a screenshot, and confirms.
+their picked hours for 10 minutes, pays by GCash (the venue's GCash QR), uploads a screenshot, and confirms.
 No player accounts. The only capability a player holds is the card's random
 `submission_id`. Postgres does every real check (slots, hours, price, overlaps,
 rate limit); this folder validates, gates and hands over.

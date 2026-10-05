@@ -256,7 +256,7 @@ export function CheckoutSheet({
         picks: order.picks,
         name: details.name,
         phone: details.phone,
-        email: details.email,
+        email: details.email ?? "",
         consent: FULL_CONSENT,
         turnstileToken,
       });
@@ -539,38 +539,40 @@ export function CheckoutSheet({
           </div>
         ) : null}
 
-        <div
-          className={cn(
-            "flex gap-3 px-5 pt-4 pb-4",
-            receiptShown ? "flex-col items-center text-center" : "items-center",
-          )}
-        >
-          <span
-            aria-hidden="true"
+        {/* The heading scrolls with the step, so a short screen keeps its room for
+            the content; only the top bar and the hold banner stay pinned. */}
+        <div ref={body} className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
+          <div
+            data-print-hide
             className={cn(
-              "grid shrink-0 place-items-center",
-              receiptShown
-                ? "bg-state-available text-state-available-fg border-state-available-border size-14 rounded-full border-2"
-                : "bg-primary text-primary-foreground size-11 rounded-2xl",
+              "flex gap-3 pt-3 pb-4",
+              receiptShown ? "flex-col items-center text-center" : "items-center",
             )}
           >
-            <meta.icon weight="bold" className={receiptShown ? "size-7" : "size-5"} />
-          </span>
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <DialogTitle
-              ref={title}
-              tabIndex={-1}
-              className="text-title rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+            <span
+              aria-hidden="true"
+              className={cn(
+                "grid shrink-0 place-items-center",
+                receiptShown
+                  ? "bg-state-available text-state-available-fg border-state-available-border size-14 rounded-full border-2"
+                  : "bg-primary text-primary-foreground size-11 rounded-2xl",
+              )}
             >
-              {meta.heading}
-            </DialogTitle>
-            <DialogDescription className="text-caption text-muted-foreground">
-              {meta.subtitle}
-            </DialogDescription>
+              <meta.icon weight="bold" className={receiptShown ? "size-7" : "size-5"} />
+            </span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <DialogTitle
+                ref={title}
+                tabIndex={-1}
+                className="text-title rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+              >
+                {meta.heading}
+              </DialogTitle>
+              <DialogDescription className="text-caption text-muted-foreground">
+                {meta.subtitle}
+              </DialogDescription>
+            </div>
           </div>
-        </div>
-
-        <div ref={body} className="min-h-0 flex-1 overflow-y-auto px-5 pt-1 pb-5">
           {/* Keyed by step, so each step mounts fresh and plays its entrance. */}
           <section
             key={step}
@@ -629,7 +631,9 @@ export function CheckoutSheet({
                       name="email"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Email</FormLabel>
+                          <FormLabel>
+                            Email <span className="text-muted-foreground">(optional)</span>
+                          </FormLabel>
                           <FormControl>
                             <Input
                               {...field}

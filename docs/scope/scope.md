@@ -30,6 +30,7 @@ _These are recommendations to keep your build orderly, not requirements. Skip an
 | 17 | Staff check of online bookings | Slice 7 | in-progress |
 | 18 | Booking receipt & lookup | Slice 7 | in-progress |
 | 19 | Voucher codes | Slice 7 | planned |
+| 20 | Landing look on every screen | Slice 8 | done |
 
 ## Foundations
 
@@ -306,6 +307,22 @@ Owner level staff make discount codes, and checkout applies one when the custome
 **Done when:** an owner can create, pause and end a voucher (an amount or a percentage off, with an optional end date and use limit); a valid code at checkout shows the reduced total, an invalid or used up one says why; the server recomputes the discount on Confirm and counts the use in the same write; the receipt and the staff check both show the voucher and the amount taken off.
 - [ ] Design it (spec): `/architect voucher codes`
 
+## Slice 8
+
+### 20. Landing look on every screen · done
+The staff board, settings, reports, users, account, the public board at `/schedule`, sign in and the legal pages take the landing page's look and feel, and both boards look like the landing's board. The landing page itself stays exactly as it is.
+**Done when:** every `AppShell` screen has the glass header, card surfaces, dark ink main actions and press feedback; both boards sit in the landing's board card with its tiles, legend and day strip (plus the calendar), with no live pill (on `/design` only); staff picks show in the landing's summary card; sheets float; motion stays at a working tempo; seven rows still fit a small phone; every field and button shows focus in ink, the landing's included; toasts stay readable on a device in dark mode; and the landing's files are unchanged apart from that focus look, and its screenshots match.
+spec [0018](../specs/0018-landing-look-everywhere/index.md) (shared recipes as Tailwind utilities, opt in only on anything the landing imports, landing frozen and screenshot checked; amends 0003 AC-4 for tile borders and 0014 AC-2 for the strip; amended 2026-10-05 for the ink focus look on shared controls and the live pill off both boards) · code in `app/globals.css`, `eslint.config.mjs`, `components/app-shell.tsx`, `components/schedule/`, `components/day-strip.tsx`, `components/live-indicator.tsx`, `components/board-sheet.tsx`, `components/ui/sheet.tsx`, `components/ui/button.tsx`, `components/staff/`, `components/board/`, `components/settings/`, `components/reports/`, `components/auth/`, `app/design/`, `docs/design.md`
+- [x] Design it (spec): `/architect landing look on every screen`
+- [x] Build it: `/develop landing look on every screen`
+  - [x] The thin thread: the landing baseline committed and screenshotted, the recipes, `ink` and the lint rule, the glass header, and the board card with the landing tiles and legend on both boards (AC-1, AC-2, AC-3, AC-4, AC-5, AC-6, AC-7, AC-17)
+  - [x] The board's controls: the day strip with the calendar and the spec 0014 signals, the live pill restyled for `/design` only, and the summary card with its floating phone form (AC-8, AC-9, AC-10)
+  - [x] Sheets and pages: floating sheets with icon headers, `PageHeading` and `SectionCard` on settings, reports, users and account, the sign in card, `BoardNotice` and the not found page (AC-11, AC-12, AC-13)
+  - [x] Finish: the motion pass, the phone and zoom pass, `/design` and its contrast list, `docs/design.md`, and the final landing compare (AC-1, AC-14, AC-15, AC-16, AC-18)
+  - [x] Focus and toasts: the ink focus look on shared controls with a see through gap, the toaster pinned to light, the labelled focus rows on `/design`, and the landing compare held to a fixed height (AC-1, AC-16)
+- [ ] Verify it: `/check verify landing look on every screen`
+- [x] Test it: `/test landing look on every screen`
+
 ## Deferred
 Out of scope for the current build pass, kept so the plan stays honest.
 - **Booking confirmation by email or text**: send the receipt and code when a booking is made and when staff confirm or turn it down. Needs a sending service, the same one self service password reset is waiting on · needs a decision · from slice 7
@@ -327,6 +344,7 @@ Out of scope for the current build pass, kept so the plan stays honest.
 - **Plain staff confirming payments**: spec 0016 lets only an owner, admin or superadmin decide. If checks pile up on shifts without a manager, let plain staff confirm (never turn down), which is one change inside `confirm_online_booking` · from spec 0016
 - **Staff editing payments on a past booking**: today only an owner may touch a booking that has ended, so a payment settled the next day needs Ella · from spec 0002
 - ~~**Grouping the rows of one multi court booking**~~: pulled into feature 16 on 2026-09-30, since one online booking code covers every picked slot. A class booked across two courts is two unrelated rows today, so cancelling it is two cancels · from spec 0005
+- **The landing on the shared recipes**: point the landing page at the shared `press`, utilities and `DayStrip` from spec 0018 and delete its own copies, so the look lives in one place. Means unfreezing the landing, so it needs its own go ahead · needs a decision · from spec 0018
 - **Changing a booking's end time in the edit form**: today a booking edit changes details only, while a closure edit may also move its end. The same free run select would let a booking grow or shrink without cancel and rebook · from spec 0005
 - **The staff board's now marker**: spec 0006 gives the public grid a `now` prop (dimmed past rows, a Now marker, scroll to the current hour). The staff board keeps its lock only dimming until it adopts the same prop, so the two boards read slightly differently on today until then · from spec 0006
 - ~~**Closing at midnight**~~: resolved on 2026-09-15 by spec 0007, `closeTimeSchema` accepts `24:00` as an end · from spec 0005

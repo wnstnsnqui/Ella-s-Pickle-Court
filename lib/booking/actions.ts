@@ -82,7 +82,7 @@ const BOT_CHECK: HoldRefusal = {
 };
 
 /**
- * Hold the picked hours for 5 minutes (AC-4), or, when this sheet already
+ * Hold the picked hours for 10 minutes (AC-4), or, when this sheet already
  * holds them, update the details in place (AC-5). Answers with the code, the
  * expiry on the database's clock, the amount the database worked out, and a
  * signed URL for the payment screenshot.
@@ -117,7 +117,8 @@ export async function holdOnlineBooking(input: unknown): Promise<HoldResult> {
     p_picks: hold.picks.map((pick) => ({ court_id: pick.courtId, starts_at: pick.startsAt })),
     p_name: hold.name,
     p_phone: hold.phone,
-    p_email: hold.email,
+    // Optional; the function stores a blank one as null.
+    p_email: hold.email ?? "",
     p_terms_version: BOOKING_TERMS_VERSION,
   });
   if (error) {

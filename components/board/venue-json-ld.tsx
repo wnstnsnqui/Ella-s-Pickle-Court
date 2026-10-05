@@ -7,6 +7,7 @@ import {
   VENUE_LATITUDE,
   VENUE_LONGITUDE,
   VENUE_NAME,
+  VENUE_POSTAL_CODE,
   VENUE_REGION,
   VENUE_STREET,
 } from "@/lib/venue";
@@ -37,6 +38,7 @@ export function venueJsonLd(hours: VenueHours, url: string) {
       ...(isPlaceholder(VENUE_STREET) ? {} : { streetAddress: VENUE_STREET }),
       addressLocality: VENUE_CITY,
       addressRegion: VENUE_REGION,
+      postalCode: VENUE_POSTAL_CODE,
       addressCountry: VENUE_COUNTRY,
     },
     geo: {

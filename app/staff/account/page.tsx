@@ -7,7 +7,7 @@ import { ChangePasswordForm } from "@/components/auth/change-password-form";
 import { NameForm } from "@/components/auth/name-form";
 import { OtherDevices } from "@/components/auth/other-devices";
 import { BoardNotice } from "@/components/board-notice";
-import { SettingsSection } from "@/components/settings/settings-section";
+import { SectionCard } from "@/components/section-card";
 import { SignOutButton } from "@/components/staff-controls";
 import { roleLabel } from "@/components/staff/roles";
 import { currentSession } from "@/lib/auth/session";
@@ -55,7 +55,7 @@ export default async function AccountPage() {
 
   return (
     <AccountShell>
-      <SettingsSection
+      <SectionCard
         id="details"
         icon={UserIcon}
         title="Details"
@@ -74,25 +74,25 @@ export default async function AccountPage() {
           </Detail>
         </dl>
         <NameForm initialName={session.user.name} />
-      </SettingsSection>
+      </SectionCard>
 
-      <SettingsSection
+      <SectionCard
         id="password"
         icon={KeyIcon}
         title="Password"
         description="Changing it signs every other device out."
       >
         <ChangePasswordForm />
-      </SettingsSection>
+      </SectionCard>
 
-      <SettingsSection
+      <SectionCard
         id="devices"
         icon={DevicesIcon}
         title="Other devices"
         description="Every place you are signed in besides this one."
       >
         <OtherDevices />
-      </SettingsSection>
+      </SectionCard>
     </AccountShell>
   );
 }

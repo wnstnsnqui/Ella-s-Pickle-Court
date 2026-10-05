@@ -73,4 +73,11 @@ describe("ScheduleCell", () => {
     expect(quiet).not.toContain("data-locked");
     expect(quiet).not.toContain("data-past");
   });
+
+  it("draws its focus ring solid, since outline-none leaves outline-2 with no style (spec 0018, AC-6)", () => {
+    const html = render();
+    expect(html).toContain("outline-none");
+    expect(html).toContain("focus-visible:outline-2");
+    expect(html).toContain("focus-visible:outline-solid");
+  });
 });

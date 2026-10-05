@@ -4,6 +4,7 @@ import {
   ChatsCircleIcon,
   ClockIcon,
   MapPinIcon,
+  NavigationArrowIcon,
 } from "@phosphor-icons/react/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -12,11 +13,12 @@ import type { VenueHours } from "@/lib/schedule/queries";
 import { cn } from "@/lib/utils";
 import {
   VENUE_EMAIL,
-  VENUE_LOCALITY,
+  VENUE_MAPS_LABEL,
   VENUE_MAPS_URL,
   VENUE_NAME,
   VENUE_PHONE_DISPLAY,
   VENUE_STREET,
+  VENUE_TOWN_LINE,
 } from "@/lib/venue";
 
 import { ChannelButtons } from "./channels";
@@ -51,9 +53,16 @@ export function Location({ hours }: { hours: VenueHours | null }) {
           <InfoCard icon={MapPinIcon} title="Address">
             <address className="not-italic">
               <span className="block">{VENUE_STREET}</span>
-              <span className="block">{VENUE_LOCALITY}</span>
+              <span className="block">{VENUE_TOWN_LINE}</span>
             </address>
-            <p className="text-caption text-muted-foreground mt-2 flex items-start gap-1.5">
+            {/* The pin's own name on Google Maps, so a player can match it on arrival. */}
+            <p className="text-caption text-muted-foreground mt-3 flex items-start gap-1.5">
+              <NavigationArrowIcon aria-hidden="true" className="mt-px size-4 shrink-0" />
+              <span>
+                On maps as <span className="text-foreground font-medium">{VENUE_MAPS_LABEL}</span>
+              </span>
+            </p>
+            <p className="text-caption text-muted-foreground mt-1.5 flex items-start gap-1.5">
               <CarIcon aria-hidden="true" className="mt-px size-4 shrink-0" />
               {VISIT_SECTION.parking}
             </p>
@@ -82,8 +91,7 @@ export function Location({ hours }: { hours: VenueHours | null }) {
             <p className="text-muted-foreground mb-4">
               Message us on Messenger or send a text. We&apos;ll book the court for you.
             </p>
-            <ChannelButtons />
-            <dl className="text-caption mt-4 flex flex-col gap-1.5">
+            <dl className="text-caption flex flex-col gap-1.5">
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Mobile</dt>
                 <dd className="tabular-nums select-all">{VENUE_PHONE_DISPLAY}</dd>
@@ -93,6 +101,7 @@ export function Location({ hours }: { hours: VenueHours | null }) {
                 <dd className="min-w-0 break-all select-all">{VENUE_EMAIL}</dd>
               </div>
             </dl>
+            <ChannelButtons className="mt-5" />
           </InfoCard>
         </div>
 

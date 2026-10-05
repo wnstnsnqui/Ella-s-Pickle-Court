@@ -51,7 +51,7 @@ describe("bookingDetailsSchema", () => {
     });
   });
 
-  it("marks every blank field with its own message", () => {
+  it("marks every blank required field with its own message", () => {
     const result = bookingDetailsSchema.safeParse({ name: " ", phone: "", email: "" });
     expect(result.success).toBe(false);
     if (result.success) return;
@@ -59,8 +59,11 @@ describe("bookingDetailsSchema", () => {
     expect(messages).toEqual({
       name: "Enter your name.",
       phone: "Enter your mobile number.",
-      email: "Enter your email.",
     });
+  });
+
+  it("takes a blank email as no email at all (amended 2026-10-05)", () => {
+    expect(bookingDetailsSchema.parse({ ...valid, email: "   " }).email).toBeNull();
   });
 
   it("names the phone format it wants", () => {

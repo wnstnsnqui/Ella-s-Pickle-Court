@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
  * `FormError` is the one place a form level refusal shows: wrong password,
  * a used link, Postgres down. Field errors stay under their fields through
  * `FormMessage`. `SubmitButton` carries the pending state so a double tap on
- * a phone cannot send twice.
+ * a phone cannot send twice; it is the page's one main action, so it is ink
+ * (spec 0018, AC-4).
  */
 
 export function FormError({ message }: { message: string | null }) {
@@ -38,7 +39,12 @@ export function SubmitButton({
   className?: string;
 }) {
   return (
-    <Button type="submit" disabled={pending} className={cn("w-full", className)}>
+    <Button
+      type="submit"
+      variant="ink"
+      disabled={pending}
+      className={cn("press h-12 w-full", className)}
+    >
       {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
       {pending ? pendingLabel : children}
     </Button>

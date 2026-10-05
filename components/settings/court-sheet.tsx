@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SpinnerIcon, WarningIcon } from "@phosphor-icons/react";
+import { CourtBasketballIcon, SpinnerIcon, WarningIcon } from "@phosphor-icons/react";
 import { useForm } from "react-hook-form";
 
 import { BoardSheet } from "@/components/board-sheet";
@@ -57,6 +57,7 @@ export function CourtSheet({
   const editing = court !== null;
   return (
     <BoardSheet
+      icon={CourtBasketballIcon}
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}

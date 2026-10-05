@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/schedule/empty-state";
 import { Button } from "@/components/ui/button";
 import type { OwnerCourt } from "@/lib/schedule/queries";
 
-import { SettingsSection } from "./settings-section";
+import { SectionCard } from "@/components/section-card";
 
 /**
  * The live courts, in the order the boards show them. Spec 0007, AC-3 and AC-5.
@@ -40,13 +40,18 @@ export function CourtList({
   onRetire: (court: OwnerCourt, opener: HTMLElement) => void;
 }) {
   return (
-    <SettingsSection
+    <SectionCard
       id="courts"
       icon={CourtBasketballIcon}
       title="Courts"
       description="One column each, in this order, on both boards."
       action={
-        <Button type="button" size="sm" onClick={(event) => onAdd(event.currentTarget)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={(event) => onAdd(event.currentTarget)}
+          className="press h-10 rounded-full px-4"
+        >
           <PlusIcon aria-hidden="true" />
           Add court
         </Button>
@@ -58,7 +63,12 @@ export function CourtList({
           title="No courts yet"
           body="Add the first one and it becomes the first column on both boards."
           action={
-            <Button type="button" onClick={(event) => onAdd(event.currentTarget)}>
+            <Button
+              type="button"
+              variant="ink"
+              onClick={(event) => onAdd(event.currentTarget)}
+              className="press h-12 px-5"
+            >
               <PlusIcon aria-hidden="true" />
               Add court
             </Button>
@@ -85,6 +95,7 @@ export function CourtList({
                   type="button"
                   variant="outline"
                   size="icon-sm"
+                  className="press rounded-full"
                   title="Move up"
                   disabled={locked || index === 0}
                   onClick={() => onMove(court, "up")}
@@ -96,6 +107,7 @@ export function CourtList({
                   type="button"
                   variant="outline"
                   size="icon-sm"
+                  className="press rounded-full"
                   title="Move down"
                   disabled={locked || index === courts.length - 1}
                   onClick={() => onMove(court, "down")}
@@ -107,6 +119,7 @@ export function CourtList({
                   type="button"
                   variant="ghost"
                   size="sm"
+                  className="press rounded-full"
                   onClick={(event) => onEdit(court, event.currentTarget)}
                 >
                   <PencilSimpleIcon aria-hidden="true" />
@@ -117,7 +130,7 @@ export function CourtList({
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="text-destructive"
+                  className="press text-destructive rounded-full"
                   onClick={(event) => onRetire(court, event.currentTarget)}
                 >
                   <ArchiveIcon aria-hidden="true" />
@@ -129,6 +142,6 @@ export function CourtList({
           ))}
         </ol>
       )}
-    </SettingsSection>
+    </SectionCard>
   );
 }

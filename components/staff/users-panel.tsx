@@ -5,6 +5,7 @@ import { useCallback, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/schedule/empty-state";
+import { SectionCard } from "@/components/section-card";
 import { firstName } from "@/components/staff/format";
 import { Button } from "@/components/ui/button";
 import type { StaffRole } from "@/lib/schedule/constants";
@@ -157,7 +158,12 @@ export function UsersPanel({
   }
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4 sm:p-6">
+    <SectionCard
+      id="accounts"
+      icon={UsersIcon}
+      title="Accounts"
+      description="Each person's role, and whether they can change the schedule."
+    >
       <ol className="divide-border divide-y">
         {staff.map((row) => {
           const isSelf = row.userId === viewerUserId;
@@ -188,6 +194,7 @@ export function UsersPanel({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
+                    className="press rounded-full"
                     disabled={busy}
                     onClick={(event) => openEdit(row, event.currentTarget)}
                   >
@@ -236,6 +243,6 @@ export function UsersPanel({
         pending={busy}
         onConfirm={() => void saveChange()}
       />
-    </div>
+    </SectionCard>
   );
 }

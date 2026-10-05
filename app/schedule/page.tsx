@@ -4,11 +4,11 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { BOARD_PAGE } from "@/components/board-card";
 import { BoardNotice } from "@/components/board-notice";
 import { BoardDayViewed } from "@/components/board/board-day-viewed";
 import { PublicBoard } from "@/components/board/public-board";
 import { PublicScheduleProvider } from "@/components/board/public-schedule-context";
-import { PublicToolbar } from "@/components/board/public-toolbar";
 import { StaffMenu } from "@/components/staff-menu";
 import { Button } from "@/components/ui/button";
 import { boardTitle } from "@/lib/schedule/board-day";
@@ -67,7 +67,7 @@ export default async function Home({ searchParams }: PageProps<"/schedule">) {
         title="That day could not be shown"
       >
         <p>{result.error.message}</p>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="press h-12 rounded-full px-5">
           <Link href="/schedule">Back to today</Link>
         </Button>
       </BoardNotice>
@@ -79,6 +79,8 @@ export default async function Home({ searchParams }: PageProps<"/schedule">) {
   return (
     <PublicScheduleProvider initial={result.data} requestedDate={date}>
       <AppShell
+        muted
+        className={BOARD_PAGE}
         staff={
           <Suspense fallback={null}>
             <StaffMenu />
@@ -86,11 +88,11 @@ export default async function Home({ searchParams }: PageProps<"/schedule">) {
         }
       >
         <BoardDayViewed />
-        <div className="mb-4 flex flex-col gap-1">
-          <h1 className="text-title">Court schedule</h1>
-          <p className="text-caption text-muted-foreground">{VENUE_TAGLINE}</p>
+        {/* On a phone the title gives its room to the hours (spec 0018, AC-15). */}
+        <div className="mb-4 flex flex-col gap-1 max-sm:sr-only">
+          <h1 className="text-display">Court schedule</h1>
+          <p className="text-body text-muted-foreground">{VENUE_TAGLINE}</p>
         </div>
-        <PublicToolbar className="mb-4" />
         <PublicBoard />
       </AppShell>
     </PublicScheduleProvider>

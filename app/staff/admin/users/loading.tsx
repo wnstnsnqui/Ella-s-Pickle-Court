@@ -8,7 +8,7 @@ export default function Loading() {
       <p role="status" className="sr-only">
         Loading the staff accounts
       </p>
-      <div aria-hidden="true" className="border-border bg-card rounded-lg border p-4 sm:p-6">
+      <div aria-hidden="true" className="surface-card p-5 sm:p-6">
         <ol className="divide-border divide-y">
           {Array.from({ length: 5 }, (_, index) => (
             <li key={index} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
@@ -16,7 +16,7 @@ export default function Loading() {
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="h-3 w-48" />
               </div>
-              <Skeleton className="h-9 w-28 shrink-0" />
+              <Skeleton className="h-9 w-28 shrink-0 rounded-full" />
               <Skeleton className="h-6 w-11 shrink-0 rounded-full" />
             </li>
           ))}

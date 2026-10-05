@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarXIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { BoardSheet } from "@/components/board-sheet";
@@ -52,6 +53,7 @@ export function ClosedDaySheet({
 
   return (
     <BoardSheet
+      icon={CalendarXIcon}
       open={open}
       onOpenChange={(next) => {
         // A closed sheet forgets what was picked, so the next one opens fresh.

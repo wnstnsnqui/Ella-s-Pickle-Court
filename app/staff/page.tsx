@@ -4,10 +4,10 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { AppShell } from "@/components/app-shell";
+import { BOARD_PAGE } from "@/components/board-card";
 import { BoardNotice } from "@/components/board-notice";
 import { StaffBoard } from "@/components/staff/staff-board";
 import { StaffScheduleProvider } from "@/components/staff/staff-schedule-context";
-import { StaffToolbar } from "@/components/staff/staff-toolbar";
 import { StaffMenu } from "@/components/staff-menu";
 import { Button } from "@/components/ui/button";
 import { currentSession } from "@/lib/auth/session";
@@ -49,7 +49,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
         icon={WarningCircleIcon}
         title="Sign in to see the schedule"
       >
-        <Button asChild>
+        <Button asChild variant="ink" className="press h-12 px-5">
           <Link href="/sign-in">Staff sign in</Link>
         </Button>
       </BoardNotice>
@@ -98,7 +98,7 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
         title="That day could not be shown"
       >
         <p>{result.error.message}</p>
-        <Button asChild variant="outline">
+        <Button asChild variant="outline" className="press h-12 rounded-full px-5">
           <Link href="/staff">Back to today</Link>
         </Button>
       </BoardNotice>
@@ -115,7 +115,8 @@ export default async function StaffPage({ searchParams }: PageProps<"/staff">) {
       viewer={{ userId: session?.user.id ?? "", role: current.staff.role }}
     >
       <AppShell
-        toolbar={<StaffToolbar />}
+        muted
+        className={BOARD_PAGE}
         staff={
           <Suspense fallback={null}>
             <StaffMenu />

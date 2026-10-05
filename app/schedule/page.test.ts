@@ -8,20 +8,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  * title on `/schedule` and the day in the title on a dated link with a canonical of `/schedule`.
  * The venue's structured data moved to the landing page (spec 0013, AC-20).
  *
- * The shell, the menu, the toolbar, the board and its analytics are boundaries here and are
+ * The shell, the menu, the board and its analytics are boundaries here and are
  * mocked to markers; what is under test is the page's own branching.
  */
 
 const getSchedule = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/schedule/queries", () => ({ getSchedule }));
 vi.mock("@/components/app-shell", () => ({
-  AppShell: ({ children, toolbar }: { children: React.ReactNode; toolbar?: React.ReactNode }) =>
-    createElement("div", { "data-shell": true }, toolbar, children),
+  AppShell: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-shell": true }, children),
 }));
 vi.mock("@/components/staff-menu", () => ({ StaffMenu: () => null }));
-vi.mock("@/components/board/public-toolbar", () => ({
-  PublicToolbar: () => createElement("div", { "data-toolbar": true }),
-}));
 vi.mock("@/components/board/board-day-viewed", () => ({ BoardDayViewed: () => null }));
 vi.mock("@/components/board/public-board", () => ({
   PublicBoard: () => createElement("div", { "data-board": true }),
@@ -81,7 +78,6 @@ describe("/schedule", () => {
     expect(getSchedule).toHaveBeenCalledWith(undefined);
     expect(html).toContain("data-board");
     expect(html).toContain('data-provider="today"');
-    expect(html).toContain("data-toolbar");
   });
 
   it("passes a dated link through and keeps the board on that date (AC-2, AC-10)", async () => {

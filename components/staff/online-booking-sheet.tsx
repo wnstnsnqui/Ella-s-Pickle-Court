@@ -4,6 +4,7 @@ import {
   ArrowLeftIcon,
   ArrowUUpLeftIcon,
   CheckCircleIcon,
+  GlobeIcon,
   InfoIcon,
   PencilSimpleIcon,
   ProhibitIcon,
@@ -160,7 +161,7 @@ export function OnlineBookingFooter({
     <div className="flex flex-col gap-2">
       {booking.status === "held" ? (
         <p className="text-caption text-muted-foreground text-center">
-          Held for checkout. It frees itself within 5 minutes if not paid.
+          Held for checkout. It frees itself within 10 minutes if not paid.
         </p>
       ) : null}
 
@@ -304,6 +305,7 @@ function OpenBookingSheet({
 
   return (
     <BoardSheet
+      icon={GlobeIcon}
       open
       onOpenChange={(open) => !open && !controller.pending && onClose()}
       focusOnOpen={false}

@@ -1,6 +1,9 @@
+import { GridFourIcon } from "@phosphor-icons/react/ssr";
 import { formatSlotLabel } from "@/lib/time";
 import type { WeekdayHourCell } from "@/lib/report/buckets";
 import { cn } from "@/lib/utils";
+
+import { SectionCard } from "@/components/section-card";
 
 import { HiddenDataTable } from "./hidden-data-table";
 
@@ -73,8 +76,7 @@ export function Heatmap({
   }
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
-      <h2 className="text-title mb-3">Weekday by hour</h2>
+    <SectionCard id="weekday-hour" icon={GridFourIcon} title="Weekday by hour">
       <div aria-hidden="true" className="overflow-x-auto">
         <div
           className="grid gap-1"
@@ -112,6 +114,6 @@ export function Heatmap({
           }),
         )}
       />
-    </div>
+    </SectionCard>
   );
 }

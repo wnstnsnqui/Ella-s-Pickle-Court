@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowsClockwiseIcon, BroadcastIcon, WifiSlashIcon } from "@phosphor-icons/react";
+import { WarningIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -16,6 +16,11 @@ import { cn } from "@/lib/utils";
  * The age is a client clock reading taken at the last successful render or
  * message. It is deliberately not a database value: it is about how long *this*
  * screen has been out of touch, which no server could answer.
+ *
+ * It wears the landing's live pill (spec 0018, AC-9): green with a pinging dot
+ * while live, a still muted dot while reconnecting, and a red tinted pill with
+ * a warning icon and the age once not live. Only the live reading moves. No
+ * board shows it today; `/design` does.
  */
 export type ChannelStatus = "SUBSCRIBED" | "TIMED_OUT" | "CLOSED" | "CHANNEL_ERROR";
 
@@ -77,13 +82,6 @@ export function LiveIndicator({
         ? "Reconnecting"
         : `Not live · ${formatAge(now - lastUpdatedAt)} old`;
 
-  const Icon =
-    reading === "live"
-      ? BroadcastIcon
-      : reading === "reconnecting"
-        ? ArrowsClockwiseIcon
-        : WifiSlashIcon;
-
   return (
     <p
       // Non urgent: the grid is still readable, so this must not interrupt.
@@ -91,24 +89,32 @@ export function LiveIndicator({
       aria-live="polite"
       data-reading={reading}
       className={cn(
-        "text-caption inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5",
-        reading === "live" &&
-          "border-state-available-border bg-state-available text-state-available-fg",
-        reading === "reconnecting" && "border-border bg-muted text-muted-foreground",
-        reading === "stale" && "border-destructive text-destructive",
+        "text-label inline-flex items-center gap-2 rounded-full px-3 py-1 whitespace-nowrap",
+        reading === "live" && "bg-state-available text-state-available-fg",
+        reading === "reconnecting" && "bg-muted text-muted-foreground",
+        reading === "stale" && "bg-destructive/10 text-destructive",
         className,
       )}
     >
-      {reading === "live" ? (
-        <span aria-hidden="true" className="relative flex size-1.5">
-          <span className="bg-state-available-fg absolute inline-flex size-full animate-ping rounded-full opacity-75" />
-          <span className="bg-state-available-fg relative inline-flex size-1.5 rounded-full" />
+      {reading === "stale" ? (
+        <WarningIcon aria-hidden="true" weight="bold" className="size-3.5 shrink-0" />
+      ) : (
+        <span aria-hidden="true" className="relative flex size-2 shrink-0">
+          {/* The landing's ping (`[data-ping]`), already off under reduced motion. */}
+          {reading === "live" ? (
+            <span
+              data-ping
+              className="bg-state-available-border absolute inline-flex size-full rounded-full"
+            />
+          ) : null}
+          <span
+            className={cn(
+              "relative inline-flex size-2 rounded-full",
+              reading === "live" ? "bg-state-available-border" : "bg-muted-foreground",
+            )}
+          />
         </span>
-      ) : null}
-      <Icon
-        aria-hidden="true"
-        className={cn("size-3.5", reading === "reconnecting" && "animate-spin")}
-      />
+      )}
       {label}
     </p>
   );

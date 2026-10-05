@@ -120,6 +120,11 @@
   --dur-step: 220ms;
   --curve-out: cubic-bezier(0.23, 1, 0.32, 1);
   --curve-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* A board sheet arriving (spec 0018, AC-11): the iOS drawer curve, which
+   * starts fast and settles long, over the longest UI motion the boards allow. */
+  --curve-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-sheet: 300ms;
 }
 
 @theme inline {
@@ -226,6 +231,57 @@
 
   --ease-out-strong: var(--curve-out);
   --ease-in-out-strong: var(--curve-in-out);
+  --ease-drawer: var(--curve-drawer);
+}
+
+/*
+ * The landing look's recipes, named once (spec 0018, AC-2 and invariant 2).
+ *
+ * Each is a utility, so a server or a client file uses it the same way and it
+ * composes with any other class. A component names the recipe, never a copy of
+ * its class string. The landing page keeps its own frozen copies (`PRESS` in
+ * `components/landing/press.ts` and its inline classes); these are the shared
+ * ones every other screen uses.
+ */
+
+/* Press feedback: a small scale on pointer down, so a tap feels heard.
+ * Named properties only, never `all`: Tailwind 4 writes scale and translate
+ * to their own properties. `cn` knows this sets the transition, so it wins
+ * over a component's own `transition-all`. */
+@utility press {
+  transition-property: scale, translate, background-color, color;
+  transition-duration: 150ms;
+  transition-timing-function: var(--curve-out);
+
+  &:active {
+    scale: 0.97;
+  }
+}
+
+/* The booking card and the offer tiles: a white card with a hairline ring. */
+@utility surface-card {
+  @apply bg-card text-card-foreground ring-border rounded-3xl shadow-sm ring-1;
+}
+
+/* The landing header's material: the page shows through, blurred. Solid for
+ * anyone who has asked for less transparency. */
+@utility surface-glass {
+  @apply bg-background/80 backdrop-blur-xl backdrop-saturate-150;
+
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--background);
+    backdrop-filter: none;
+  }
+}
+
+/* The hero board's lift: a deep shadow tinted from the ink, and a faint ring. */
+@utility elevation-float {
+  @apply shadow-2xl ring-1 shadow-[color-mix(in_oklch,var(--foreground)_18%,transparent)] ring-[color-mix(in_oklch,var(--foreground)_6%,transparent)];
+}
+
+/* The offer tiles' icon square, for a duotone icon at size-6. */
+@utility chip-icon {
+  @apply bg-muted text-foreground grid size-11 shrink-0 place-items-center rounded-2xl;
 }
 
 @layer base {
@@ -445,6 +501,154 @@
    */
   [data-changed] {
     box-shadow: inset 0 0 0 2px var(--ring);
+  }
+}
+
+/*
+ * The shell header's scroll edge (spec 0018, AC-3): the landing header's own
+ * `landing-edge`, so the two bars gain their hairline the same way. Where the
+ * page cannot drive it (no scroll timelines, motion reduced) the hairline is
+ * simply always there, because a working screen scrolls content under the bar
+ * all day. Solid, with its hairline, for anyone who asks for less transparency.
+ */
+[data-shell-header] {
+  border-color: var(--border);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    [data-shell-header] {
+      border-color: transparent;
+      animation: landing-edge linear both;
+      animation-timeline: scroll();
+      animation-range: 0 96px;
+    }
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  [data-shell-header] {
+    animation: none;
+    border-color: var(--border);
+    background-color: var(--background);
+    backdrop-filter: none;
+  }
+}
+
+/*
+ * A board sheet (spec 0018, AC-11). It slides in from the edge it floats
+ * against on the drawer curve, which starts fast and settles long, and leaves
+ * along the same path in less time, because a closing sheet is already out of
+ * mind. The dim fades with it. Reduced motion keeps only the fade.
+ */
+@keyframes sheet-from-right {
+  from {
+    translate: calc(100% + 0.5rem) 0;
+  }
+}
+
+@keyframes sheet-to-right {
+  to {
+    translate: calc(100% + 0.5rem) 0;
+  }
+}
+
+@keyframes sheet-from-bottom {
+  from {
+    translate: 0 calc(100% + 0.5rem);
+  }
+}
+
+@keyframes sheet-to-bottom {
+  to {
+    translate: 0 calc(100% + 0.5rem);
+  }
+}
+
+[data-slot="sheet-content"][data-state="open"],
+[data-slot="sheet-overlay"][data-state="open"] {
+  animation: checkout-fade-in var(--dur-sheet) var(--curve-drawer) both;
+}
+
+[data-slot="sheet-content"][data-state="closed"],
+[data-slot="sheet-overlay"][data-state="closed"] {
+  animation: checkout-fade-out var(--dur-step) var(--curve-drawer) both;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-slot="sheet-content"][data-side="right"][data-state="open"] {
+    animation-name: sheet-from-right;
+  }
+
+  [data-slot="sheet-content"][data-side="right"][data-state="closed"] {
+    animation-name: sheet-to-right;
+  }
+
+  [data-slot="sheet-content"][data-side="bottom"][data-state="open"] {
+    animation-name: sheet-from-bottom;
+  }
+
+  [data-slot="sheet-content"][data-side="bottom"][data-state="closed"] {
+    animation-name: sheet-to-bottom;
+  }
+}
+
+/*
+ * Reduced motion on a working screen stops movement but keeps fades (spec
+ * 0018, AC-14). The blanket rule further down cuts every animation to nothing;
+ * these name the shell's own fades so they keep their length.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="sheet-content"][data-state="open"],
+  [data-slot="sheet-overlay"][data-state="open"] {
+    animation-duration: var(--dur-sheet) !important;
+  }
+
+  [data-slot="sheet-content"][data-state="closed"],
+  [data-slot="sheet-overlay"][data-state="closed"],
+  [data-summary-float][data-state="open"] {
+    animation-duration: var(--dur-step) !important;
+  }
+
+  [data-summary-float][data-state="closed"] {
+    animation-duration: var(--dur-fast) !important;
+  }
+}
+
+/*
+ * The staff summary card floating on a phone (spec 0018, AC-10): it rises 8px
+ * and fades in over a step, and leaves faster, along the same path. Reduced
+ * motion keeps only the fade. The component unmounts it once it has left.
+ */
+@keyframes summary-rise {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+@keyframes summary-sink {
+  to {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+[data-summary-float][data-state="open"] {
+  animation: checkout-fade-in var(--dur-step) var(--curve-out) both;
+}
+
+[data-summary-float][data-state="closed"] {
+  animation: checkout-fade-out var(--dur-fast) ease-in both;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-summary-float][data-state="open"] {
+    animation-name: summary-rise;
+  }
+
+  [data-summary-float][data-state="closed"] {
+    animation-name: summary-sink;
   }
 }
 

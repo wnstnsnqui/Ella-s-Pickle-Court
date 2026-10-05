@@ -4,12 +4,12 @@ import { describe, expect, it, vi } from "vitest";
 
 /**
  * Spec 0007: the page's shell names the page in its one heading, links back to
- * the staff schedule, and renders what it is given. The app shell and the
+ * the staff board, and renders what it is given. The app shell and the
  * staff menu have their own tests and are stood in for here.
  */
 vi.mock("@/components/app-shell", () => ({
-  AppShell: ({ children, toolbar }: { children: React.ReactNode; toolbar?: React.ReactNode }) =>
-    createElement("div", { "data-shell": true }, toolbar, children),
+  AppShell: ({ children }: { children: React.ReactNode }) =>
+    createElement("div", { "data-shell": true }, children),
 }));
 vi.mock("@/components/staff-menu", () => ({ StaffMenu: () => null }));
 
@@ -21,7 +21,7 @@ describe("SettingsShell", () => {
       createElement(SettingsShell, null, createElement("p", null, "page content")),
     );
     expect(html).toMatch(/<h1[^>]*>Settings<\/h1>/);
-    expect(html).toMatch(/<a[^>]*href="\/staff"[^>]*>.*Schedule<\/a>/);
+    expect(html).toMatch(/<a[^>]*href="\/staff"[^>]*>.*Back to the board<\/a>/);
     expect(html).toContain("<p>page content</p>");
   });
 });

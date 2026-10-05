@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { BoardCard, ClosedDayPanel } from "@/components/board-card";
+import { BoardDayHeader } from "@/components/board-day-header";
 import { cellKey } from "@/components/schedule/cell-key";
 import { CELL_VIEWS } from "@/components/schedule/cell-view";
 import { ScheduleGrid, type GridView } from "@/components/schedule/schedule-grid";
@@ -12,9 +14,10 @@ import type { ActionResult } from "@/lib/actions";
 import { cancelReservation, createReservations, updateReservation } from "@/lib/schedule/actions";
 import { closureEndOptions } from "@/lib/schedule/closure";
 import { isOwnerLevel } from "@/lib/schedule/constants";
-import type { Grid } from "@/lib/schedule/grid";
+import { closedDaysOf, type Grid } from "@/lib/schedule/grid";
 import type { StaffReservation, StaffSchedule } from "@/lib/schedule/queries";
 import { withRetry } from "@/lib/schedule/retry";
+import { formatDayHeading, todayInZone } from "@/lib/time";
 import { cn } from "@/lib/utils";
 import {
   EMPTY_SELECTION,
@@ -39,18 +42,23 @@ import { DetailsSheet } from "./details-sheet";
 import { EditSheet, type EditOutcome, type EditPatch } from "./edit-sheet";
 import { formatRange } from "./format";
 import { OnlineBookingSheet } from "./online-booking-sheet";
+import { OnlineChecksChip } from "./online-checks-chip";
 import { toCustomerFields, toCustomerPatch } from "./forms";
-import { SelectionBar } from "./selection-bar";
 import { useStaffBoard } from "./staff-schedule-context";
+import { SummaryCard } from "./summary-card";
 
 /**
  * The staff board. Spec 0005.
  *
  * A client layer over the grid spec 0003 built. Cells toggle in and out of a
- * selection, the bar turns the selection into one Book or Close court call,
+ * selection, the summary card turns the selection into one Book or Close call,
  * and a tap on a taken cell opens its row. Every write refetches the whole day
  * on return, and the selection is pruned against reality on every refetch,
  * so the board never acts on a picture it has not just checked.
+ *
+ * It wears the landing's look (spec 0018): the day, the strip and the grid in
+ * one board card, the selection in the landing's summary card beside it from
+ * 1024px and floating over it below.
  */
 
 /** How long a changed cell glows, matching `--dur-slow`. */
@@ -78,7 +86,8 @@ type SheetState =
   | { kind: "edit"; id: number; version: number };
 
 export function StaffBoard() {
-  const { schedule, refetch, subscribe, viewer, dayNavPending, checks } = useStaffBoard();
+  const { schedule, refetch, subscribe, viewer, dayNavPending, checks, pendingDate, goToDay } =
+    useStaffBoard();
   const { grid } = schedule;
 
   const [selection, setSelection] = useState<Selection>(EMPTY_SELECTION);
@@ -265,7 +274,7 @@ export function StaffBoard() {
     [grid, lockedCells, failedCells.size, activeReservations],
   );
 
-  /** One Book or Close court press: every selected run, in one statement. */
+  /** One Book or Close hours press: every selected run, in one statement. */
   const submitSet = useCallback(
     async (kind: "booking" | "closed", fields: Record<string, unknown>): Promise<SubmitOutcome> => {
       const keys = runs.flatMap((run) => run.keys);
@@ -477,60 +486,83 @@ export function StaffBoard() {
     [grid, schedule.reservations, openRow],
   );
 
+  const today = todayInZone(grid.timezone, new Date(schedule.now));
+  const day = `${grid.date === today ? "Today, " : ""}${formatDayHeading(grid.date)}`;
+  const picked = selection.size > 0 ? runs : [];
+  const summary = {
+    runs: picked,
+    day,
+    onBook: (event: React.MouseEvent<HTMLButtonElement>) => {
+      remember(event);
+      setSheet({ kind: "book" });
+    },
+    onClose: (event: React.MouseEvent<HTMLButtonElement>) => {
+      remember(event);
+      setSheet({ kind: "close" });
+    },
+    onClear: () => setSelection(EMPTY_SELECTION),
+  };
+
   return (
-    <div className="flex flex-col">
-      {grid.closed && grid.courts.length > 0 ? (
-        <div className="border-border bg-muted/40 mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed px-4 py-3">
-          <p className="text-body">
-            <span className="text-label">Closed all day.</span> The venue is not open on this day.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={(event) => {
-              remember(event);
-              setSheet({ kind: "closed-day" });
-            }}
-          >
-            Add booking
-          </Button>
-        </div>
-      ) : null}
+    <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="flex min-w-0 flex-col gap-3">
+        <BoardCard
+          header={
+            <BoardDayHeader
+              date={grid.date}
+              pendingDate={pendingDate}
+              onNavigate={goToDay}
+              timezone={grid.timezone}
+              horizonDays={schedule.horizonDays}
+              now={schedule.now}
+              closedDays={closedDaysOf(schedule.hours)}
+              allowPastPick
+              aside={<OnlineChecksChip />}
+            />
+          }
+        >
+          {grid.closed && grid.courts.length > 0 ? (
+            <ClosedDayPanel
+              action={
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={(event) => {
+                    remember(event);
+                    setSheet({ kind: "closed-day" });
+                  }}
+                  className="press h-11 rounded-full px-4"
+                >
+                  Add booking
+                </Button>
+              }
+            />
+          ) : null}
 
-      {closedAndEmpty ? null : (
-        <ScheduleGrid
-          view={view}
-          legendViews={CELL_VIEWS}
-          onSelectCell={onSelectCell}
-          selectedCells={selection}
-          pendingCells={pendingCells}
-          failedCells={failedCells}
-          changedCells={changedCells}
-          lockedCells={lockedCells}
-          cellCaptions={cellCaptions}
-          className={cn(
-            dayNavPending &&
-              "pointer-events-none opacity-50 transition-opacity motion-reduce:transition-none",
+          {closedAndEmpty ? null : (
+            <ScheduleGrid
+              view={view}
+              legendViews={CELL_VIEWS}
+              onSelectCell={onSelectCell}
+              selectedCells={selection}
+              pendingCells={pendingCells}
+              failedCells={failedCells}
+              changedCells={changedCells}
+              lockedCells={lockedCells}
+              cellCaptions={cellCaptions}
+              className={cn(
+                dayNavPending &&
+                  "pointer-events-none opacity-50 transition-opacity motion-reduce:transition-none",
+              )}
+              busy={dayNavPending}
+            />
           )}
-          busy={dayNavPending}
-        />
-      )}
+        </BoardCard>
 
-      {selection.size > 0 && runs.length > 0 ? (
-        <SelectionBar
-          runs={runs}
-          onBook={(event) => {
-            remember(event);
-            setSheet({ kind: "book" });
-          }}
-          onClose={(event) => {
-            remember(event);
-            setSheet({ kind: "close" });
-          }}
-          onClear={() => setSelection(EMPTY_SELECTION)}
-        />
-      ) : null}
+        <SummaryCard layout="floating" {...summary} />
+      </div>
+
+      <SummaryCard layout="aside" {...summary} />
 
       <ClosedDaySheet
         open={sheet.kind === "closed-day"}

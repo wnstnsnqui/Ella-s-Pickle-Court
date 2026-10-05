@@ -41,12 +41,21 @@ export const bookingPhoneSchema = z
     return z.NEVER;
   });
 
+const emailAddressSchema = z.email();
+
+/**
+ * Optional (spec 0015, AC-2, amended 2026-10-05): blank comes out as null, and
+ * one that is typed must still be a real address.
+ */
 export const bookingEmailSchema = z
   .string()
   .trim()
-  .min(1, "Enter your email.")
   .max(254, "Keep your email to 254 characters.")
-  .pipe(z.email("Enter a valid email, like you@example.com."));
+  .refine(
+    (value) => value === "" || emailAddressSchema.safeParse(value).success,
+    "Enter a valid email, like you@example.com.",
+  )
+  .transform((value) => value || null);
 
 /** The Details step (AC-2). The phone comes out normalized. */
 export const bookingDetailsSchema = z.object({

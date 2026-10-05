@@ -8,7 +8,7 @@
 export const HOLD_TURNSTILE_ACTION = "booking_hold";
 
 /** How long a hold lasts. The database decides it; the sheet only counts it down (AC-4, AC-8). */
-export const HOLD_MINUTES = 5;
+export const HOLD_MINUTES = 10;
 
 /** The screenshot types a player may choose (AC-8). */
 export const PROOF_ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;

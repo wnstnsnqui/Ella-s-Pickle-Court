@@ -45,10 +45,12 @@ export function ReportToolbar({
               href={chipHref(preset, courtId)}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "text-label rounded-full border px-3 py-1.5 transition-colors",
+                "text-label press inline-flex h-10 items-center rounded-full px-4 ring-1",
+                // The range in force reads in ink, never yellow: yellow on a
+                // working page means a pick or the next step (spec 0018, AC-4).
                 active
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "border-border bg-card hover:bg-accent",
+                  ? "bg-mark text-mark-foreground ring-mark"
+                  : "bg-card text-foreground ring-border hover:ring-input",
               )}
             >
               {REPORT_RANGE_LABELS[preset]}
@@ -58,7 +60,7 @@ export function ReportToolbar({
       </nav>
       <div className="flex items-center gap-2">
         <CourtSelect courts={courts} selectedCourtId={courtId} />
-        <Button asChild variant="outline" size="sm">
+        <Button asChild variant="outline" className="press h-10 rounded-full px-4">
           <Link href={csvHref(range, courtId)}>
             <DownloadSimpleIcon aria-hidden="true" />
             <span className="sr-only sm:not-sr-only">Download CSV</span>

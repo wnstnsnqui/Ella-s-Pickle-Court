@@ -127,7 +127,7 @@ export function EndStep({
             key={entry.value}
             className={cn(
               "border-input text-body flex min-h-11 cursor-pointer items-center gap-3 rounded-xl border px-3 py-2",
-              "has-checked:border-primary has-checked:bg-accent has-focus-visible:ring-ring/50 has-focus-visible:ring-[3px]",
+              "has-checked:border-primary has-checked:bg-accent has-focus-visible:outline-foreground has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-solid",
             )}
           >
             <input

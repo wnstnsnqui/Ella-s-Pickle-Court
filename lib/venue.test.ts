@@ -8,12 +8,14 @@ import {
   smsHref,
   VENUE_ADDRESS,
   VENUE_LOCALITY,
+  VENUE_MAPS_LABEL,
   VENUE_MAPS_URL,
   VENUE_EMAIL,
   VENUE_MESSENGER_URL,
   VENUE_PHONE_DISPLAY,
   VENUE_SMS_NUMBER,
   VENUE_STREET,
+  VENUE_TOWN_LINE,
 } from "./venue";
 
 /**
@@ -22,9 +24,11 @@ import {
  */
 
 describe("venue facts (AC-19)", () => {
-  it("keeps the confirmed values real: the street and Minglanilla, Cebu", () => {
-    expect(VENUE_STREET).toBe("Cadulawan Road, Guindaruhan");
+  it("keeps the confirmed values real: the purok, Minglanilla, Cebu and the postal code", () => {
+    expect(VENUE_STREET).toBe("Purok 13 Cadulawan");
     expect(VENUE_LOCALITY).toBe("Minglanilla, Cebu");
+    expect(VENUE_ADDRESS).toBe("Purok 13 Cadulawan, Minglanilla, Cebu 6046, Philippines");
+    expect(VENUE_MAPS_LABEL).toBe("RELLM BASKETBALL COURT");
   });
 
   it("keeps the confirmed contact channels real", () => {
@@ -48,7 +52,7 @@ describe("venue facts (AC-19)", () => {
 
   it("gives the privacy page the very same address line as the landing page", () => {
     expect(LEGAL_ADDRESS).toBe(VENUE_ADDRESS);
-    expect(VENUE_ADDRESS).toBe(`${VENUE_STREET}, ${VENUE_LOCALITY}`);
+    expect(VENUE_ADDRESS).toBe(`${VENUE_STREET}, ${VENUE_TOWN_LINE}`);
   });
 
   it("opens the venue's own Google Maps pin (AC-18)", () => {

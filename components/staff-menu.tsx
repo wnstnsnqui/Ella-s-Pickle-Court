@@ -8,10 +8,12 @@ import {
 } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 
+import { NAV_PILL } from "@/components/nav-pill";
 import { AccountButton, SignOutButton } from "@/components/staff-controls";
 import { Button } from "@/components/ui/button";
 import { canManageStaffRoles, isOwnerLevel } from "@/lib/schedule/constants";
 import { currentStaff } from "@/lib/staff";
+import { cn } from "@/lib/utils";
 
 /**
  * What a signed in person sees in the shell's `staff` slot. Spec 0004, AC-4,
@@ -36,7 +38,7 @@ export async function StaffMenu() {
     return (
       <>
         <StaffNotice icon={WarningCircleIcon}>Could not load your account</StaffNotice>
-        <SignOutButton className="order-last" />
+        <SignOutButton className={cn("order-last", NAV_PILL)} />
       </>
     );
   }
@@ -45,7 +47,7 @@ export async function StaffMenu() {
     return (
       <>
         <StaffNotice icon={UserMinusIcon}>Your account is switched off</StaffNotice>
-        <SignOutButton className="order-last" />
+        <SignOutButton className={cn("order-last", NAV_PILL)} />
       </>
     );
   }
@@ -53,7 +55,7 @@ export async function StaffMenu() {
   return (
     <>
       {/* The way to the staff board from anywhere else (spec 0005, AC-1). */}
-      <Button asChild variant="ghost" size="sm" title="Schedule">
+      <Button asChild variant="ghost" className={NAV_PILL} title="Schedule">
         <Link href="/staff">
           <CalendarDotsIcon aria-hidden="true" />
           <span>Schedule</span>
@@ -63,13 +65,13 @@ export async function StaffMenu() {
           (spec 0008, AC-1; spec 0007, AC-1; spec 0012, AC-12). */}
       {isOwnerLevel(current.staff.role) ? (
         <>
-          <Button asChild variant="ghost" size="sm" title="Reports">
+          <Button asChild variant="ghost" className={NAV_PILL} title="Reports">
             <Link href="/staff/reports">
               <ChartBarIcon aria-hidden="true" />
               <span>Reports</span>
             </Link>
           </Button>
-          <Button asChild variant="ghost" size="sm" title="Settings">
+          <Button asChild variant="ghost" className={NAV_PILL} title="Settings">
             <Link href="/staff/settings">
               <SlidersHorizontalIcon aria-hidden="true" />
               <span>Settings</span>
@@ -79,7 +81,7 @@ export async function StaffMenu() {
       ) : null}
       {/* Owner and superadmin see the way to manage everyone's role. Spec 0012, AC-12. */}
       {canManageStaffRoles(current.staff.role) ? (
-        <Button asChild variant="ghost" size="sm" title="Users">
+        <Button asChild variant="ghost" className={NAV_PILL} title="Users">
           <Link href="/staff/admin/users">
             <UsersIcon aria-hidden="true" />
             <span>Users</span>
@@ -92,7 +94,7 @@ export async function StaffMenu() {
   );
 }
 
-/** A short line on the brand band, with an icon so colour is never the only signal. */
+/** A short line in the header, with an icon so colour is never the only signal. */
 function StaffNotice({
   icon: Icon,
   children,

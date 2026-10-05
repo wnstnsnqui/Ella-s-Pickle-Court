@@ -6,7 +6,8 @@ import { describe, expect, it } from "vitest";
 import { ContrastAudit } from "./contrast-audit";
 
 /**
- * Spec 0003, AC-4: every colour pair meets WCAG AA, measured in the browser. The
+ * Spec 0003, AC-4, as spec 0018 AC-16 amends it: every colour pair meets WCAG
+ * AA, measured in the browser. The
  * measuring needs a real stylesheet and `getComputedStyle`, so the ratios
  * themselves are `/check verify` work on `/design`. What can be pinned here
  * is that the component survives a server render, and that the pairs it measures
@@ -44,10 +45,29 @@ describe("ContrastAudit", () => {
     }
   });
 
-  it("covers every state role, its text and its boundary (AC-4, AC-5)", () => {
+  it("measures every state role's text on its own fill (AC-4, AC-5, spec 0018 AC-16)", () => {
     for (const state of ["available", "booked", "unavailable", "outofhours", "selected"]) {
-      expect(source).toContain(`"--state-${state}-fg"`);
-      expect(source).toContain(`"--state-${state}-border"`);
+      expect(source).toMatch(new RegExp(`fg: "--state-${state}-fg",\\s*bg: "--state-${state}"`));
+    }
+  });
+
+  it("no longer holds a tile's edge to the page, only Selected's to its fill (spec 0018, AC-16)", () => {
+    for (const state of ["available", "booked", "unavailable", "outofhours"]) {
+      expect(source).not.toContain(`"--state-${state}-border"`);
+    }
+    expect(source).toMatch(/fg: "--state-selected-border",\s*bg: "--state-selected"/);
+  });
+
+  it("measures the ink button and the header's glass at its worst, over ink (spec 0018, AC-16)", () => {
+    expect(source).toMatch(/fg: "--mark-foreground", bg: "--mark"/);
+    expect(source).toMatch(/fg: "--foreground",\s*bg: "--background",\s*glassOver: "--mark"/);
+  });
+
+  it("measures the ink focus look on the page, a card and the muted page (spec 0018, AC-1, AC-16)", () => {
+    for (const bg of ["--background", "--card", "--muted"]) {
+      expect(source).toMatch(
+        new RegExp(`fg: "--foreground",\\s*bg: "${bg}",\\s*need: "boundary",\\s*what: "Ink focus`),
+      );
     }
   });
 });

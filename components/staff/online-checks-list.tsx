@@ -4,6 +4,7 @@ import {
   ArrowUUpLeftIcon,
   CaretRightIcon,
   ClockIcon,
+  GlobeIcon,
   MagnifyingGlassIcon,
   SpinnerIcon,
   WarningIcon,
@@ -60,6 +61,7 @@ export function OnlineChecksList({
 
   return (
     <BoardSheet
+      icon={GlobeIcon}
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}
@@ -224,7 +226,7 @@ function Section({
                 <button
                   type="button"
                   onClick={() => onChoose(item.bookingId)}
-                  className="border-border bg-card hover:bg-muted focus-visible:ring-ring/50 flex min-h-11 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors duration-(--dur-fast) outline-none focus-visible:ring-[3px] motion-reduce:transition-none"
+                  className="border-border bg-card hover:bg-muted focus-visible:outline-foreground flex min-h-11 w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition-colors duration-(--dur-fast) outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid motion-reduce:transition-none"
                 >
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex flex-wrap items-baseline justify-between gap-x-3">

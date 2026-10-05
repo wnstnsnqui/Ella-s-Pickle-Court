@@ -116,7 +116,7 @@ function type(label: string, value: string) {
 async function fillDetails() {
   type("Name", "Ana Reyes");
   type("Mobile number", "0917 123 4567");
-  type("Email", "ana@example.com");
+  type("Email (optional)", "ana@example.com");
   fireEvent.click(button("Next"));
   await heading("Booking rules");
 }
@@ -167,7 +167,8 @@ describe("Details step", () => {
 
     expect(await screen.findByText("Enter your name.")).toBeTruthy();
     expect(screen.getByText("Enter your mobile number.")).toBeTruthy();
-    expect(screen.getByText("Enter your email.")).toBeTruthy();
+    // The email is optional (amended 2026-10-05), so a blank one is no mistake.
+    expect(screen.getByLabelText("Email (optional)").getAttribute("aria-invalid")).toBe("false");
     const name = screen.getByLabelText("Name");
     expect(name.getAttribute("aria-invalid")).toBe("true");
     expect(document.activeElement).toBe(name);
@@ -185,11 +186,23 @@ describe("Details step", () => {
     expect(described).toContain("Enter your name.");
   });
 
+  it("refuses an email that is typed but is not an address (AC-2)", async () => {
+    renderCard();
+    type("Name", "Ana Reyes");
+    type("Mobile number", "0917 123 4567");
+    type("Email (optional)", "ana@");
+
+    fireEvent.click(button("Next"));
+
+    expect(await screen.findByText("Enter a valid email, like you@example.com.")).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Booking rules" })).toBeNull();
+  });
+
   it("refuses a phone that is not a Philippine mobile (AC-2)", async () => {
     renderCard();
     type("Name", "Ana Reyes");
     type("Mobile number", "12345");
-    type("Email", "ana@example.com");
+    type("Email (optional)", "ana@example.com");
 
     fireEvent.click(button("Next"));
 
@@ -218,7 +231,9 @@ describe("Details step", () => {
     expect((screen.getByLabelText("Mobile number") as HTMLInputElement).value).toBe(
       "0917 123 4567",
     );
-    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("ana@example.com");
+    expect((screen.getByLabelText("Email (optional)") as HTMLInputElement).value).toBe(
+      "ana@example.com",
+    );
   });
 
   it("just closes on Cancel before any hold, releasing nothing (AC-27)", () => {
@@ -305,6 +320,21 @@ describe("the hold", () => {
       consent: { rules: true, terms: true, privacy: true },
       turnstileToken: "token-1",
     });
+  });
+
+  it("holds with a blank email when the player leaves it out (AC-2, amended 2026-10-05)", async () => {
+    renderCard();
+    type("Name", "Ana Reyes");
+    type("Mobile number", "0917 123 4567");
+    fireEvent.click(button("Next"));
+    await heading("Booking rules");
+    tickAll();
+    giveToken();
+
+    fireEvent.click(button("Next: Pay"));
+    await heading("Pay by GCash");
+
+    expect(actions.holdOnlineBooking.mock.calls[0][0]).toMatchObject({ email: "" });
   });
 
   it("asks the widget for a fresh token after the hold, because a token is single use (AC-19)", async () => {

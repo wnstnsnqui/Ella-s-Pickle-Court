@@ -18,10 +18,10 @@ import { addDays, calendarDateToLocalDate, localDateToCalendarDate, todayInZone 
  * content; the same bottom sheet every other board control uses below that,
  * where an anchored popup has nowhere good to point on a touch screen.
  *
- * A pick hands the day straight to the `navigate` callback `DayNav` passes
- * in, the same transition-wrapped push the prev/next arrows use, so a slow
- * pick disables and spins the trigger and dims the board exactly like they
- * do; the server still validates every date exactly as it does today. The
+ * A pick hands the day straight to the `navigate` callback the board's day
+ * header passes in, the same read a tap on the day strip starts, so a slow
+ * pick spins the trigger and dims the board; the server still validates every
+ * date exactly as it does today. The
  * disabled bound and the two reasons below are the client side mirror of
  * `resolveDate` (`lib/schedule/queries.ts`), so a day disabled here and a day
  * `resolveDate` refuses never disagree.
@@ -77,6 +77,10 @@ export function disabledReason(
   return undefined;
 }
 
+/** Round, at the end of the day strip (spec 0018, AC-8), and big enough for a thumb. */
+const TRIGGER =
+  "press size-11 shrink-0 rounded-full aria-disabled:pointer-events-none aria-disabled:opacity-50";
+
 export function DatePicker({
   date,
   timezone,
@@ -99,7 +103,7 @@ export function DatePicker({
    * to review or add what is on it.
    */
   closedDays?: readonly number[];
-  /** Pushes a day the same way the prev/next arrows do, transition and all. */
+  /** Reads the picked day, the same way a tap on the day strip does. */
   navigate: (to: string) => void;
   /** A pick from this calendar is what's on its way: the trigger spins. */
   pending?: boolean;
@@ -168,7 +172,7 @@ export function DatePicker({
             aria-label="Pick a date"
             aria-disabled={busy}
             aria-busy={pending}
-            className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+            className={TRIGGER}
           >
             {icon}
           </Button>
@@ -189,12 +193,13 @@ export function DatePicker({
         aria-label="Pick a date"
         aria-disabled={busy}
         aria-busy={pending}
-        className="aria-disabled:pointer-events-none aria-disabled:opacity-50"
+        className={TRIGGER}
         onClick={() => !busy && setOpen(true)}
       >
         {icon}
       </Button>
       <BoardSheet
+        icon={CalendarDotsIcon}
         open={open}
         onOpenChange={setOpen}
         title="Pick a date"

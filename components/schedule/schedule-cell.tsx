@@ -8,7 +8,8 @@ import { cn } from "@/lib/utils";
 import { CELL_VIEW_ICON, CELL_VIEW_NAME, type CellView } from "./cell-view";
 
 /**
- * One hour on one court. Spec 0003, AC-5 and AC-8.
+ * One hour on one court. Spec 0003, AC-5 and AC-8, in the landing's tile look
+ * (spec 0018, AC-6).
  *
  * The cell is the grid's focus target rather than a button inside it, which is
  * what the ARIA grid pattern asks for: one tab stop for the whole grid, arrow
@@ -17,36 +18,43 @@ import { CELL_VIEW_ICON, CELL_VIEW_NAME, type CellView } from "./cell-view";
  *
  * The focus ring is inset on purpose. The time column is sticky and paints over
  * its neighbours, so a ring drawn outside the cell would be clipped in half the
- * moment the grid is scrolled sideways.
+ * moment the grid is scrolled sideways. The outline is never transitioned, so an
+ * arrow key move lands at once. `outline-none` sets Tailwind's outline style
+ * variable to none and `outline-2` reads it, so focus names `outline-solid` too.
  *
- * Two additions from spec 0005: a `caption` under the icon, which the staff
- * board fills with the customer's name (AC-2), and a `locked` variant that dims
- * a slot that has already ended for a staff member and adds a lock beside the
- * icon while keeping the view's own label (AC-11). Locked is a layer over the
- * view, not an eighth view, because the cell still *is* Booked or Available.
+ * The look is the landing's tile: the icon and a word side by side, a soft edge
+ * on Available that firms up under a fine pointer, no visible edge on Booked,
+ * Unavailable, Outside opening hours or Saving, and Selected outlined and lifted.
+ * The icon and the word carry the state, held to 3:1 and 4.5:1 on the tile's own
+ * fill (spec 0018, AC-16), so the edge no longer has to.
+ *
+ * Two additions from spec 0005: a `caption`, which the staff board fills with
+ * the customer's name (AC-2) in place of the view's word, and a `locked` variant
+ * that dims a slot that has already ended for a staff member and adds a lock
+ * beside the icon while keeping the view's own label (AC-11). Locked is a layer
+ * over the view, not an eighth view, because the cell still *is* Booked or
+ * Available.
  */
 const cell = cva(
   [
-    "relative grid h-row place-items-center gap-0.5 rounded-cell border text-cell tabular-nums select-none",
-    "scroll-ml-time-col transition-[background-color,border-color,color,transform] duration-(--dur-fast) ease-out",
-    "outline-none focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-ring",
+    "relative flex h-row min-w-0 items-center justify-center gap-1.5 rounded-cell border px-2 text-cell tabular-nums select-none",
+    "scroll-ml-time-col transition-[scale,background-color,border-color,color] duration-150 ease-out-strong",
+    "outline-none focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-[-3px] focus-visible:outline-ring",
     "data-[changed=true]:animate-cell-changed",
   ],
   {
     variants: {
       view: {
-        available: "bg-state-available text-state-available-fg border-state-available-border",
-        booked: "bg-state-booked text-state-booked-fg border-state-booked-border",
-        unavailable:
-          "bg-state-unavailable text-state-unavailable-fg border-state-unavailable-border",
-        "out-of-hours":
-          "bg-state-outofhours text-state-outofhours-fg border-state-outofhours-border",
-        selected: "bg-state-selected text-state-selected-fg border-state-selected-border border-2",
-        saving: "bg-muted text-muted-foreground border-border",
+        available: "bg-state-available text-state-available-fg border-state-available-border/30",
+        booked: "bg-state-booked text-state-booked-fg border-transparent",
+        unavailable: "bg-state-unavailable text-state-unavailable-fg border-transparent",
+        "out-of-hours": "bg-state-outofhours text-state-outofhours-fg border-transparent",
+        selected: "bg-state-selected text-state-selected-fg border-state-selected-border shadow-sm",
+        saving: "bg-muted text-muted-foreground border-transparent",
         failed: "bg-destructive text-destructive-foreground border-destructive",
       },
       interactive: {
-        true: "cursor-pointer hover:brightness-[0.97] active:scale-[0.98] active:brightness-95",
+        true: "cursor-pointer active:scale-[0.96]",
         false: "cursor-default",
       },
       locked: {
@@ -58,6 +66,15 @@ const cell = cva(
         false: "",
       },
     },
+    compoundVariants: [
+      {
+        // Only a tile something can act on answers a hover, and only to a
+        // pointer that can hover precisely: a tap never leaves a stuck edge.
+        view: "available",
+        interactive: true,
+        className: "pointer-fine:hover:border-state-available-border",
+      },
+    ],
     defaultVariants: { interactive: false, locked: false, past: false },
   },
 );
@@ -88,8 +105,13 @@ export type ScheduleCellProps = {
   focused?: boolean;
   /** True while this cell's state has just changed under the reader (AC-11). */
   changed?: boolean;
-  /** One short line under the icon, truncated: the customer's name on a Booked cell. */
+  /** The word beside the icon, in place of the view's own: the customer's name on a Booked cell. Always shown. */
   caption?: string | CellCaption;
+  /**
+   * The view's word shows at every width; otherwise only from 640px. The
+   * landing's rule: true with two courts or fewer (spec 0018, AC-6).
+   */
+  roomy?: boolean;
   /** The slot has ended and this person may not change it (spec 0005, AC-11). */
   locked?: boolean;
   /** The slot has ended, read only: dimmed, no lock icon (spec 0006, AC-4). */
@@ -106,6 +128,7 @@ export function ScheduleCell({
   caption,
   locked = false,
   past = false,
+  roomy = false,
   onSelect,
   className,
   ...props
@@ -137,19 +160,22 @@ export function ScheduleCell({
       className={cn(cell({ view, interactive, locked, past }), className)}
       {...props}
     >
-      <span className="flex items-center gap-1">
-        <Icon aria-hidden="true" className={cn("size-4", view === "saving" && "animate-spin")} />
-        {locked ? <LockIcon aria-hidden="true" className="size-3" /> : null}
-      </span>
+      <Icon
+        aria-hidden="true"
+        weight="bold"
+        className={cn("size-4 shrink-0", view === "saving" && "animate-spin")}
+      />
+      {locked ? <LockIcon aria-hidden="true" weight="bold" className="size-3 shrink-0" /> : null}
       {text ? (
-        <span
-          aria-hidden="true"
-          className="text-caption flex w-full items-center justify-center gap-1 px-1"
-        >
-          {online ? <GlobeIcon className="size-3 shrink-0" /> : null}
+        <span aria-hidden="true" className="flex min-w-0 items-center gap-1">
+          {online ? <GlobeIcon weight="bold" className="size-3 shrink-0" /> : null}
           <span className="truncate">{word ? `${word} · ${text}` : text}</span>
         </span>
-      ) : null}
+      ) : (
+        <span aria-hidden="true" className={cn("min-w-0 truncate", !roomy && "hidden sm:inline")}>
+          {CELL_VIEW_NAME[view]}
+        </span>
+      )}
       {/* The cell's accessible name, built from its contents: what it is, then how it reads. */}
       <span className="sr-only">
         {label}. {CELL_VIEW_NAME[view]}

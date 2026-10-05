@@ -1,6 +1,7 @@
-import { XIcon } from "@phosphor-icons/react/ssr";
+import { CalendarCheckIcon, XIcon } from "@phosphor-icons/react/ssr";
 import Link from "next/link";
 
+import { SectionCard } from "@/components/section-card";
 import { firstName } from "@/components/staff/format";
 import { Button } from "@/components/ui/button";
 import type { DayReservation } from "@/lib/report/queries";
@@ -18,21 +19,20 @@ export function DaySection({
   closeHref: string;
 }) {
   return (
-    <section
-      aria-labelledby="day-section-heading"
-      className="border-border bg-card rounded-lg border p-4"
-    >
-      <div className="mb-3 flex items-center justify-between">
-        <h2 id="day-section-heading" className="text-title">
-          {formatDayHeading(day)}
-        </h2>
-        <Button asChild variant="ghost" size="sm">
+    <SectionCard
+      id="day-section"
+      icon={CalendarCheckIcon}
+      title={formatDayHeading(day)}
+      description="Every booking, closure and cancellation on this day."
+      action={
+        <Button asChild variant="ghost" className="press h-10 rounded-full px-3">
           <Link href={closeHref}>
-            <XIcon aria-hidden="true" />
+            <XIcon aria-hidden="true" weight="bold" />
             Close
           </Link>
         </Button>
-      </div>
+      }
+    >
       {reservations.length === 0 ? (
         <p className="text-body text-muted-foreground">Nothing on the schedule this day.</p>
       ) : (
@@ -78,6 +78,6 @@ export function DaySection({
           })}
         </ul>
       )}
-    </section>
+    </SectionCard>
   );
 }

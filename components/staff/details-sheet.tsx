@@ -93,6 +93,7 @@ function RowSheet({
 
   return (
     <BoardSheet
+      icon={CalendarCheckIcon}
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}
@@ -153,6 +154,7 @@ function OnlineRowSheet({
 
   return (
     <BoardSheet
+      icon={CalendarCheckIcon}
       open={open}
       onOpenChange={(next) => !controller.pending && onOpenChange(next)}
       returnFocusTo={returnFocusTo}

@@ -1,5 +1,7 @@
 "use client";
 
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
+
 import {
   Sheet,
   SheetContent,
@@ -13,11 +15,15 @@ import { cn } from "@/lib/utils";
 import { useMediaQuery, WIDE_QUERY } from "./use-media-query";
 
 /**
- * Every board sheet, in one shape. Spec 0005, AC-15.
+ * Every board sheet, in one shape. Spec 0005, AC-15, floating since spec
+ * 0018, AC-11.
  *
  * From the bottom on a phone, so the thumb reaches the form; from the right
  * from 768 pixels, so the grid stays beside it and the person can still see
- * the hours they picked. The body scrolls inside the sheet, never the page.
+ * the hours they picked. Either way it floats 8px in from the edges over the
+ * checkout card's soft dim. The body scrolls inside the sheet, never the page.
+ * Its header is the checkout card's: a duotone icon in the icon chip, the
+ * title and a muted line; its footer buttons are full height and press.
  *
  * The sheets open from code, not from a trigger element, so Radix has nothing
  * to hand focus back to on close. `returnFocusTo` is that element: the cell or
@@ -26,6 +32,7 @@ import { useMediaQuery, WIDE_QUERY } from "./use-media-query";
 export function BoardSheet({
   open,
   onOpenChange,
+  icon: Icon,
   title,
   description,
   children,
@@ -36,6 +43,8 @@ export function BoardSheet({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** The sheet's own icon, drawn duotone in the header's chip (spec 0018, AC-11). */
+  icon: PhosphorIcon;
   title: string;
   description: string;
   children: React.ReactNode;
@@ -82,22 +91,30 @@ export function BoardSheet({
           }
         }}
         className={cn(
-          "gap-0",
-          wide
-            ? "w-full sm:max-w-md"
-            : compact
-              ? "h-fit max-h-[85vh] rounded-t-lg"
-              : "max-h-[88vh] rounded-t-lg",
+          // A sheet portals outside the shell, so it names press for its buttons itself.
+          "[&_[data-slot=button]]:press gap-0",
+          wide ? "" : compact ? "h-fit max-h-[85dvh]" : "max-h-[88dvh]",
         )}
       >
-        <SheetHeader className="pr-16">
-          <SheetTitle className="text-title">{title}</SheetTitle>
-          <SheetDescription className="text-caption">{description}</SheetDescription>
+        <SheetHeader className="flex-row items-center gap-3 p-5 pr-16">
+          <span aria-hidden="true" className="chip-icon">
+            <Icon weight="duotone" className="size-6" />
+          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <SheetTitle className="text-title">{title}</SheetTitle>
+            <SheetDescription className="text-caption text-muted-foreground">
+              {description}
+            </SheetDescription>
+          </div>
         </SheetHeader>
-        <div className={cn("min-h-0 overflow-y-auto px-4 pb-4", compact ? "" : "flex-1")}>
+        <div className={cn("min-h-0 overflow-y-auto px-5 pb-5", compact ? "" : "flex-1")}>
           {children}
         </div>
-        {footer ? <SheetFooter className="border-border border-t">{footer}</SheetFooter> : null}
+        {footer ? (
+          <SheetFooter className="border-border [&_[data-slot=button]]:press border-t p-4 sm:p-5 [&_[data-slot=button]]:h-12">
+            {footer}
+          </SheetFooter>
+        ) : null}
       </SheetContent>
     </Sheet>
   );

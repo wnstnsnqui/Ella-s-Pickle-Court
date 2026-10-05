@@ -89,6 +89,7 @@ export function SignInForm({
                     autoCorrect="off"
                     spellCheck={false}
                     autoFocus
+                    className="h-11"
                   />
                 </FormControl>
                 <FormMessage />
@@ -102,7 +103,12 @@ export function SignInForm({
               <FormItem>
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input {...field} type="password" autoComplete="current-password" />
+                  <Input
+                    {...field}
+                    type="password"
+                    autoComplete="current-password"
+                    className="h-11"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -60,7 +60,13 @@ export function ResetPasswordForm({ token, username }: { token: string; username
       <form noValidate className="flex flex-col gap-4" onSubmit={form.handleSubmit(submit)}>
         <div className="flex flex-col gap-2">
           <Label htmlFor="reset-username">Username</Label>
-          <Input id="reset-username" value={username ?? "No username on file"} readOnly disabled />
+          <Input
+            id="reset-username"
+            value={username ?? "No username on file"}
+            readOnly
+            disabled
+            className="h-11"
+          />
         </div>
         <FormField
           control={form.control}
@@ -69,7 +75,13 @@ export function ResetPasswordForm({ token, username }: { token: string; username
             <FormItem>
               <FormLabel>New password</FormLabel>
               <FormControl>
-                <Input {...field} type="password" autoComplete="new-password" autoFocus />
+                <Input
+                  {...field}
+                  type="password"
+                  autoComplete="new-password"
+                  autoFocus
+                  className="h-11"
+                />
               </FormControl>
               <FormDescription>At least {PASSWORD_MIN_LENGTH} characters.</FormDescription>
               <FormMessage />
@@ -83,7 +95,7 @@ export function ResetPasswordForm({ token, username }: { token: string; username
             <FormItem>
               <FormLabel>New password again</FormLabel>
               <FormControl>
-                <Input {...field} type="password" autoComplete="new-password" />
+                <Input {...field} type="password" autoComplete="new-password" className="h-11" />
               </FormControl>
               <FormMessage />
             </FormItem>

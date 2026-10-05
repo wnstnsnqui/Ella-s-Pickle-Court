@@ -18,7 +18,11 @@ export function ReportError({ message }: { message: string }) {
       <AlertTitle>The report did not load</AlertTitle>
       <AlertDescription>
         <p>{message}</p>
-        <Button variant="outline" size="sm" className="mt-2" onClick={() => router.refresh()}>
+        <Button
+          variant="outline"
+          className="press mt-2 h-11 rounded-full"
+          onClick={() => router.refresh()}
+        >
           <ArrowsClockwiseIcon aria-hidden="true" />
           Try again
         </Button>

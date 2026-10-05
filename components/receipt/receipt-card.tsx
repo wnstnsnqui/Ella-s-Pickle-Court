@@ -12,14 +12,14 @@ import {
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState, type Ref } from "react";
 
-import { Fact, Facts, InfoCard, SelectedCourts } from "@/components/landing/checkout-selection";
+import { Fact, SelectedCourts } from "@/components/landing/checkout-selection";
 import { PRESS } from "@/components/landing/press";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { VENUE_ADDRESS, VENUE_NAME, VENUE_PHONE_DISPLAY } from "@/lib/venue";
 
 import { receiptImageModel, renderReceiptImage, saveReceiptImage } from "./receipt-image";
-import type { ReceiptView } from "./receipt-view";
+import type { ReceiptFact, ReceiptView } from "./receipt-view";
 
 /**
  * The receipt, as both the checkout's last step and `/booking` show it (spec
@@ -125,7 +125,7 @@ function CodeBlock({ code, logLabel }: { code: string; logLabel: string }) {
   }
 
   return (
-    <div className="bg-muted print:ring-border flex flex-col items-center gap-3 rounded-2xl p-5 text-center print:ring-1">
+    <div className="bg-muted print:ring-border flex flex-col items-center gap-2 rounded-2xl p-4 text-center print:ring-1">
       <p className="text-caption text-muted-foreground">Your booking code</p>
       <p className="text-display tracking-wider tabular-nums">{code}</p>
       <Button
@@ -148,6 +148,24 @@ function CodeBlock({ code, logLabel }: { code: string; logLabel: string }) {
   );
 }
 
+/** A small caps label over its facts, one section of the shared card. */
+function FactGroup({ title, facts }: { title: string; facts: readonly ReceiptFact[] }) {
+  return (
+    <section aria-label={title} className="flex flex-col gap-1.5 px-4 py-3">
+      <h3 className="text-caption text-muted-foreground font-medium tracking-wider uppercase">
+        {title}
+      </h3>
+      <dl className="flex flex-col gap-1.5">
+        {facts.map((fact) => (
+          <Fact key={fact.term} term={fact.term}>
+            {fact.value}
+          </Fact>
+        ))}
+      </dl>
+    </section>
+  );
+}
+
 export function ReceiptCard({
   view,
   headingRef,
@@ -162,7 +180,7 @@ export function ReceiptCard({
   const checkout = view.source === "checkout";
   const badge = BADGE[view.status];
   return (
-    <article data-receipt="" aria-label="Receipt" className="flex flex-col gap-5">
+    <article data-receipt="" aria-label="Receipt" className="flex flex-col gap-3">
       <PrintVenue />
       <StatusBlock view={view} headingRef={headingRef} printOnly={checkout} />
       <CodeBlock code={view.code} logLabel={checkout ? "checkout" : "booking lookup"} />
@@ -174,29 +192,13 @@ export function ReceiptCard({
         amount={view.amount}
       />
 
-      {view.customer.length > 0 ? (
-        <InfoCard title="Customer">
-          <Facts>
-            {view.customer.map((fact) => (
-              <Fact key={fact.term} term={fact.term}>
-                {fact.value}
-              </Fact>
-            ))}
-          </Facts>
-        </InfoCard>
-      ) : null}
+      {/* Customer and Payment share one card, so the receipt fits a phone with less scrolling. */}
+      <div className="ring-border divide-border text-body flex flex-col divide-y rounded-2xl ring-1">
+        {view.customer.length > 0 ? <FactGroup title="Customer" facts={view.customer} /> : null}
+        <FactGroup title="Payment" facts={view.payment} />
+      </div>
 
-      <InfoCard title="Payment">
-        <Facts>
-          {view.payment.map((fact) => (
-            <Fact key={fact.term} term={fact.term}>
-              {fact.value}
-            </Fact>
-          ))}
-        </Facts>
-      </InfoCard>
-
-      <div className="ring-border flex items-center justify-between gap-4 rounded-2xl p-4 ring-1">
+      <div className="ring-border flex items-center justify-between gap-4 rounded-2xl px-4 py-3 ring-1">
         <div className="flex flex-col">
           <span className="text-caption text-muted-foreground">{view.totalLabel}</span>
           <span className="text-title tabular-nums">{view.total}</span>
@@ -222,7 +224,7 @@ export function ReceiptCard({
           ))
         : null}
 
-      {children ? <div className="flex flex-col gap-3 print:hidden">{children}</div> : null}
+      {children ? <div className="flex flex-col gap-2 print:hidden">{children}</div> : null}
     </article>
   );
 }

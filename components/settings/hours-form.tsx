@@ -40,7 +40,7 @@ import {
   toHoursValues,
   type HoursFormValues,
 } from "./forms";
-import { SettingsSection } from "./settings-section";
+import { SectionCard } from "@/components/section-card";
 
 /**
  * What a save hands back: nothing, per field issues, or the number of future
@@ -89,7 +89,7 @@ export function HoursForm({
   const weekError = (form.formState.errors.days as { message?: string } | undefined)?.message;
 
   return (
-    <SettingsSection
+    <SectionCard
       id="hours"
       icon={ClockIcon}
       title="Opening hours"
@@ -176,12 +176,18 @@ export function HoursForm({
                 variant="ghost"
                 disabled={pending}
                 onClick={() => form.reset(toHoursValues(settings))}
+                className="press h-12 rounded-full px-4"
               >
                 <ArrowCounterClockwiseIcon aria-hidden="true" />
                 Undo changes
               </Button>
             ) : null}
-            <Button type="submit" disabled={!isDirty || pending}>
+            <Button
+              type="submit"
+              variant="ink"
+              disabled={!isDirty || pending}
+              className="press h-12 px-5"
+            >
               {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
               {pending ? "Saving" : "Save hours"}
             </Button>
@@ -208,7 +214,7 @@ export function HoursForm({
           if (outside) void submit(outside.values, true);
         }}
       />
-    </SettingsSection>
+    </SectionCard>
   );
 }
 

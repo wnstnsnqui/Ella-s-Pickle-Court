@@ -3,6 +3,8 @@
 **Date**: 2026-09-09
 **Status**: Accepted
 
+> _Amended 2026-10-04 by [spec 0018](../0018-landing-look-everywhere/index.md): every `AppShell` screen and both boards take the landing page's look (glass header in place of the yellow band, `surface-card` recipes, the landing's tiles, legend, day strip and live pill, floating sheets). AC-4 no longer holds grid tile borders to 3:1 (spec 0018 AC-16); the character, colour roles for the band and the `AppShell` description below are superseded where they differ. The grid's keyboard, ARIA, state vocabulary, phone and accessibility contract here is unchanged._
+
 ## Summary
 
 Every screen in this product is the same grid: time down the side, a column per court, each cell reading Booked, Available or Unavailable. This spec settles the visual language that grid is built from, and ships the components that carry it. The look is the shadcn maia preset (a clean white canvas, stone greys, a sunny yellow header band and buttons, deep amber wherever yellow would be too pale to read, Outfit throughout, Phosphor icons, the cell states in teal and tangerine), states are told apart by an icon as well as a color, and interactive pieces come from shadcn/ui so the accessible behaviour is not hand rolled. The board is light only. Tokens in `app/globals.css` are the one source of truth, `docs/design.md` explains them for a person, and a `/design` page shows every component and state and measures every contrast pair live, so a contrast failure is something you can see rather than something you hope about.

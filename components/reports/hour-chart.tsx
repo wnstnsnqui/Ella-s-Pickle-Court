@@ -1,11 +1,14 @@
 "use client";
 
+import { ClockIcon } from "@phosphor-icons/react";
 import { Bar, BarChart, CartesianGrid, Tooltip, XAxis, YAxis } from "recharts";
 
 import { formatSlotLabel } from "@/lib/time";
 import type { HourBucket } from "@/lib/report/buckets";
 
 import { ChartTooltip } from "./chart-tooltip";
+import { SectionCard } from "@/components/section-card";
+
 import { HiddenDataTable } from "./hidden-data-table";
 
 /** Booked hours by hour of day. Spec 0008, AC-6 and AC-7. */
@@ -28,8 +31,7 @@ export function HourChart({
   });
 
   return (
-    <div className="border-border bg-card rounded-lg border p-4">
-      <h2 className="text-title mb-3">Booked hours by hour of day</h2>
+    <SectionCard id="by-hour" icon={ClockIcon} title="Booked hours by hour of day">
       <div aria-hidden="true">
         <BarChart data={data} width="100%" height={260} responsive accessibilityLayer={false}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
@@ -52,6 +54,6 @@ export function HourChart({
           `${row.utilisationPercent}%`,
         ])}
       />
-    </div>
+    </SectionCard>
   );
 }

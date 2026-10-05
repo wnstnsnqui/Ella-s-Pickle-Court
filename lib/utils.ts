@@ -9,6 +9,10 @@ import { createCn } from "cn/config";
  * The merger only knows Tailwind's own scales. Taught the project's six type
  * steps, `text-label` reads as a font size rather than a colour, so it survives
  * next to `text-muted-foreground` instead of one silently dropping the other.
+ *
+ * Taught the `press` recipe (spec 0018, `app/globals.css`) too: it sets the
+ * transition, so `press` on a `Button` drops the button's own `transition-all`
+ * rather than leaving the two to fight over CSS order.
  */
 export const cn = createCn({
   extend: {
@@ -16,6 +20,7 @@ export const cn = createCn({
       "font-size": [
         { text: ["hero", "headline", "display", "title", "body", "label", "cell", "caption"] },
       ],
+      transition: ["press"],
     },
   },
 });

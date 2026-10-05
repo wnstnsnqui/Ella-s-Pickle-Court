@@ -66,6 +66,12 @@ export type ScheduleGridProps = {
 /** How far Page Up and Page Down travel: roughly a phone screen of rows. */
 const PAGE_ROWS = 7;
 
+/**
+ * The pinned time column. It paints the card's white over the 6px gap to its
+ * right too, so a tile scrolled sideways under it never peeks through.
+ */
+const TIME_COLUMN = "bg-card w-time-col sticky left-0 shadow-[0.375rem_0_0_var(--card)]";
+
 export function ScheduleGrid({
   view,
   legendViews,
@@ -155,8 +161,8 @@ export function ScheduleGrid({
 
   if (view.kind === "loading") {
     return (
-      <div className={className} aria-busy={busy}>
-        <StateLegend views={legendViews} className="mb-3" />
+      <div className={cn("flex flex-col gap-2 sm:gap-3", className)} aria-busy={busy}>
+        <StateLegend views={legendViews} />
         <p role="status" className="sr-only">
           Loading the schedule
         </p>
@@ -186,7 +192,7 @@ export function ScheduleGrid({
           <EmptyState
             icon={CalendarDotsIcon}
             title="Closed all day"
-            body="The venue is not open on this day. Try another one with the arrows above."
+            body="The venue is not open on this day. Pick another one above."
           />
         )}
       </div>
@@ -199,10 +205,12 @@ export function ScheduleGrid({
   const isPast = (row: { endsAt: string }) => nowMs !== null && Date.parse(row.endsAt) <= nowMs;
   // The marker goes before the first row still to come; none when every row has ended.
   const markerBefore = nowMs === null ? -1 : grid.rows.findIndex((row) => !isPast(row));
+  // The landing's rule for the word beside each icon (spec 0018, AC-6).
+  const roomy = grid.courts.length <= 2;
 
   return (
-    <div className={className} aria-busy={busy}>
-      <StateLegend views={legendViews} className="mb-3" />
+    <div className={cn("flex flex-col gap-2 sm:gap-3", className)} aria-busy={busy}>
+      <StateLegend views={legendViews} />
 
       {/*
        * The sideways scroller (AC-7). Only this box scrolls, so the page itself
@@ -217,21 +225,18 @@ export function ScheduleGrid({
           aria-rowcount={grid.rows.length + 1}
           aria-colcount={grid.courts.length + 1}
           onKeyDown={onKeyDown}
-          className="grid min-w-max gap-px p-1"
+          className="grid min-w-max gap-1.5 p-0.5"
           style={{ gridTemplateColumns: columns }}
         >
           <div role="row" className="contents">
-            <div
-              role="columnheader"
-              className="bg-background text-caption text-muted-foreground w-time-col sticky left-0 z-20 grid place-items-center py-2"
-            >
-              Time
+            <div role="columnheader" className={cn(TIME_COLUMN, "z-20")}>
+              <span className="sr-only">Time</span>
             </div>
             {grid.courts.map((court) => (
               <div
                 key={court.id}
                 role="columnheader"
-                className="text-label grid place-items-center px-2 py-2 text-center"
+                className="text-label truncate px-1 py-1 text-center font-medium"
               >
                 {court.name}
               </div>
@@ -256,7 +261,8 @@ export function ScheduleGrid({
                 role="rowheader"
                 data-past={isPast(row) || undefined}
                 className={cn(
-                  "bg-background text-caption text-muted-foreground h-row w-time-col sticky left-0 z-10 grid place-items-center tabular-nums",
+                  TIME_COLUMN,
+                  "text-caption text-muted-foreground h-row z-10 flex items-center pr-1 tabular-nums",
                   row.outOfHours && "text-state-outofhours-fg",
                   isPast(row) && "opacity-60",
                 )}
@@ -287,6 +293,7 @@ export function ScheduleGrid({
                     caption={cellCaptions?.get(key)}
                     locked={locked}
                     past={isPast(row)}
+                    roomy={roomy}
                     onSelect={
                       canAct && onSelectCell
                         ? () => onSelectCell(cell.courtId, row.startsAt)

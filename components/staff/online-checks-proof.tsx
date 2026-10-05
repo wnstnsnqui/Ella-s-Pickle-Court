@@ -118,7 +118,7 @@ export function ProofThumbnail({
       <button
         type="button"
         onClick={() => void open()}
-        className="group border-input focus-visible:ring-ring/50 relative h-28 w-24 overflow-hidden rounded-xl border outline-none focus-visible:ring-[3px]"
+        className="group border-input focus-visible:outline-foreground relative h-28 w-24 overflow-hidden rounded-xl border outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-solid"
       >
         {/* A signed Storage URL, made in the browser: never `next/image`, which would proxy and cache it. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

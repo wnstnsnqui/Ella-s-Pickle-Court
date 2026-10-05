@@ -1,6 +1,6 @@
 "use client";
 
-import { SpinnerIcon } from "@phosphor-icons/react";
+import { SpinnerIcon, UserCircleIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 
 import { BoardSheet } from "@/components/board-sheet";
@@ -53,6 +53,7 @@ export function UserSheet({
 }) {
   return (
     <BoardSheet
+      icon={UserCircleIcon}
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}

@@ -14,7 +14,8 @@ import {
  *
  * Two things reach this on the boards: a venue with no courts on it yet, and a
  * day the venue is simply closed. They are different sentences, so they are
- * different props rather than one shrug.
+ * different props rather than one shrug. It is the landing's closed panel, a
+ * muted fill inside the board card (spec 0018, AC-5).
  */
 export function EmptyState({
   icon: Icon,
@@ -28,10 +29,10 @@ export function EmptyState({
   action?: React.ReactNode;
 }) {
   return (
-    <Empty className="border-border rounded-lg border border-dashed">
+    <Empty className="bg-muted rounded-2xl">
       <EmptyHeader>
-        <EmptyMedia variant="icon">
-          <Icon aria-hidden="true" />
+        <EmptyMedia variant="icon" className="bg-card size-11 rounded-2xl">
+          <Icon aria-hidden="true" weight="duotone" />
         </EmptyMedia>
         <EmptyTitle>{title}</EmptyTitle>
         <EmptyDescription>{body}</EmptyDescription>

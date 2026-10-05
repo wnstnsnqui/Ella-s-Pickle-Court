@@ -2,9 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
+import { BoardCard, ClosedDayPanel } from "@/components/board-card";
+import { BoardDayHeader } from "@/components/board-day-header";
 import { CELL_VIEWS, type CellView } from "@/components/schedule/cell-view";
 import { ScheduleGrid, type GridView } from "@/components/schedule/schedule-grid";
 import { useChangedCells } from "@/components/schedule/use-changed-cells";
+import { closedDaysOf } from "@/lib/schedule/grid";
 import { calendarDateInZone } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +20,9 @@ import { usePublicBoard } from "./public-schedule-context";
  * nothing acts. The interesting parts are about time and about staying
  * honest: the dimming follows the board's clock, the highlight follows what
  * changed under the reader, and every re read replaces the day whole.
+ *
+ * It sits in the landing's board card (spec 0018, AC-5), so a player who taps
+ * "Live schedule" on the landing page lands on the board they just saw.
  */
 
 /** How long a changed cell stays highlighted. Same as the staff board. */
@@ -29,7 +35,7 @@ const PUBLIC_LEGEND: readonly CellView[] = CELL_VIEWS.filter(
 );
 
 export function PublicBoard() {
-  const { schedule, now, requestRead, dayNavPending } = usePublicBoard();
+  const { schedule, now, requestRead, dayNavPending, pendingDate, goToDay } = usePublicBoard();
   const { grid } = schedule;
   const changedCells = useChangedCells(grid, CHANGED_HOLD_MS);
 
@@ -58,14 +64,22 @@ export function PublicBoard() {
         : { kind: "ready", grid };
 
   return (
-    <div className="flex flex-col gap-4">
+    <BoardCard
+      header={
+        <BoardDayHeader
+          date={grid.date}
+          pendingDate={pendingDate}
+          onNavigate={goToDay}
+          timezone={grid.timezone}
+          horizonDays={schedule.horizonDays}
+          now={schedule.now}
+          closedDays={closedDaysOf(schedule.hours)}
+        />
+      }
+    >
       {/* Spec 0007, AC-20: the grid stays, greyed, under a line that says so
           plainly, so a player gets the answer without reading the cells. */}
-      {grid.closed ? (
-        <p className="border-border bg-muted/40 text-body rounded-lg border border-dashed px-4 py-3">
-          <span className="text-label">Closed all day.</span> The venue is not open on this day.
-        </p>
-      ) : null}
+      {grid.closed ? <ClosedDayPanel /> : null}
 
       <ScheduleGrid
         view={view}
@@ -80,6 +94,6 @@ export function PublicBoard() {
         )}
         busy={dayNavPending}
       />
-    </div>
+    </BoardCard>
   );
 }

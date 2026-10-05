@@ -13,6 +13,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState } from "@/components/schedule/empty-state";
+import { SectionCard } from "@/components/section-card";
 import { firstName } from "@/components/staff/format";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -105,23 +106,23 @@ export function InvitePanel({
   };
 
   return (
-    <section aria-labelledby="links-heading" className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="links-heading" className="text-title">
-            Links
-          </h2>
-          <p className="text-body text-muted-foreground mt-1">
-            An invite creates an account with the role you choose. A reset lets someone set a new
-            password. Each link works once and for seven days.
-          </p>
-        </div>
-        <Button type="button" onClick={() => setMakeOpen(true)}>
+    <SectionCard
+      id="links"
+      icon={LinkSimpleIcon}
+      title="Links"
+      description="An invite creates an account with the role you choose. A reset lets someone set a new password. Each link works once and for seven days."
+      action={
+        <Button
+          type="button"
+          variant="ink"
+          onClick={() => setMakeOpen(true)}
+          className="press h-12 px-5"
+        >
           <PlusIcon aria-hidden="true" />
           Make a link
         </Button>
-      </div>
-
+      }
+    >
       {links.length === 0 ? (
         <EmptyState
           icon={LinkSimpleIcon}
@@ -129,7 +130,7 @@ export function InvitePanel({
           body="A link disappears from here once it is opened, revoked or seven days old. If someone's sign up failed after they opened their link, it is spent: make them a new one."
         />
       ) : (
-        <div className="border-border bg-card rounded-lg border p-4 sm:p-6">
+        <div>
           <ol className="divide-border divide-y">
             {links.map((link) => (
               <li
@@ -159,6 +160,7 @@ export function InvitePanel({
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="press rounded-full"
                   disabled={busyId !== null}
                   onClick={() => void revoke(link)}
                 >
@@ -185,7 +187,7 @@ export function InvitePanel({
         }}
       />
       <ShowLinkDialog link={made} onClose={() => setMade(null)} />
-    </section>
+    </SectionCard>
   );
 }
 
@@ -322,10 +324,15 @@ function MakeLinkDialog({
           ) : null}
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="press h-12"
+            >
               Cancel
             </Button>
-            <Button type="submit" disabled={pending}>
+            <Button type="submit" disabled={pending} className="press h-12">
               {pending ? <SpinnerIcon aria-hidden="true" className="animate-spin" /> : null}
               {pending ? "Making" : "Make link"}
             </Button>
@@ -384,14 +391,19 @@ function ShowLinkDialog({
               onFocus={(event) => event.currentTarget.select()}
               className="text-caption font-mono"
             />
-            <Button type="button" variant="outline" onClick={() => void copy()}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void copy()}
+              className="press h-12"
+            >
               {copied ? <CheckIcon aria-hidden="true" /> : <CopyIcon aria-hidden="true" />}
               {copied ? "Copied" : "Copy"}
             </Button>
           </div>
         </div>
         <DialogFooter>
-          <Button type="button" onClick={onClose}>
+          <Button type="button" onClick={onClose} className="press h-12">
             Done
           </Button>
         </DialogFooter>

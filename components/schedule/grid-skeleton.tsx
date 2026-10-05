@@ -19,14 +19,14 @@ export function GridSkeleton({
   return (
     <div className={cn("overflow-hidden", className)} aria-hidden="true">
       <div
-        className="grid gap-1"
+        className="grid gap-1.5 p-0.5"
         style={{
           gridTemplateColumns: `var(--col-time) repeat(${courts}, minmax(var(--col-court-min), 1fr))`,
         }}
       >
-        <Skeleton className="rounded-cell h-8" />
+        <Skeleton className="rounded-cell h-6" />
         {Array.from({ length: courts }, (_, court) => (
-          <Skeleton key={`head-${court}`} className="rounded-cell h-8" />
+          <Skeleton key={`head-${court}`} className="rounded-cell h-6" />
         ))}
         {Array.from({ length: rows }, (_, row) => (
           <Fragmented key={row} courts={courts} />

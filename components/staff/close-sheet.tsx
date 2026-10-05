@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SpinnerIcon } from "@phosphor-icons/react";
+import { ProhibitIcon, SpinnerIcon } from "@phosphor-icons/react";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
@@ -56,10 +56,11 @@ export function CloseSheet({
 
   return (
     <BoardSheet
+      icon={ProhibitIcon}
       open={open}
       onOpenChange={onOpenChange}
       returnFocusTo={returnFocusTo}
-      title="Close court"
+      title="Close hours"
       description={`${summary}. Players will see these hours as Unavailable.`}
       footer={
         <Button type="submit" form="close-form" disabled={pending} className="w-full">

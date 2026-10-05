@@ -12,7 +12,7 @@ export function ChartTooltip({
   const point = payload[0]?.payload;
   if (!point) return null;
   return (
-    <div className="border-border bg-popover text-popover-foreground rounded-md border px-2.5 py-1.5 text-xs shadow-sm">
+    <div className="bg-popover text-popover-foreground ring-border text-caption rounded-2xl px-3 py-2 shadow-sm ring-1">
       <p className="font-medium">{point.label}</p>
       <p>
         {point.bookedHours.toFixed(1)}h booked · {point.utilisationPercent}% utilisation

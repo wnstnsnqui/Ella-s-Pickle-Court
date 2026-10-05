@@ -2,7 +2,12 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { manila, scheduleFixture, WEEK } from "@/components/landing/test-fixture";
-import { VENUE_EMAIL, VENUE_MESSENGER_URL, VENUE_PHONE_DISPLAY } from "@/lib/venue";
+import {
+  VENUE_EMAIL,
+  VENUE_MAPS_LABEL,
+  VENUE_MESSENGER_URL,
+  VENUE_PHONE_DISPLAY,
+} from "@/lib/venue";
 
 /**
  * Spec 0013: `/` renders per request from one read of today (AC-1, AC-2), both
@@ -104,7 +109,9 @@ describe("/ on a live read", () => {
   it("lists the real week on Visit, grouped, with Messenger and Text us only (AC-18)", async () => {
     const html = await render();
     expect(html).toMatch(/Monday to Sunday<\/dt><dd[^>]*>6am to 10pm/);
-    expect(html).toContain("Cadulawan Road, Guindaruhan");
+    expect(html).toContain("Purok 13 Cadulawan");
+    expect(html).toContain("Minglanilla, Cebu 6046, Philippines");
+    expect(html).toContain(VENUE_MAPS_LABEL);
     expect(html).not.toMatch(/href="(tel|mailto):/);
     expect(html).toContain('href="sms:');
     expect(html).toContain(VENUE_MESSENGER_URL);
@@ -116,7 +123,8 @@ describe("/ on a live read", () => {
     const html = await render();
     expect(html).toContain('"@type":"SportsActivityLocation"');
     expect(html).toContain('"addressLocality":"Minglanilla"');
-    expect(html).toContain('"streetAddress":"Cadulawan Road, Guindaruhan"');
+    expect(html).toContain('"streetAddress":"Purok 13 Cadulawan"');
+    expect(html).toContain('"postalCode":"6046"');
     expect(html).toContain('"opens":"06:00","closes":"22:00"');
   });
 
