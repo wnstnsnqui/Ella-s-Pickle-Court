@@ -75,14 +75,14 @@ export const VENUE_EMAIL = "loriemariejaybual@gmail.com";
  * (spec 0015, AC-8). A placeholder until Ella supplies it; checkout stays off
  * while it is one (AC-26, build plan task 5).
  */
-export const PAYMENT_ACCOUNT_NAME = "Lorie Marie Bual";
+export const PAYMENT_ACCOUNT_NAME = "Mitch Kyla Laspuna";
 
 /**
  * The venue's QR Ph image, served from `public/` (spec 0015, AC-8). A
  * placeholder until Ella supplies it; the Payment step draws a marked empty
  * frame in its place rather than a broken image.
  */
-export const PAYMENT_QR_SRC = "/ws-qr.jpg";
+export const PAYMENT_QR_SRC = "/kylagcashqr.jpg";
 
 /** An `sms:` link to the front desk, with the message already written when given one. */
 export function smsHref(body?: string): string {
