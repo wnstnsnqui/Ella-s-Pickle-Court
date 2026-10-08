@@ -19,7 +19,15 @@ import { captureBookingIntent, captureBrowserException } from "@/lib/analytics/b
 import { openRows } from "@/lib/schedule/availability";
 import { closedDaysOf, type GridCourt, type GridRow } from "@/lib/schedule/grid";
 import type { Schedule } from "@/lib/schedule/queries";
-import { addDays, dayOfWeek, daysBetween, formatDayHeading, formatSlotLabel } from "@/lib/time";
+import {
+  addDays,
+  dayOfWeek,
+  daysBetween,
+  formatDayHeading,
+  formatSlotLabel,
+  formatSlotRange,
+  localEndTimeInZone,
+} from "@/lib/time";
 import { cn } from "@/lib/utils";
 import { formatPeso } from "@/lib/venue";
 
@@ -325,6 +333,7 @@ export function BookingPicker({
                 heading={heading ?? ""}
                 courts={grid.courts}
                 rows={rows}
+                timezone={grid.timezone}
                 nowMs={nowMs}
                 picks={livePicks}
                 onToggle={toggle}
@@ -575,6 +584,7 @@ function HoursTable({
   heading,
   courts,
   rows,
+  timezone,
   nowMs,
   picks,
   onToggle,
@@ -582,6 +592,7 @@ function HoursTable({
   heading: string;
   courts: GridCourt[];
   rows: GridRow[];
+  timezone: string;
   nowMs: number;
   picks: ReadonlySet<string>;
   onToggle: (key: string) => void;
@@ -592,7 +603,7 @@ function HoursTable({
       <caption className="sr-only">Court hours on {heading}</caption>
       <thead>
         <tr>
-          <th scope="col" className="w-14 sm:w-16">
+          <th scope="col" className="w-18 sm:w-20">
             <span className="sr-only">Time</span>
           </th>
           {courts.map((court) => (
@@ -609,13 +620,14 @@ function HoursTable({
       <tbody>
         {rows.map((row) => {
           const label = formatSlotLabel(row.label);
+          const range = formatSlotRange(row.label, localEndTimeInZone(row.endsAt, timezone));
           return (
             <tr key={row.startsAt}>
               <th
                 scope="row"
                 className="text-caption text-muted-foreground pr-1 text-left font-normal tabular-nums"
               >
-                {label}
+                {range}
               </th>
               {courts.map((court) => {
                 const cell = row.cells.find((entry) => entry.courtId === court.id);

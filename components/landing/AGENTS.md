@@ -20,6 +20,7 @@ to `/schedule`.
 | `notices.ts`                            | The two toasts: the read failed toast and the "online booking is coming soon" toast.                  |
 | `channels.tsx`                          | Messenger and Text us, the only two ways to book the page offers.                                       |
 | `press.ts`                              | `PRESS`, the tap feedback class every landing button wears.                                             |
+| `section-link.tsx`                      | `SectionLink`, the `Link` for `#offers`, `#book` and `#visit` that scrolls on every click, not only the first. |
 | `checkout-sheet.tsx`                    | The checkout card (spec 0015): a centered Radix dialog over `--overlay-soft`, the steps, the hold, Confirm and release. Mounted fresh per Book press. |
 | `checkout-payment.tsx`, `checkout-receipt.tsx`, `checkout-selection.tsx` | The Payment step (with Save QR code, which saves `PAYMENT_QR_SRC` byte for byte under its own extension), the screenshot upload hook and the hold banner; Review and the receipt (drawn by `components/receipt/`); the Selected courts and slots card and the summary line. |
 | `turnstile-widget.tsx`                  | The Turnstile widget on the Terms step, retried once quietly before checkout gives up on this device. |
@@ -34,6 +35,7 @@ to `/schedule`.
 - **"Request booking" books nothing.** It shows the coming soon toast and sends `booking_intent` (counts only) through `captureBookingIntent()`. It shows only while checkout is off (`checkoutEnabled()`, decided per request on the server); with checkout on the button reads "Book" and opens the checkout card, still sending `booking_intent`.
 - **However the checkout card closes, focus goes to the "Your booking" heading,** never the page body. The card dims with `--overlay-soft`, not `--overlay`, on purpose.
 - **The day strip changes with the screen.** From `lg` up it pages a week at a time with arrows; below `lg` it is one row that scrolls sideways through every bookable day. Both are rendered, CSS shows one, and each keeps its own radio group name.
+- **A link to a section of this page is a `SectionLink`, never a bare `Link`.** Next scrolls to a fragment only when the hash changes, so once the address ends in `#book` a plain `Link` to `/#book` stops responding. `SectionLink` scrolls that case itself and leaves every other click to `Link`.
 - **Sections open with `SectionHeading` and reveal on scroll through `data-reveal`** (the keyframes live in `app/globals.css`, and reduced motion arrives already in place).
 
 ## Related specs

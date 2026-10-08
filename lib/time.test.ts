@@ -128,6 +128,36 @@ describe("formatSlotLabel", () => {
   });
 });
 
+describe("formatSlotRange", () => {
+  it("writes a shared suffix once", async () => {
+    const { formatSlotRange } = await loadTime();
+    expect(formatSlotRange("05:00", "06:00")).toBe("5–6am");
+    expect(formatSlotRange("13:00", "14:00")).toBe("1–2pm");
+    expect(formatSlotRange("16:30", "17:00")).toBe("4:30–5pm");
+    expect(formatSlotRange("09:00", "09:30")).toBe("9–9:30am");
+  });
+
+  it("reads a noon or midnight start as pm or am", async () => {
+    const { formatSlotRange } = await loadTime();
+    expect(formatSlotRange("12:00", "13:00")).toBe("12–1pm");
+    expect(formatSlotRange("12:00", "12:30")).toBe("12–12:30pm");
+    expect(formatSlotRange("00:00", "01:00")).toBe("12–1am");
+  });
+
+  it("drops the start's suffix on an end at noon or midnight", async () => {
+    const { formatSlotRange } = await loadTime();
+    expect(formatSlotRange("11:00", "12:00")).toBe("11–12nn");
+    expect(formatSlotRange("11:30", "12:00")).toBe("11:30–12nn");
+    expect(formatSlotRange("23:00", "24:00")).toBe("11–12mn");
+  });
+
+  it("writes both suffixes when a range crosses noon", async () => {
+    const { formatSlotRange } = await loadTime();
+    expect(formatSlotRange("11:00", "14:00")).toBe("11am–2pm");
+    expect(formatSlotRange("11:30", "12:30")).toBe("11:30am–12:30pm");
+  });
+});
+
 describe("midnight as an end (spec 0007, AC-10)", () => {
   it("resolves 24:00 to the first instant of the next local day", async () => {
     const { zonedTimeToUtc } = await loadTime();

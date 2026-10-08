@@ -122,13 +122,7 @@ function CourtForm({
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  autoComplete="off"
-                  autoFocus
-                  placeholder="Court 3"
-                  maxLength={40}
-                />
+                <Input {...field} autoComplete="off" placeholder="Court 3" maxLength={40} />
               </FormControl>
               <FormDescription>
                 Up to 40 characters. No two live courts share a name.

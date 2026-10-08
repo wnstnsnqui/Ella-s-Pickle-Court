@@ -234,6 +234,29 @@ export function formatSlotLabel(label: string): string {
     : `${twelve}:${String(minute).padStart(2, "0")}${suffix}`;
 }
 
+/**
+ * A row's start and end down the side of the grid, as tight as the time column:
+ * `5–6am`, `12–1pm`, `4:30–5pm`. The suffix is written once when both ends share
+ * it, and twice when they do not, `11am–2pm`. An end at noon closes the morning
+ * and an end at midnight closes the night, so each shares the suffix of the half
+ * day it ends: `11–12nn`, `11:30–12nn`, `11–12mn`.
+ *
+ * Both inputs are venue local `HH:mm`; the end may be `24:00`, read from an
+ * instant with `localEndTimeInZone()`.
+ */
+export function formatSlotRange(start: string, end: string): string {
+  const from = formatSlotLabel(start);
+  const to = end === MIDNIGHT_END ? "12mn" : formatSlotLabel(end);
+
+  // Noon and midnight starts are pm and am for the purpose of sharing a suffix,
+  // and noon and midnight ends are am and pm.
+  const fromSuffix = from === "12nn" ? "pm" : from === "12mn" ? "am" : from.slice(-2);
+  const toSuffix = to === "12nn" ? "am" : to === "12mn" ? "pm" : to.slice(-2);
+  if (fromSuffix !== toSuffix) return `${from}–${to}`;
+  const bare = from === "12nn" || from === "12mn" ? "12" : from.slice(0, -2);
+  return `${bare}–${to}`;
+}
+
 const WEEKDAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 const MONTH_NAMES = [
   "Jan",

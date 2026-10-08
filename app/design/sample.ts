@@ -25,8 +25,10 @@ export function sampleGrid(date: string): Grid {
   const rows = Array.from({ length: 14 }, (_, index) => {
     const hour = 6 + index;
     const label = `${String(hour).padStart(2, "0")}:00`;
-    const startsAt = `${date}T${String(hour - 8).padStart(2, "0")}:00:00.000Z`;
-    const endsAt = `${date}T${String(hour - 7).padStart(2, "0")}:00:00.000Z`;
+    // Manila is UTC+8, so a 6am start is 22:00Z the day before.
+    const startMs = Date.parse(`${date}T00:00:00.000Z`) + (hour - 8) * 3_600_000;
+    const startsAt = new Date(startMs).toISOString();
+    const endsAt = new Date(startMs + 3_600_000).toISOString();
     return {
       startsAt,
       endsAt,

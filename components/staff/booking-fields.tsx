@@ -36,12 +36,10 @@ export type FieldIssues = Partial<Record<keyof BookFormValues, string[]>>;
 export function BookingFields({
   form,
   fresh,
-  autoFocusName = false,
   withPayment = true,
 }: {
   form: UseFormReturn<BookFormValues>;
   fresh?: BookFormValues | null;
-  autoFocusName?: boolean;
   /**
    * False on an online booking's row, whose payment is the staff check's to
    * record and whose amount is what the player paid (spec 0016, AC-11).
@@ -65,13 +63,7 @@ export function BookingFields({
           <FormItem>
             <FormLabel>Customer name</FormLabel>
             <FormControl>
-              <Input
-                {...field}
-                autoComplete="off"
-                autoFocus={autoFocusName}
-                placeholder="Who is playing"
-                maxLength={80}
-              />
+              <Input {...field} autoComplete="off" placeholder="Who is playing" maxLength={80} />
             </FormControl>
             {now("customerName")}
             <FormMessage />

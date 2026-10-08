@@ -1,9 +1,8 @@
-import Link from "next/link";
-
 import { Wordmark } from "@/components/wordmark";
 import { smsHref, VENUE_ADDRESS, VENUE_MESSENGER_URL, VENUE_NAME } from "@/lib/venue";
 
 import { FOOTER_LINE } from "./content";
+import { SectionLink } from "./section-link";
 
 type FooterLink = { href: string; label: string };
 
@@ -66,9 +65,9 @@ export function LandingFooter({ findBooking = false }: { findBooking?: boolean }
                       is for this app's own routes, and reads a bracketed
                       placeholder in a URL as a dynamic route and throws. */}
                   {link.href.startsWith("/") || link.href.startsWith("#") ? (
-                    <Link href={link.href} className={LINK}>
+                    <SectionLink href={link.href} className={LINK}>
                       {link.label}
-                    </Link>
+                    </SectionLink>
                   ) : (
                     <a href={link.href} className={LINK}>
                       {link.label}

@@ -82,7 +82,7 @@ export function BookSheet({
             }
           })}
         >
-          <BookingFields form={form} autoFocusName />
+          <BookingFields form={form} />
         </form>
       </Form>
     </BoardSheet>

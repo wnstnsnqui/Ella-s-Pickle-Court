@@ -1,5 +1,4 @@
 import { ArrowRightIcon, BroadcastIcon } from "@phosphor-icons/react/ssr";
-import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { formatSlotLabel } from "@/lib/time";
@@ -10,6 +9,7 @@ import { HERO } from "./content";
 import { HeroBoard } from "./hero-board";
 import type { HeroBoardData } from "./hero-data";
 import { PRESS } from "./press";
+import { SectionLink } from "./section-link";
 
 /** One step of the hero's arrival cascade (`[data-rise]` in `app/globals.css`). */
 export function rise(i: number) {
@@ -76,10 +76,10 @@ export function Hero({ board, stats }: { board: HeroBoardData | null; stats: Her
               size="lg"
               className={cn("bg-mark text-mark-foreground hover:bg-mark/90 h-12 px-6", PRESS)}
             >
-              <Link href="#book">
+              <SectionLink href="#book">
                 Book a court
                 <ArrowRightIcon aria-hidden="true" weight="bold" data-icon="inline-end" />
-              </Link>
+              </SectionLink>
             </Button>
           </div>
           <dl {...rise(4)} className="mt-4 flex flex-wrap gap-x-10 gap-y-6">

@@ -87,7 +87,6 @@ export function CloseSheet({
                 <FormControl>
                   <Textarea
                     {...field}
-                    autoFocus
                     placeholder="Optional: net down, a class, a repair"
                     maxLength={200}
                   />

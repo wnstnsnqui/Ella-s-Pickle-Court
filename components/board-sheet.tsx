@@ -14,6 +14,18 @@ import { cn } from "@/lib/utils";
 
 import { useMediaQuery, WIDE_QUERY } from "./use-media-query";
 
+/** The first thing in a sheet a person could act on, as Radix would pick it. */
+const FIRST_CONTROL = [
+  'input:not([type="hidden"]):not(:disabled)',
+  "textarea:not(:disabled)",
+  "select:not(:disabled)",
+  "button:not(:disabled)",
+  "a[href]",
+  '[tabindex]:not([tabindex="-1"])',
+]
+  .map((selector) => `${selector}:not([tabindex="-1"]):not([aria-hidden="true"])`)
+  .join(", ");
+
 /**
  * Every board sheet, in one shape. Spec 0005, AC-15, floating since spec
  * 0018, AC-11.
@@ -58,7 +70,7 @@ export function BoardSheet({
    */
   compact?: boolean;
   /**
-   * Radix hands focus to the first field when a sheet opens, which is right for
+   * The sheet hands focus to its first field once it has slid in, which is right for
    * a blank form but wrong for one that is already filled in: on a phone it
    * raises the keyboard over values the person opened the sheet to read. Pass
    * false and the panel itself takes focus instead, so the trap, Escape and Tab
@@ -72,10 +84,26 @@ export function BoardSheet({
       <SheetContent
         side={wide ? "right" : "bottom"}
         onOpenAutoFocus={(event) => {
-          if (focusOnOpen) return;
+          // Radix would focus on the sheet's first frame, while it still sits
+          // below the screen (or past its right edge). On iOS a field focused
+          // there raises the keyboard and scrolls the page to reveal it; the
+          // sheet then slides into place and lands with its top cut off. So the
+          // panel holds focus while the sheet moves, and the first control only
+          // takes it once the sheet has landed.
           event.preventDefault();
           const panel = event.currentTarget;
-          if (panel instanceof HTMLElement) panel.focus();
+          if (!(panel instanceof HTMLElement)) return;
+          panel.focus({ preventScroll: true });
+          if (!focusOnOpen) return;
+          Promise.all((panel.getAnimations?.() ?? []).map((animation) => animation.finished))
+            .then(() => {
+              // Leave it be if the person has already moved on, or closed it.
+              if (document.activeElement !== panel) return;
+              panel.querySelector<HTMLElement>(FIRST_CONTROL)?.focus();
+            })
+            .catch(() => {
+              // The sheet closed mid slide, which cancels its animation.
+            });
         }}
         onCloseAutoFocus={(event) => {
           // The opener may be gone by now (the bar unmounts once a booking

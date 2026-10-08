@@ -46,8 +46,8 @@ describe("ScheduleGrid with a clock", () => {
     expect(html).toContain("Court 1 at 3pm. Available</span>");
     const marker = html.indexOf("data-now-marker");
     expect(marker).toBeGreaterThan(-1);
-    expect(marker).toBeGreaterThan(html.indexOf("2pm"));
-    expect(marker).toBeLessThan(html.indexOf(">3pm<"));
+    expect(marker).toBeGreaterThan(html.indexOf(">2–3pm<"));
+    expect(marker).toBeLessThan(html.indexOf(">3–4pm<"));
     expect(html).toContain(">Now<");
   });
 
@@ -61,5 +61,22 @@ describe("ScheduleGrid with a clock", () => {
     const html = render();
     expect(html).not.toContain("data-past");
     expect(html).not.toContain("data-now-marker");
+  });
+});
+
+/**
+ * A long caption once widened every court past a phone's screen: the grid was
+ * sized to its max-content, so each `1fr` column grew to the widest unwrapped
+ * name in any of them. The grid takes its scroller's width instead.
+ */
+describe("ScheduleGrid width", () => {
+  it("is not sized to its content, so a long name cannot widen every court", () => {
+    const html = renderToStaticMarkup(
+      createElement(ScheduleGrid, { view: { kind: "ready", grid } }),
+    );
+    const gridTag = html.match(/<div[^>]*role="grid"[^>]*>/)?.[0] ?? "";
+
+    expect(gridTag).toContain("minmax(var(--col-court-min), 1fr)");
+    expect(gridTag).not.toMatch(/\b(min-)?w-(max|fit)\b/);
   });
 });

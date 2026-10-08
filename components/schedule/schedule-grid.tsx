@@ -4,7 +4,7 @@ import { CalendarDotsIcon, CourtBasketballIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { Grid } from "@/lib/schedule/grid";
-import { formatSlotLabel } from "@/lib/time";
+import { formatSlotLabel, formatSlotRange, localEndTimeInZone } from "@/lib/time";
 import { cn } from "@/lib/utils";
 
 import { cellKey } from "./cell-key";
@@ -203,6 +203,10 @@ export function ScheduleGrid({
   const columns = `var(--col-time) repeat(${grid.courts.length}, minmax(var(--col-court-min), 1fr))`;
   const nowMs = now === undefined ? null : Date.parse(now);
   const isPast = (row: { endsAt: string }) => nowMs !== null && Date.parse(row.endsAt) <= nowMs;
+  // The end comes from the instant, not the slot length, so an out of hours row
+  // shows the span it actually covers.
+  const rowLabel = (row: { label: string; endsAt: string }) =>
+    formatSlotRange(row.label, localEndTimeInZone(row.endsAt, grid.timezone));
   // The marker goes before the first row still to come; none when every row has ended.
   const markerBefore = nowMs === null ? -1 : grid.rows.findIndex((row) => !isPast(row));
   // The landing's rule for the word beside each icon (spec 0018, AC-6).
@@ -218,6 +222,13 @@ export function ScheduleGrid({
        * pinned inside it.
        */}
       <div className="overflow-x-auto">
+        {/*
+         * No `min-w-max` here: it sizes the grid to its max-content, where every
+         * `1fr` court column grows to the widest unwrapped text in any of them,
+         * so one long customer name blew every court up past the screen. Held to
+         * the scroller's width, the columns share it and stop at their minimum;
+         * past that they overflow and the scroller takes over.
+         */}
         <div
           ref={gridRef}
           role="grid"
@@ -225,7 +236,7 @@ export function ScheduleGrid({
           aria-rowcount={grid.rows.length + 1}
           aria-colcount={grid.courts.length + 1}
           onKeyDown={onKeyDown}
-          className="grid min-w-max gap-1.5 p-0.5"
+          className="grid gap-1.5 p-0.5"
           style={{ gridTemplateColumns: columns }}
         >
           <div role="row" className="contents">
@@ -267,7 +278,7 @@ export function ScheduleGrid({
                   isPast(row) && "opacity-60",
                 )}
               >
-                <time dateTime={row.startsAt}>{formatSlotLabel(row.label)}</time>
+                <time dateTime={row.startsAt}>{rowLabel(row)}</time>
               </div>
               {row.cells.map((cell, colIndex) => {
                 const key = cellKey(cell.courtId, row.startsAt);

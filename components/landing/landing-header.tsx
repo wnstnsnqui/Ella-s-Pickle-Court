@@ -1,11 +1,10 @@
 import { ArrowRightIcon } from "@phosphor-icons/react/ssr";
-import Link from "next/link";
-
 import { Button } from "@/components/ui/button";
 import { Wordmark } from "@/components/wordmark";
 import { cn } from "@/lib/utils";
 
 import { PRESS } from "./press";
+import { SectionLink } from "./section-link";
 
 /**
  * Rooted at `/`, so the same bar works from `/booking` (spec 0017, AC-17); on
@@ -43,12 +42,12 @@ export function LandingHeader({ findBooking = false }: { findBooking?: boolean }
         <ul className="hidden items-center gap-1 md:flex">
           {links.map((link) => (
             <li key={link.href}>
-              <Link
+              <SectionLink
                 href={link.href}
                 className="text-label text-muted-foreground hover:text-foreground hover:bg-muted rounded-full px-3 py-2 transition-colors duration-150"
               >
                 {link.label}
-              </Link>
+              </SectionLink>
             </li>
           ))}
         </ul>
@@ -56,10 +55,10 @@ export function LandingHeader({ findBooking = false }: { findBooking?: boolean }
           asChild
           className={cn("bg-mark text-mark-foreground hover:bg-mark/90 h-10 px-4", PRESS)}
         >
-          <Link href="/#book">
+          <SectionLink href="/#book">
             Book a court
             <ArrowRightIcon aria-hidden="true" weight="bold" data-icon="inline-end" />
-          </Link>
+          </SectionLink>
         </Button>
       </nav>
     </header>
